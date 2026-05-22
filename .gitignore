@@ -70,3 +70,11 @@ models/
 
 # Windows
 desktop.ini
+
+# Test outputs
+tests/output/
+test_output/
+*.test.log
+
+# Verification outputs  
+scripts/output/
