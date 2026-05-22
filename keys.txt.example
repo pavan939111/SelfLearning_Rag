@@ -1,0 +1,27 @@
+# Self-Learning and Self-Healing RAG Configuration
+# Copy this file to keys.txt and fill in your values
+# NEVER commit keys.txt to git
+
+# Qdrant Cloud
+QDRANT_URL=https://your-cluster.cloud.qdrant.io
+QDRANT_API_KEY=your_qdrant_api_key_here
+
+# Supabase
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your_supabase_anon_key_here
+
+# Google Gemini (get from aistudio.google.com)
+GEMINI_API_KEY=AIzaSy_your_key_here
+
+# Neo4j AuraDB
+NEO4J_URI=neo4j+s://xxxxxxxx.databases.neo4j.io
+NEO4J_USERNAME=neo4j
+NEO4J_PASSWORD=your_neo4j_password_here
+
+# Upstash Redis
+REDIS_URL=rediss://your-endpoint.upstash.io:6379
+REDIS_PASSWORD=your_redis_password_here
+
+# Optional — improves rate limits
+NCBI_API_KEY=your_ncbi_key_here
+SEMANTIC_SCHOLAR_API_KEY=your_s2_key_here

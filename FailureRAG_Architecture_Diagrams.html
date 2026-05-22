@@ -1,0 +1,2208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FailureRAG — Architecture Diagrams</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --bg2: #0f1525;
+    --bg3: #141b30;
+    --panel: #1a2240;
+    --panel2: #1e2845;
+    --border: #2a3a5c;
+    --border2: #344870;
+    --blue: #4a9eff;
+    --blue2: #2d7dd2;
+    --blue3: #1a5ca8;
+    --cyan: #00d4ff;
+    --cyan2: #00a8cc;
+    --green: #00e5a0;
+    --green2: #00b87d;
+    --orange: #ff8c42;
+    --orange2: #cc6e2e;
+    --red: #ff4d6d;
+    --red2: #cc3354;
+    --purple: #a855f7;
+    --purple2: #7c3aed;
+    --yellow: #ffd60a;
+    --text: #e8eef8;
+    --text2: #9aaac8;
+    --text3: #6b7d9e;
+    --mono: 'JetBrains Mono', monospace;
+    --display: 'Syne', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  .site-header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 24px 48px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .site-header h1 {
+    font-family: var(--display);
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--cyan);
+    letter-spacing: -0.5px;
+  }
+  .site-header .subtitle {
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .badge {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 11px;
+    color: var(--text2);
+    letter-spacing: 1px;
+  }
+
+  /* NAV */
+  .nav {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 48px;
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+  }
+  .nav-item {
+    padding: 14px 20px;
+    font-size: 12px;
+    color: var(--text3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+  .nav-item:hover { color: var(--text); border-bottom-color: var(--border2); }
+  .nav-item.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+
+  /* MAIN */
+  .main { padding: 48px; max-width: 1400px; margin: 0 auto; }
+
+  /* SECTION */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* SECTION TITLE */
+  .section-title {
+    font-family: var(--display);
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 8px;
+    letter-spacing: -1px;
+  }
+  .section-desc {
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 40px;
+    max-width: 700px;
+    line-height: 1.7;
+  }
+
+  /* DIAGRAM CONTAINER */
+  .diagram-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px;
+    margin-bottom: 40px;
+    overflow-x: auto;
+  }
+  .diagram-title {
+    font-family: var(--display);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--cyan);
+    margin-bottom: 6px;
+  }
+  .diagram-subtitle {
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+  }
+
+  /* FLOW DIAGRAM */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    min-width: 600px;
+  }
+
+  .flow-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .flow-row.multi {
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  /* NODES */
+  .node {
+    border-radius: 10px;
+    padding: 14px 20px;
+    font-size: 12px;
+    font-family: var(--mono);
+    text-align: center;
+    position: relative;
+    min-width: 160px;
+    max-width: 220px;
+    flex-shrink: 0;
+  }
+  .node .node-label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    opacity: 0.7;
+    margin-bottom: 4px;
+  }
+  .node .node-name {
+    font-weight: 600;
+    font-size: 13px;
+    line-height: 1.3;
+  }
+  .node .node-detail {
+    font-size: 10px;
+    opacity: 0.6;
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+
+  .node-trigger {
+    background: linear-gradient(135deg, #1a3a2a, #0f2a1a);
+    border: 1.5px solid var(--green);
+    color: var(--green);
+  }
+  .node-agent1 {
+    background: linear-gradient(135deg, #1a2a4a, #0f1a3a);
+    border: 1.5px solid var(--blue);
+    color: var(--blue);
+  }
+  .node-agent2 {
+    background: linear-gradient(135deg, #1a3a4a, #0f2a3a);
+    border: 1.5px solid var(--cyan);
+    color: var(--cyan);
+  }
+  .node-agent3 {
+    background: linear-gradient(135deg, #2a2a1a, #1a1a0f);
+    border: 1.5px solid var(--yellow);
+    color: var(--yellow);
+  }
+  .node-agent4a {
+    background: linear-gradient(135deg, #2a1a1a, #1a0f0f);
+    border: 1.5px solid var(--orange);
+    color: var(--orange);
+  }
+  .node-agent4b {
+    background: linear-gradient(135deg, #2a1a2a, #1a0f1a);
+    border: 1.5px solid var(--purple);
+    color: var(--purple);
+  }
+  .node-agent5a {
+    background: linear-gradient(135deg, #1a2a3a, #0f1a2a);
+    border: 1.5px solid #60a5fa;
+    color: #60a5fa;
+  }
+  .node-agent5b {
+    background: linear-gradient(135deg, #1a3a3a, #0f2a2a);
+    border: 1.5px solid #34d399;
+    color: #34d399;
+  }
+  .node-agent6 {
+    background: linear-gradient(135deg, #3a1a3a, #2a0f2a);
+    border: 1.5px solid #e879f9;
+    color: #e879f9;
+  }
+  .node-decision {
+    background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
+    border: 1.5px solid var(--text3);
+    color: var(--text2);
+    border-radius: 6px;
+    transform: rotate(0deg);
+    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+    width: 120px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 120px;
+    max-width: 120px;
+    padding: 8px;
+  }
+  .node-end {
+    background: linear-gradient(135deg, #3a1a1a, #2a0f0f);
+    border: 1.5px solid var(--red);
+    color: var(--red);
+    border-radius: 50%;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 80px;
+    max-width: 80px;
+    font-weight: 700;
+    font-size: 11px;
+  }
+  .node-start {
+    background: linear-gradient(135deg, #1a3a1a, #0f2a0f);
+    border: 1.5px solid var(--green);
+    color: var(--green);
+    border-radius: 50%;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 80px;
+    max-width: 80px;
+    font-weight: 700;
+    font-size: 11px;
+  }
+  .node-db {
+    background: linear-gradient(135deg, #1a1a3a, #0f0f2a);
+    border: 1.5px dashed var(--text3);
+    color: var(--text2);
+    border-radius: 6px;
+  }
+  .node-human {
+    background: linear-gradient(135deg, #3a2a1a, #2a1a0f);
+    border: 2px solid var(--orange);
+    color: var(--orange);
+    border-style: dashed;
+  }
+  .node-interrupt {
+    background: linear-gradient(135deg, #2a1a3a, #1a0f2a);
+    border: 2px dashed var(--purple);
+    color: var(--purple);
+  }
+
+  /* ARROWS */
+  .arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--text3);
+    font-size: 10px;
+    flex-shrink: 0;
+  }
+  .arrow-v {
+    width: 2px;
+    background: var(--border2);
+    margin: 0 auto;
+    flex: 1;
+    min-height: 24px;
+    position: relative;
+  }
+  .arrow-v::after {
+    content: '▼';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--text3);
+    font-size: 10px;
+  }
+  .arrow-h {
+    height: 2px;
+    background: var(--border2);
+    width: 32px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .arrow-h::after {
+    content: '▶';
+    position: absolute;
+    right: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text3);
+    font-size: 9px;
+  }
+  .arrow-label {
+    font-size: 9px;
+    color: var(--text3);
+    letter-spacing: 0.5px;
+    text-align: center;
+    padding: 2px 6px;
+  }
+  .arrow-yes { color: var(--green2); }
+  .arrow-no { color: var(--red2); }
+
+  /* PARALLEL CONTAINER */
+  .parallel-wrap {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    width: 100%;
+    justify-content: center;
+  }
+  .parallel-branch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    flex: 1;
+    max-width: 220px;
+  }
+  .parallel-header {
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+
+  /* CHECK ITEMS */
+  .checks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .check-item {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 11px;
+  }
+  .check-num {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .check-name { font-weight: 600; font-size: 12px; margin-bottom: 4px; }
+  .check-desc { color: var(--text2); font-size: 10px; line-height: 1.5; }
+  .check-result { margin-top: 6px; font-size: 10px; }
+  .pass { color: var(--green); }
+  .fail { color: var(--red); }
+
+  /* LEGEND */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text2);
+  }
+  .legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  /* GRID DIAGRAMS */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; }
+  @media (max-width: 900px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+  /* AGENT CARD */
+  .agent-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+  .agent-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .agent-num {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .agent-card-title {
+    font-family: var(--display);
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  .agent-card-role {
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  /* FLOW ITEMS COMPACT */
+  .flow-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--bg3);
+    border-radius: 6px;
+    border-left: 3px solid var(--border2);
+    font-size: 11px;
+    color: var(--text2);
+  }
+  .flow-step-num {
+    font-weight: 700;
+    color: var(--text3);
+    flex-shrink: 0;
+    width: 16px;
+  }
+  .flow-step.green { border-left-color: var(--green2); }
+  .flow-step.blue { border-left-color: var(--blue2); }
+  .flow-step.cyan { border-left-color: var(--cyan2); }
+  .flow-step.orange { border-left-color: var(--orange2); }
+  .flow-step.red { border-left-color: var(--red2); }
+  .flow-step.purple { border-left-color: var(--purple2); }
+  .flow-step.yellow { border-left-color: #a89000; }
+
+  /* DATABASE BLOCK */
+  .db-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin: 16px 0;
+  }
+  .db-block {
+    background: var(--panel);
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+  }
+  .db-icon { font-size: 24px; margin-bottom: 8px; }
+  .db-name { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+  .db-service { font-size: 10px; color: var(--text3); margin-bottom: 8px; }
+  .db-items { font-size: 10px; color: var(--text2); text-align: left; line-height: 1.6; }
+
+  /* MCP BLOCK */
+  .mcp-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .mcp-group-title {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .mcp-server {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--bg3);
+    border-radius: 6px;
+    margin-bottom: 6px;
+    font-size: 11px;
+  }
+  .mcp-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* METRIC BLOCKS */
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .metric-block {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .metric-layer { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text3); margin-bottom: 12px; }
+  .metric-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 11px; }
+  .metric-item:last-child { border-bottom: none; }
+  .metric-name { color: var(--text2); }
+  .metric-val { font-weight: 600; font-size: 12px; }
+
+  /* PATH SPLIT */
+  .path-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    width: 100%;
+  }
+  .path-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .path-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+  }
+  .path-hot { color: var(--cyan); border-color: rgba(0,212,255,0.2); }
+  .path-cold { color: var(--purple); border-color: rgba(168,85,247,0.2); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* CONNECTOR LINES SVG */
+  .connector-wrap { position: relative; }
+
+  /* TIMELINE */
+  .timeline { display: flex; flex-direction: column; gap: 0; }
+  .timeline-item {
+    display: flex;
+    gap: 20px;
+    position: relative;
+  }
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: 19px;
+    top: 40px;
+    bottom: 0;
+    width: 2px;
+    background: var(--border);
+  }
+  .timeline-item:last-child::before { display: none; }
+  .timeline-dot {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    flex-shrink: 0;
+    z-index: 1;
+  }
+  .timeline-content {
+    padding: 8px 0 32px;
+    flex: 1;
+  }
+  .timeline-week { font-size: 10px; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+  .timeline-title { font-family: var(--display); font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+  .timeline-items { font-size: 11px; color: var(--text2); line-height: 1.8; }
+
+  /* TABS FOR AGENTS */
+  .agent-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+  .agent-tab {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 11px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text2);
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+  .agent-tab:hover { color: var(--text); border-color: var(--border2); }
+  .agent-tab.active { color: var(--bg); font-weight: 600; }
+
+  .agent-flow-panel { display: none; }
+  .agent-flow-panel.active { display: block; }
+
+  /* BIG FLOW */
+  .big-flow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    width: 100%;
+  }
+  .big-node {
+    border-radius: 12px;
+    padding: 16px 28px;
+    font-size: 13px;
+    text-align: center;
+    position: relative;
+    width: 260px;
+  }
+  .big-node .bn-label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    opacity: 0.6;
+    margin-bottom: 4px;
+  }
+  .big-node .bn-name {
+    font-weight: 700;
+    font-size: 14px;
+    font-family: var(--display);
+  }
+  .big-node .bn-sub {
+    font-size: 10px;
+    opacity: 0.6;
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+
+  .va { /* vertical arrow */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 40px;
+  }
+  .va-line { width: 2px; flex: 1; background: var(--border2); }
+  .va-arrow { color: var(--text3); font-size: 10px; }
+  .va-label { font-size: 9px; color: var(--text3); text-align: center; }
+
+  .ha { /* horizontal arrow */
+    display: flex;
+    align-items: center;
+    width: 40px;
+  }
+  .ha-line { height: 2px; flex: 1; background: var(--border2); }
+  .ha-arrow { color: var(--text3); font-size: 9px; }
+
+  /* SPLIT NODE */
+  .split-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    width: 100%;
+    justify-content: center;
+  }
+  .split-branch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* SVG ARROWS */
+  .svg-connector {
+    overflow: visible;
+  }
+
+  /* TOOLTIP */
+  .tooltip-wrap { position: relative; display: inline-block; }
+  .tooltip-wrap:hover .tooltip { display: block; }
+  .tooltip {
+    display: none;
+    position: absolute;
+    bottom: 110%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 11px;
+    color: var(--text);
+    width: 200px;
+    z-index: 10;
+    line-height: 1.5;
+    pointer-events: none;
+  }
+
+  /* PRINT STYLES */
+  @media print {
+    body { background: white; color: black; }
+    .site-header, .nav { position: static; }
+    .section { display: block !important; page-break-before: always; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div>
+    <h1>FailureRAG</h1>
+    <div class="subtitle">Architecture Diagrams — Complete Reference</div>
+  </div>
+  <div class="badge">PRD v2.0 — May 2026</div>
+</header>
+
+<nav class="nav">
+  <div class="nav-item active" onclick="showSection('overview')">Overall Architecture</div>
+  <div class="nav-item" onclick="showSection('retrieval-graph')">Retrieval Graph</div>
+  <div class="nav-item" onclick="showSection('ingestion-graph')">Ingestion Graph</div>
+  <div class="nav-item" onclick="showSection('agents')">Agent Workflows</div>
+  <div class="nav-item" onclick="showSection('databases')">Data Architecture</div>
+  <div class="nav-item" onclick="showSection('mcp')">MCP Architecture</div>
+  <div class="nav-item" onclick="showSection('evaluation')">Evaluation Metrics</div>
+  <div class="nav-item" onclick="showSection('roadmap')">Build Roadmap</div>
+</nav>
+
+<main class="main">
+
+<!-- ══════════════════════════════════════════════════════
+     SECTION 1: OVERALL ARCHITECTURE
+══════════════════════════════════════════════════════ -->
+<div class="section active" id="section-overview">
+  <div class="section-title">Overall System Architecture</div>
+  <div class="section-desc">One unified self-healing RAG system operating in two parallel loops — a real-time hot path serving user queries and a continuous cold path healing the corpus. Eight agents. Eight MCP servers. Four cloud databases. All free tier.</div>
+
+  <div class="diagram-wrap">
+    <div class="diagram-title">System Overview — Two Parallel Loops</div>
+    <div class="diagram-subtitle">Hot path and cold path communicate only through shared database state</div>
+
+    <div class="path-split">
+      <div class="path-box">
+        <div class="path-label path-hot">⚡ HOT PATH — Real Time (Under 8 seconds P95)</div>
+        <div class="flow-compact">
+          <div class="flow-step cyan"><span class="flow-step-num">1</span><span>User query arrives → Redis cache check</span></div>
+          <div class="flow-step blue"><span class="flow-step-num">2</span><span>Agent 1 — Query classification + strategy selection</span></div>
+          <div class="flow-step blue"><span class="flow-step-num">3</span><span>Agent 1 — Agentic retrieval (5 strategies, iterative eval)</span></div>
+          <div class="flow-step blue"><span class="flow-step-num">4</span><span>Agent 1 — Answer generation (Gemini 2.0 Flash)</span></div>
+          <div class="flow-step cyan"><span class="flow-step-num">5</span><span>Agent 2 — 5 parallel evaluation checks (~1.5 sec)</span></div>
+          <div class="flow-step green"><span class="flow-step-num">6</span><span>PASS → Response assembly → User receives answer</span></div>
+          <div class="flow-step yellow"><span class="flow-step-num">7</span><span>FAIL → Agent 3 — Root cause classification (5 diagnostic tests)</span></div>
+          <div class="flow-step orange"><span class="flow-step-num">8</span><span>Class C → Agent 4A instant repair → Re-retrieve → Re-generate</span></div>
+          <div class="flow-step orange"><span class="flow-step-num">9</span><span>Class A/B → Agent 4B queued → Honest confidence flag returned</span></div>
+          <div class="flow-step blue"><span class="flow-step-num">10</span><span>Post-response: log to Supabase, notify Agent 6 (non-blocking)</span></div>
+        </div>
+      </div>
+      <div class="path-box">
+        <div class="path-label path-cold">🔄 COLD PATH — Background (Celery Workers)</div>
+        <div class="flow-compact">
+          <div class="flow-step purple"><span class="flow-step-num">1</span><span>Agent 5A — Daily bioRxiv/PubMed monitoring loop (APScheduler)</span></div>
+          <div class="flow-step purple"><span class="flow-step-num">2</span><span>Agent 5A — 4-check verification: domain → relationship → evidence → contradiction</span></div>
+          <div class="flow-step purple"><span class="flow-step-num">3</span><span>APPROVED → Agent 5B — Hierarchical chunking + metadata assignment</span></div>
+          <div class="flow-step purple"><span class="flow-step-num">4</span><span>Agent 5B — Staging validation (3 query types must pass)</span></div>
+          <div class="flow-step orange"><span class="flow-step-num">5</span><span>Large change? → INTERRUPT → Admin approval → Resume</span></div>
+          <div class="flow-step purple"><span class="flow-step-num">6</span><span>Agent 5B — Production promotion → Neo4j + Qdrant updated</span></div>
+          <div class="flow-step purple"><span class="flow-step-num">7</span><span>Agent 4B — Re-chunking / re-embedding repairs (from hot path queue)</span></div>
+          <div class="flow-step purple"><span class="flow-step-num">8</span><span>Agent 4B — Staging validation → Admin approval if large → Promote</span></div>
+          <div class="flow-step purple"><span class="flow-step-num">9</span><span>Agent 6 — Pattern detection, calibration maintenance, coverage gaps</span></div>
+          <div class="flow-step purple"><span class="flow-step-num">10</span><span>Agent 6 — Surfaces insights to admin dashboard</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="diagram-wrap">
+    <div class="diagram-title">Eight Agents — Responsibilities at a Glance</div>
+    <div class="diagram-subtitle">Each agent has exactly one responsibility — no overlap, no confusion</div>
+    <div class="grid-2">
+      <div>
+        <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--cyan);margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;">HOT PATH AGENTS</div>
+        <div class="flow-compact">
+          <div class="flow-step blue"><span class="flow-step-num">1</span><div><strong>Agentic Retrieval + Generation</strong><br><span style="color:var(--text3)">Classifies query → selects strategy → retrieves → evaluates → replans → generates</span></div></div>
+          <div class="flow-step cyan"><span class="flow-step-num">2</span><div><strong>Self Evaluation</strong><br><span style="color:var(--text3)">5 parallel checks: relevance, grounding, freshness, calibration, compositional</span></div></div>
+          <div class="flow-step yellow"><span class="flow-step-num">3</span><div><strong>Root Cause Classifier</strong><br><span style="color:var(--text3)">5 diagnostic tests → Class A (Data), B (Knowledge), C (Query)</span></div></div>
+          <div class="flow-step orange"><span class="flow-step-num">4A</span><div><strong>Instant Repair Agent</strong><br><span style="color:var(--text3)">Query rewriting, synonym expansion, live fetch fallback — all reversible</span></div></div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--purple);margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;">COLD PATH AGENTS</div>
+        <div class="flow-compact">
+          <div class="flow-step purple"><span class="flow-step-num">4B</span><div><strong>Background Repair Agent</strong><br><span style="color:var(--text3)">Re-chunking, re-embedding, metadata correction — staging validated</span></div></div>
+          <div class="flow-step" style="border-left-color:#4a7ab5"><span class="flow-step-num">5A</span><div><strong>Relevance Verification Agent</strong><br><span style="color:var(--text3)">4-check gatekeeper — domain filter, corpus relationship, evidence, contradiction</span></div></div>
+          <div class="flow-step" style="border-left-color:#2a8a6a"><span class="flow-step-num">5B</span><div><strong>Selective Ingestion Agent</strong><br><span style="color:var(--text3)">Hierarchical chunk + embed + metadata + staging validate + promote</span></div></div>
+          <div class="flow-step" style="border-left-color:#7a3ab5"><span class="flow-step-num">6</span><div><strong>Longitudinal Learning Agent</strong><br><span style="color:var(--text3)">Observes all agents — patterns, calibration, coverage gaps, insights</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="diagram-wrap">
+    <div class="diagram-title">Agent Communication — Information Flow</div>
+    <div class="diagram-subtitle">Agents communicate through database state — never direct calls between hot and cold path</div>
+
+    <div style="overflow-x:auto;">
+    <svg width="1200" height="400" viewBox="0 0 1200 400" style="display:block;margin:0 auto;">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#4a6a9e"/>
+        </marker>
+        <marker id="arr-green" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#00b87d"/>
+        </marker>
+        <marker id="arr-orange" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#cc6e2e"/>
+        </marker>
+        <marker id="arr-purple" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#7c3aed"/>
+        </marker>
+        <marker id="arr-cyan" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#00a8cc"/>
+        </marker>
+      </defs>
+
+      <!-- USER -->
+      <rect x="30" y="170" width="100" height="60" rx="8" fill="#1a3a2a" stroke="#00e5a0" stroke-width="1.5"/>
+      <text x="80" y="196" text-anchor="middle" fill="#00e5a0" font-family="JetBrains Mono" font-size="10" font-weight="600">USER</text>
+      <text x="80" y="212" text-anchor="middle" fill="#00e5a0" font-family="JetBrains Mono" font-size="9">Query</text>
+      <text x="80" y="224" text-anchor="middle" fill="#00e5a0" font-family="JetBrains Mono" font-size="9">↕ Answer</text>
+
+      <!-- A1 -->
+      <rect x="170" y="160" width="110" height="80" rx="8" fill="#1a2a4a" stroke="#4a9eff" stroke-width="1.5"/>
+      <text x="225" y="190" text-anchor="middle" fill="#4a9eff" font-family="JetBrains Mono" font-size="10" font-weight="600">AGENT 1</text>
+      <text x="225" y="206" text-anchor="middle" fill="#4a9eff" font-family="JetBrains Mono" font-size="9">Agentic</text>
+      <text x="225" y="218" text-anchor="middle" fill="#4a9eff" font-family="JetBrains Mono" font-size="9">Retrieval</text>
+      <text x="225" y="230" text-anchor="middle" fill="#4a9eff" font-family="JetBrains Mono" font-size="9">+ Generation</text>
+
+      <!-- A2 -->
+      <rect x="320" y="160" width="110" height="80" rx="8" fill="#1a3a4a" stroke="#00d4ff" stroke-width="1.5"/>
+      <text x="375" y="190" text-anchor="middle" fill="#00d4ff" font-family="JetBrains Mono" font-size="10" font-weight="600">AGENT 2</text>
+      <text x="375" y="206" text-anchor="middle" fill="#00d4ff" font-family="JetBrains Mono" font-size="9">Self</text>
+      <text x="375" y="218" text-anchor="middle" fill="#00d4ff" font-family="JetBrains Mono" font-size="9">Evaluation</text>
+      <text x="375" y="230" text-anchor="middle" fill="#00d4ff" font-family="JetBrains Mono" font-size="9">5 checks</text>
+
+      <!-- A3 -->
+      <rect x="470" y="160" width="110" height="80" rx="8" fill="#2a2a1a" stroke="#ffd60a" stroke-width="1.5"/>
+      <text x="525" y="190" text-anchor="middle" fill="#ffd60a" font-family="JetBrains Mono" font-size="10" font-weight="600">AGENT 3</text>
+      <text x="525" y="206" text-anchor="middle" fill="#ffd60a" font-family="JetBrains Mono" font-size="9">Root Cause</text>
+      <text x="525" y="218" text-anchor="middle" fill="#ffd60a" font-family="JetBrains Mono" font-size="9">Classifier</text>
+      <text x="525" y="230" text-anchor="middle" fill="#ffd60a" font-family="JetBrains Mono" font-size="9">5 tests</text>
+
+      <!-- A4A -->
+      <rect x="620" y="100" width="110" height="80" rx="8" fill="#2a1a1a" stroke="#ff8c42" stroke-width="1.5"/>
+      <text x="675" y="130" text-anchor="middle" fill="#ff8c42" font-family="JetBrains Mono" font-size="10" font-weight="600">AGENT 4A</text>
+      <text x="675" y="146" text-anchor="middle" fill="#ff8c42" font-family="JetBrains Mono" font-size="9">Instant</text>
+      <text x="675" y="158" text-anchor="middle" fill="#ff8c42" font-family="JetBrains Mono" font-size="9">Repair</text>
+      <text x="675" y="170" text-anchor="middle" fill="#ff8c42" font-family="JetBrains Mono" font-size="8">HOT PATH</text>
+
+      <!-- A4B -->
+      <rect x="620" y="220" width="110" height="80" rx="8" fill="#2a1a2a" stroke="#a855f7" stroke-width="1.5"/>
+      <text x="675" y="250" text-anchor="middle" fill="#a855f7" font-family="JetBrains Mono" font-size="10" font-weight="600">AGENT 4B</text>
+      <text x="675" y="266" text-anchor="middle" fill="#a855f7" font-family="JetBrains Mono" font-size="9">Background</text>
+      <text x="675" y="278" text-anchor="middle" fill="#a855f7" font-family="JetBrains Mono" font-size="9">Repair</text>
+      <text x="675" y="290" text-anchor="middle" fill="#a855f7" font-family="JetBrains Mono" font-size="8">COLD PATH</text>
+
+      <!-- A5A -->
+      <rect x="780" y="80" width="110" height="80" rx="8" fill="#1a2a3a" stroke="#60a5fa" stroke-width="1.5"/>
+      <text x="835" y="110" text-anchor="middle" fill="#60a5fa" font-family="JetBrains Mono" font-size="10" font-weight="600">AGENT 5A</text>
+      <text x="835" y="126" text-anchor="middle" fill="#60a5fa" font-family="JetBrains Mono" font-size="9">Relevance</text>
+      <text x="835" y="138" text-anchor="middle" fill="#60a5fa" font-family="JetBrains Mono" font-size="9">Verification</text>
+      <text x="835" y="150" text-anchor="middle" fill="#60a5fa" font-family="JetBrains Mono" font-size="8">COLD PATH</text>
+
+      <!-- A5B -->
+      <rect x="780" y="200" width="110" height="80" rx="8" fill="#1a3a3a" stroke="#34d399" stroke-width="1.5"/>
+      <text x="835" y="230" text-anchor="middle" fill="#34d399" font-family="JetBrains Mono" font-size="10" font-weight="600">AGENT 5B</text>
+      <text x="835" y="246" text-anchor="middle" fill="#34d399" font-family="JetBrains Mono" font-size="9">Selective</text>
+      <text x="835" y="258" text-anchor="middle" fill="#34d399" font-family="JetBrains Mono" font-size="9">Ingestion</text>
+      <text x="835" y="270" text-anchor="middle" fill="#34d399" font-family="JetBrains Mono" font-size="8">COLD PATH</text>
+
+      <!-- A6 -->
+      <rect x="940" y="160" width="110" height="80" rx="8" fill="#3a1a3a" stroke="#e879f9" stroke-width="1.5"/>
+      <text x="995" y="190" text-anchor="middle" fill="#e879f9" font-family="JetBrains Mono" font-size="10" font-weight="600">AGENT 6</text>
+      <text x="995" y="206" text-anchor="middle" fill="#e879f9" font-family="JetBrains Mono" font-size="9">Longitudinal</text>
+      <text x="995" y="218" text-anchor="middle" fill="#e879f9" font-family="JetBrains Mono" font-size="9">Learning</text>
+      <text x="995" y="230" text-anchor="middle" fill="#e879f9" font-family="JetBrains Mono" font-size="8">COLD PATH</text>
+
+      <!-- DATABASES -->
+      <rect x="440" y="330" width="80" height="44" rx="6" fill="#1a1a3a" stroke="#2a3a5c" stroke-width="1" stroke-dasharray="4"/>
+      <text x="480" y="350" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="9">Qdrant</text>
+      <text x="480" y="365" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">Vectors</text>
+
+      <rect x="540" y="330" width="80" height="44" rx="6" fill="#1a1a3a" stroke="#2a3a5c" stroke-width="1" stroke-dasharray="4"/>
+      <text x="580" y="350" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="9">Supabase</text>
+      <text x="580" y="365" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">Logs</text>
+
+      <rect x="640" y="330" width="80" height="44" rx="6" fill="#1a1a3a" stroke="#2a3a5c" stroke-width="1" stroke-dasharray="4"/>
+      <text x="680" y="350" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="9">Neo4j</text>
+      <text x="680" y="365" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">Graph</text>
+
+      <rect x="740" y="330" width="80" height="44" rx="6" fill="#1a1a3a" stroke="#2a3a5c" stroke-width="1" stroke-dasharray="4"/>
+      <text x="780" y="350" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="9">Redis</text>
+      <text x="780" y="365" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">Queue</text>
+
+      <!-- ARROWS - HOT PATH -->
+      <line x1="130" y1="200" x2="168" y2="200" stroke="#4a6a9e" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="280" y1="200" x2="318" y2="200" stroke="#4a6a9e" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="430" y1="200" x2="468" y2="200" stroke="#4a6a9e" stroke-width="1.5" marker-end="url(#arr)"/>
+      <!-- A3 to A4A -->
+      <line x1="580" y1="180" x2="618" y2="155" stroke="#cc6e2e" stroke-width="1.5" marker-end="url(#arr-orange)"/>
+      <text x="588" y="165" fill="#cc6e2e" font-family="JetBrains Mono" font-size="8">Class C</text>
+      <!-- A3 to A4B -->
+      <line x1="580" y1="220" x2="618" y2="252" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#arr-purple)"/>
+      <text x="588" y="244" fill="#7c3aed" font-family="JetBrains Mono" font-size="8">Class A/B</text>
+      <!-- A4A back to A1 (repair loop) -->
+      <path d="M 675 100 C 675 60 225 60 225 160" stroke="#cc6e2e" stroke-width="1" stroke-dasharray="4" fill="none" marker-end="url(#arr-orange)"/>
+      <text x="440" y="50" fill="#cc6e2e" font-family="JetBrains Mono" font-size="8" text-anchor="middle">instant repair loop</text>
+
+      <!-- COLD PATH ARROWS -->
+      <!-- A5A to A5B -->
+      <line x1="835" y1="160" x2="835" y2="198" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#arr-purple)"/>
+      <text x="850" y="182" fill="#7c3aed" font-family="JetBrains Mono" font-size="8">approved</text>
+      <!-- A4B to Qdrant -->
+      <line x1="675" y1="300" x2="680" y2="328" stroke="#7c3aed" stroke-width="1" stroke-dasharray="3" marker-end="url(#arr-purple)"/>
+      <!-- A5B to Qdrant -->
+      <line x1="835" y1="280" x2="710" y2="328" stroke="#2a8a6a" stroke-width="1" stroke-dasharray="3" marker-end="url(#arr-green)"/>
+      <!-- All to Supabase -->
+      <line x1="375" y1="240" x2="540" y2="330" stroke="#4a6a9e" stroke-width="1" stroke-dasharray="3" marker-end="url(#arr)"/>
+      <!-- A6 reads Supabase -->
+      <line x1="940" y1="200" x2="740" y2="352" stroke="#7a2ab5" stroke-width="1" stroke-dasharray="3" marker-end="url(#arr-purple)"/>
+      <text x="860" y="295" fill="#7a2ab5" font-family="JetBrains Mono" font-size="8">reads all logs</text>
+
+      <!-- Redis queue for A4B -->
+      <line x1="675" y1="300" x2="762" y2="352" stroke="#7c3aed" stroke-width="1" stroke-dasharray="3" marker-end="url(#arr-purple)"/>
+
+      <!-- LABELS -->
+      <text x="600" y="390" text-anchor="middle" fill="#4a6a9e" font-family="JetBrains Mono" font-size="9">─ ─ ─  background / async communication through databases</text>
+      <text x="300" y="390" text-anchor="middle" fill="#4a9eff" font-family="JetBrains Mono" font-size="9">——  synchronous hot path flow</text>
+    </svg>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SECTION 2: RETRIEVAL GRAPH
+══════════════════════════════════════════════════════ -->
+<div class="section" id="section-retrieval-graph">
+  <div class="section-title">Retrieval Graph — LangGraph</div>
+  <div class="section-desc">Triggered by every user query. Agents 1, 2, 3, 4A operate in this graph. Communicates with cold path only through Redis queue (fire and forget) and Supabase logging (post-response, non-blocking).</div>
+
+  <div class="diagram-wrap">
+    <div class="diagram-title">Complete Retrieval Graph — Node by Node</div>
+    <div class="diagram-subtitle">All conditional edge logic shown</div>
+
+    <div style="overflow-x:auto;">
+    <svg width="900" height="1200" viewBox="0 0 900 1200" style="display:block;margin:0 auto;">
+      <defs>
+        <marker id="r-arr" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4a6a9e"/></marker>
+        <marker id="r-grn" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#00b87d"/></marker>
+        <marker id="r-red" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#cc3354"/></marker>
+        <marker id="r-org" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#cc6e2e"/></marker>
+        <marker id="r-pur" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#7c3aed"/></marker>
+        <marker id="r-yel" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#a89000"/></marker>
+        <marker id="r-cyn" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#00a8cc"/></marker>
+      </defs>
+
+      <!-- NODE: START -->
+      <circle cx="450" cy="40" r="28" fill="#1a3a1a" stroke="#00e5a0" stroke-width="2"/>
+      <text x="450" y="36" text-anchor="middle" fill="#00e5a0" font-family="JetBrains Mono" font-size="9" font-weight="700">START</text>
+      <text x="450" y="50" text-anchor="middle" fill="#00e5a0" font-family="JetBrains Mono" font-size="8">query</text>
+
+      <!-- ARROW -->
+      <line x1="450" y1="68" x2="450" y2="88" stroke="#4a6a9e" stroke-width="1.5" marker-end="url(#r-arr)"/>
+
+      <!-- NODE: QUERY INTAKE -->
+      <rect x="330" y="90" width="240" height="60" rx="8" fill="#1a3a4a" stroke="#00d4ff" stroke-width="1.5"/>
+      <text x="450" y="110" text-anchor="middle" fill="#00d4ff" font-family="JetBrains Mono" font-size="10" font-weight="600">QUERY INTAKE</text>
+      <text x="450" y="126" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">Redis cache check → hit: skip to generation</text>
+      <text x="450" y="140" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">miss: initialize retrieval state object</text>
+
+      <!-- Cache hit shortcut -->
+      <line x1="570" y1="120" x2="640" y2="120" stroke="#00a8cc" stroke-width="1" stroke-dasharray="4"/>
+      <text x="680" y="116" fill="#00a8cc" font-family="JetBrains Mono" font-size="8">cache hit</text>
+      <line x1="640" y1="120" x2="640" y2="710" stroke="#00a8cc" stroke-width="1" stroke-dasharray="4"/>
+      <line x1="640" y1="710" x2="572" y2="710" stroke="#00a8cc" stroke-width="1" stroke-dasharray="4" marker-end="url(#r-cyn)"/>
+
+      <line x1="450" y1="150" x2="450" y2="170" stroke="#4a6a9e" stroke-width="1.5" marker-end="url(#r-arr)"/>
+
+      <!-- NODE: QUERY CLASSIFICATION -->
+      <rect x="330" y="172" width="240" height="60" rx="8" fill="#1a2a4a" stroke="#4a9eff" stroke-width="1.5"/>
+      <text x="450" y="192" text-anchor="middle" fill="#4a9eff" font-family="JetBrains Mono" font-size="10" font-weight="600">QUERY CLASSIFICATION</text>
+      <text x="450" y="208" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">Agent 1 — Gemini Flash</text>
+      <text x="450" y="222" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">simple / multi-hop / comparative / temporal / exploratory</text>
+
+      <line x1="450" y1="232" x2="450" y2="252" stroke="#4a6a9e" stroke-width="1.5" marker-end="url(#r-arr)"/>
+
+      <!-- NODE: QUERY EXPANSION -->
+      <rect x="330" y="254" width="240" height="60" rx="8" fill="#1a2a4a" stroke="#4a9eff" stroke-width="1.5"/>
+      <text x="450" y="274" text-anchor="middle" fill="#4a9eff" font-family="JetBrains Mono" font-size="10" font-weight="600">QUERY EXPANSION</text>
+      <text x="450" y="290" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">UMLS medical synonym expansion</text>
+      <text x="450" y="304" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">Abbreviation expansion + cache embedding</text>
+
+      <line x1="450" y1="314" x2="450" y2="334" stroke="#4a6a9e" stroke-width="1.5" marker-end="url(#r-arr)"/>
+
+      <!-- NODE: STRATEGY EXECUTION -->
+      <rect x="280" y="336" width="340" height="100" rx="8" fill="#1a2a4a" stroke="#4a9eff" stroke-width="2"/>
+      <text x="450" y="360" text-anchor="middle" fill="#4a9eff" font-family="JetBrains Mono" font-size="10" font-weight="700">STRATEGY EXECUTION</text>
+      <text x="450" y="378" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">Agent 1 — Strategy Router</text>
+      <text x="305" y="396" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">• single_shot_hybrid</text>
+      <text x="305" y="410" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">• iterative_decomposed</text>
+      <text x="460" y="396" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">• parallel_comparative</text>
+      <text x="460" y="410" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">• freshness_prioritized</text>
+      <text x="460" y="424" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">• broad_then_deep</text>
+
+      <!-- Strategy to Live Fetch -->
+      <line x1="280" y1="386" x2="200" y2="386" stroke="#cc6e2e" stroke-width="1" stroke-dasharray="4"/>
+      <line x1="200" y1="386" x2="200" y2="470" stroke="#cc6e2e" stroke-width="1" stroke-dasharray="4" marker-end="url(#r-org)"/>
+      <text x="120" y="382" fill="#cc6e2e" font-family="JetBrains Mono" font-size="8">freshness</text>
+      <text x="120" y="394" fill="#cc6e2e" font-family="JetBrains Mono" font-size="8">stale →</text>
+
+      <line x1="450" y1="436" x2="450" y2="456" stroke="#4a6a9e" stroke-width="1.5" marker-end="url(#r-arr)"/>
+
+      <!-- NODE: RETRIEVAL EVALUATION -->
+      <rect x="310" y="458" width="280" height="70" rx="8" fill="#2a2a1a" stroke="#ffd60a" stroke-width="1.5"/>
+      <text x="450" y="480" text-anchor="middle" fill="#ffd60a" font-family="JetBrains Mono" font-size="10" font-weight="600">RETRIEVAL EVALUATION</text>
+      <text x="450" y="496" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">Agent 1 — Sufficiency check</text>
+      <text x="450" y="512" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">relevance + freshness + completeness</text>
+
+      <!-- Sufficient -->
+      <text x="560" y="476" fill="#00b87d" font-family="JetBrains Mono" font-size="8">sufficient</text>
+      <line x1="590" y1="483" x2="660" y2="483" stroke="#00b87d" stroke-width="1.5"/>
+      <line x1="660" y1="483" x2="660" y2="590" stroke="#00b87d" stroke-width="1.5"/>
+      <line x1="660" y1="590" x2="592" y2="590" stroke="#00b87d" stroke-width="1.5" marker-end="url(#r-grn)"/>
+
+      <!-- Not sufficient → replan -->
+      <line x1="310" y1="493" x2="200" y2="493" stroke="#cc3354" stroke-width="1" stroke-dasharray="3"/>
+      <line x1="200" y1="493" x2="200" y2="386" stroke="#cc3354" stroke-width="1" stroke-dasharray="3" marker-end="url(#r-red)"/>
+      <text x="100" y="440" fill="#cc3354" font-family="JetBrains Mono" font-size="8">replan</text>
+      <text x="100" y="452" fill="#cc3354" font-family="JetBrains Mono" font-size="8">(max 2x)</text>
+
+      <!-- NODE: LIVE FETCH FALLBACK -->
+      <rect x="80" y="472" width="160" height="60" rx="8" fill="#2a1a1a" stroke="#ff8c42" stroke-width="1.5"/>
+      <text x="160" y="492" text-anchor="middle" fill="#ff8c42" font-family="JetBrains Mono" font-size="10" font-weight="600">LIVE FETCH</text>
+      <text x="160" y="508" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">Agent 4A</text>
+      <text x="160" y="522" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">PubMed + Scholar + bioRxiv</text>
+      <line x1="240" y1="502" x2="310" y2="502" stroke="#cc6e2e" stroke-width="1.5" marker-end="url(#r-org)"/>
+
+      <line x1="450" y1="528" x2="450" y2="548" stroke="#4a6a9e" stroke-width="1.5" marker-end="url(#r-arr)"/>
+
+      <!-- NODE: GENERATION -->
+      <rect x="310" y="550" width="280" height="60" rx="8" fill="#1a2a4a" stroke="#4a9eff" stroke-width="1.5"/>
+      <text x="450" y="572" text-anchor="middle" fill="#4a9eff" font-family="JetBrains Mono" font-size="10" font-weight="600">GENERATION</text>
+      <text x="450" y="588" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">Agent 1 — Gemini 2.0 Flash</text>
+      <text x="450" y="602" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">Grounded answer + expressed confidence</text>
+
+      <line x1="450" y1="610" x2="450" y2="630" stroke="#4a6a9e" stroke-width="1.5" marker-end="url(#r-arr)"/>
+
+      <!-- NODE: SELF EVALUATION -->
+      <rect x="280" y="632" width="340" height="80" rx="8" fill="#1a3a4a" stroke="#00d4ff" stroke-width="2"/>
+      <text x="450" y="655" text-anchor="middle" fill="#00d4ff" font-family="JetBrains Mono" font-size="10" font-weight="700">SELF EVALUATION — AGENT 2</text>
+      <text x="450" y="671" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">5 parallel checks (~1.5 sec async)</text>
+      <text x="295" y="688" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">① Retrieval Relevance</text>
+      <text x="295" y="700" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">② Grounding</text>
+      <text x="440" y="688" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">③ Freshness</text>
+      <text x="440" y="700" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">④ Calibration  ⑤ Compositional</text>
+
+      <!-- PASS -->
+      <text x="560" y="660" fill="#00b87d" font-family="JetBrains Mono" font-size="8">PASS</text>
+      <line x1="620" y1="672" x2="720" y2="672" stroke="#00b87d" stroke-width="1.5" marker-end="url(#r-grn)"/>
+
+      <!-- FAIL -->
+      <line x1="450" y1="712" x2="450" y2="732" stroke="#cc3354" stroke-width="1.5" marker-end="url(#r-red)"/>
+      <text x="460" y="726" fill="#cc3354" font-family="JetBrains Mono" font-size="8">FAIL</text>
+
+      <!-- NODE: ROOT CAUSE CLASSIFICATION -->
+      <rect x="290" y="734" width="320" height="80" rx="8" fill="#2a2a1a" stroke="#ffd60a" stroke-width="2"/>
+      <text x="450" y="756" text-anchor="middle" fill="#ffd60a" font-family="JetBrains Mono" font-size="10" font-weight="700">ROOT CAUSE — AGENT 3</text>
+      <text x="450" y="772" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">5 diagnostic tests — Flash Thinking</text>
+      <text x="305" y="790" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">existence → chunking → embedding</text>
+      <text x="305" y="803" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">→ query processing → metadata filter</text>
+
+      <!-- Class C → 4A -->
+      <line x1="290" y1="774" x2="200" y2="774" stroke="#cc6e2e" stroke-width="1.5"/>
+      <line x1="200" y1="774" x2="200" y2="858" stroke="#cc6e2e" stroke-width="1.5" marker-end="url(#r-org)"/>
+      <text x="115" y="798" fill="#cc6e2e" font-family="JetBrains Mono" font-size="8">Class C</text>
+      <text x="115" y="810" fill="#cc6e2e" font-family="JetBrains Mono" font-size="8">&gt;65% conf</text>
+
+      <!-- Class A/B → 4B queue -->
+      <line x1="610" y1="774" x2="720" y2="774" stroke="#7c3aed" stroke-width="1.5"/>
+      <line x1="720" y1="774" x2="720" y2="858" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#r-pur)"/>
+      <text x="625" y="768" fill="#7c3aed" font-family="JetBrains Mono" font-size="8">Class A/B</text>
+      <text x="625" y="780" fill="#7c3aed" font-family="JetBrains Mono" font-size="8">&gt;85% conf</text>
+
+      <!-- Below threshold → escalate -->
+      <line x1="450" y1="814" x2="450" y2="834" stroke="#4a6a9e" stroke-width="1" stroke-dasharray="3" marker-end="url(#r-arr)"/>
+      <text x="460" y="828" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">&lt;65% → escalate</text>
+
+      <!-- NODE: INSTANT REPAIR 4A -->
+      <rect x="80" y="860" width="180" height="60" rx="8" fill="#2a1a1a" stroke="#ff8c42" stroke-width="1.5"/>
+      <text x="170" y="880" text-anchor="middle" fill="#ff8c42" font-family="JetBrains Mono" font-size="10" font-weight="600">INSTANT REPAIR</text>
+      <text x="170" y="896" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">Agent 4A</text>
+      <text x="170" y="910" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">rewrite / expand / live-fetch</text>
+      <!-- Loop back to strategy -->
+      <line x1="80" y1="890" x2="40" y2="890" stroke="#cc6e2e" stroke-width="1" stroke-dasharray="4"/>
+      <line x1="40" y1="890" x2="40" y2="366" stroke="#cc6e2e" stroke-width="1" stroke-dasharray="4"/>
+      <line x1="40" y1="366" x2="278" y2="366" stroke="#cc6e2e" stroke-width="1" stroke-dasharray="4" marker-end="url(#r-org)"/>
+      <text x="15" y="640" fill="#cc6e2e" font-family="JetBrains Mono" font-size="8" text-anchor="middle" transform="rotate(-90, 15, 640)">retry loop (max 2x)</text>
+
+      <!-- NODE: BACKGROUND QUEUE 4B -->
+      <rect x="640" y="860" width="180" height="60" rx="8" fill="#2a1a2a" stroke="#a855f7" stroke-width="1.5"/>
+      <text x="730" y="880" text-anchor="middle" fill="#a855f7" font-family="JetBrains Mono" font-size="10" font-weight="600">BG QUEUE</text>
+      <text x="730" y="896" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">Agent 4B triggered</text>
+      <text x="730" y="910" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">via Redis → Celery</text>
+
+      <!-- NODE: RESPONSE ASSEMBLY -->
+      <rect x="310" y="840" width="280" height="60" rx="8" fill="#1a3a2a" stroke="#00e5a0" stroke-width="1.5"/>
+      <text x="450" y="862" text-anchor="middle" fill="#00e5a0" font-family="JetBrains Mono" font-size="10" font-weight="600">RESPONSE ASSEMBLY</text>
+      <text x="450" y="878" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">Answer + calibrated confidence + sources</text>
+      <text x="450" y="892" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">freshness indicator + uncertainty flags</text>
+
+      <!-- All paths converge to response -->
+      <line x1="730" y1="860" x2="592" y2="870" stroke="#7c3aed" stroke-width="1" stroke-dasharray="3" marker-end="url(#r-pur)"/>
+      <line x1="260" y1="890" x2="310" y2="870" stroke="#cc6e2e" stroke-width="1" stroke-dasharray="3" marker-end="url(#r-org)"/>
+
+      <!-- Pass path from evaluation -->
+      <rect x="722" y="648" width="150" height="48" rx="8" fill="#1a3a2a" stroke="#00e5a0" stroke-width="1"/>
+      <text x="797" y="668" text-anchor="middle" fill="#00e5a0" font-family="JetBrains Mono" font-size="9" font-weight="600">PASS PATH</text>
+      <text x="797" y="684" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="8">→ Response Assembly</text>
+      <line x1="797" y1="696" x2="590" y2="862" stroke="#00b87d" stroke-width="1" stroke-dasharray="3" marker-end="url(#r-grn)"/>
+
+      <line x1="450" y1="900" x2="450" y2="920" stroke="#4a6a9e" stroke-width="1.5" marker-end="url(#r-arr)"/>
+
+      <!-- NODE: POST RESPONSE LOGGING -->
+      <rect x="310" y="922" width="280" height="60" rx="8" fill="#141b30" stroke="#2a3a5c" stroke-width="1"/>
+      <text x="450" y="942" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="10" font-weight="600">POST RESPONSE LOGGING</text>
+      <text x="450" y="958" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="9">non-blocking — after response sent</text>
+      <text x="450" y="972" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="9">Supabase query trace + notify Agent 6</text>
+
+      <line x1="450" y1="982" x2="450" y2="1000" stroke="#4a6a9e" stroke-width="1.5" marker-end="url(#r-arr)"/>
+
+      <!-- END -->
+      <circle cx="450" cy="1020" r="22" fill="#3a1a1a" stroke="#ff4d6d" stroke-width="2"/>
+      <text x="450" y="1016" text-anchor="middle" fill="#ff4d6d" font-family="JetBrains Mono" font-size="9" font-weight="700">END</text>
+      <text x="450" y="1030" text-anchor="middle" fill="#ff4d6d" font-family="JetBrains Mono" font-size="8">→ user</text>
+
+      <!-- USER arrow (answer back) -->
+      <line x1="450" y1="840" x2="450" y2="762" stroke="#00e5a0" stroke-width="2"/>
+      <text x="370" y="810" fill="#00e5a0" font-family="JetBrains Mono" font-size="8">→ USER receives answer here</text>
+    </svg>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SECTION 3: INGESTION GRAPH
+══════════════════════════════════════════════════════ -->
+<div class="section" id="section-ingestion-graph">
+  <div class="section-title">Ingestion Graph — LangGraph</div>
+  <div class="section-desc">Triggered by three events: scheduled monitoring, coverage gap signal, or live fetch promotion. Agents 5A and 5B operate in this graph. Two LangGraph interrupt nodes for human-in-the-loop approval.</div>
+
+  <div class="diagram-wrap">
+    <div class="diagram-title">Complete Ingestion Graph — Node by Node</div>
+    <div class="diagram-subtitle">Human interrupt nodes shown with dashed borders — graph pauses and persists state</div>
+
+    <div style="overflow-x:auto;">
+    <svg width="800" height="1300" viewBox="0 0 800 1300" style="display:block;margin:0 auto;">
+      <defs>
+        <marker id="i-arr" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4a6a9e"/></marker>
+        <marker id="i-grn" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#00b87d"/></marker>
+        <marker id="i-red" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#cc3354"/></marker>
+        <marker id="i-org" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#cc6e2e"/></marker>
+        <marker id="i-pur" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#7c3aed"/></marker>
+        <marker id="i-cyn" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#00a8cc"/></marker>
+      </defs>
+
+      <!-- TRIGGERS -->
+      <rect x="60" y="10" width="160" height="50" rx="6" fill="#1a3a1a" stroke="#00e5a0" stroke-width="1"/>
+      <text x="140" y="30" text-anchor="middle" fill="#00e5a0" font-family="JetBrains Mono" font-size="9" font-weight="600">SCHEDULED</text>
+      <text x="140" y="46" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">APScheduler daily</text>
+
+      <rect x="240" y="10" width="160" height="50" rx="6" fill="#1a2a3a" stroke="#4a9eff" stroke-width="1"/>
+      <text x="320" y="30" text-anchor="middle" fill="#4a9eff" font-family="JetBrains Mono" font-size="9" font-weight="600">COVERAGE GAP</text>
+      <text x="320" y="46" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">Agent 6 signals gap</text>
+
+      <rect x="420" y="10" width="160" height="50" rx="6" fill="#2a1a1a" stroke="#ff8c42" stroke-width="1"/>
+      <text x="500" y="30" text-anchor="middle" fill="#ff8c42" font-family="JetBrains Mono" font-size="9" font-weight="600">LIVE FETCH</text>
+      <text x="500" y="46" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">Agent 4A queues paper</text>
+
+      <!-- converge -->
+      <line x1="140" y1="60" x2="320" y2="90" stroke="#4a6a9e" stroke-width="1" marker-end="url(#i-arr)"/>
+      <line x1="320" y1="60" x2="320" y2="90" stroke="#4a6a9e" stroke-width="1.5" marker-end="url(#i-arr)"/>
+      <line x1="500" y1="60" x2="320" y2="90" stroke="#4a6a9e" stroke-width="1" marker-end="url(#i-arr)"/>
+
+      <!-- PAPER INTAKE -->
+      <rect x="200" y="92" width="240" height="58" rx="8" fill="#1a2a4a" stroke="#4a9eff" stroke-width="1.5"/>
+      <text x="320" y="112" text-anchor="middle" fill="#4a9eff" font-family="JetBrains Mono" font-size="10" font-weight="600">PAPER INTAKE</text>
+      <text x="320" y="128" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">Extract basic metadata</text>
+      <text x="320" y="142" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">Assign ingestion_id, initialize state</text>
+
+      <line x1="320" y1="150" x2="320" y2="170" stroke="#4a6a9e" stroke-width="1.5" marker-end="url(#i-arr)"/>
+
+      <!-- DOMAIN FILTER -->
+      <rect x="180" y="172" width="280" height="68" rx="8" fill="#1a2a3a" stroke="#60a5fa" stroke-width="1.5"/>
+      <text x="320" y="194" text-anchor="middle" fill="#60a5fa" font-family="JetBrains Mono" font-size="10" font-weight="600">CHECK 1 — DOMAIN FILTER</text>
+      <text x="320" y="210" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">Agent 5A — Gemini Flash</text>
+      <text x="320" y="226" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">Paper embedding vs corpus cluster centroids</text>
+
+      <!-- Reject -->
+      <line x1="460" y1="206" x2="620" y2="206" stroke="#cc3354" stroke-width="1.5"/>
+      <text x="500" y="198" fill="#cc3354" font-family="JetBrains Mono" font-size="8">below threshold</text>
+      <rect x="622" y="186" width="100" height="40" rx="6" fill="#3a1a1a" stroke="#ff4d6d" stroke-width="1"/>
+      <text x="672" y="202" text-anchor="middle" fill="#ff4d6d" font-family="JetBrains Mono" font-size="9" font-weight="600">REJECT</text>
+      <text x="672" y="218" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">log reason</text>
+
+      <line x1="320" y1="240" x2="320" y2="260" stroke="#4a6a9e" stroke-width="1.5" marker-end="url(#i-arr)"/>
+
+      <!-- CORPUS RELATIONSHIP -->
+      <rect x="160" y="262" width="320" height="80" rx="8" fill="#1a2a3a" stroke="#60a5fa" stroke-width="1.5"/>
+      <text x="320" y="284" text-anchor="middle" fill="#60a5fa" font-family="JetBrains Mono" font-size="10" font-weight="600">CHECK 2 — CORPUS RELATIONSHIP</text>
+      <text x="320" y="300" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">Agent 5A — checks 4 relationship types:</text>
+      <text x="175" y="316" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">① Contradiction  ② Citation network</text>
+      <text x="175" y="330" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">③ Coverage gap fill  ④ High-traffic topic</text>
+
+      <line x1="480" y1="302" x2="622" y2="262" stroke="#cc3354" stroke-width="1" stroke-dasharray="3" marker-end="url(#i-red)"/>
+      <text x="520" y="275" fill="#cc3354" font-family="JetBrains Mono" font-size="8">none found</text>
+
+      <line x1="320" y1="342" x2="320" y2="362" stroke="#4a6a9e" stroke-width="1.5" marker-end="url(#i-arr)"/>
+
+      <!-- EVIDENCE QUALITY -->
+      <rect x="180" y="364" width="280" height="68" rx="8" fill="#1a2a3a" stroke="#60a5fa" stroke-width="1.5"/>
+      <text x="320" y="386" text-anchor="middle" fill="#60a5fa" font-family="JetBrains Mono" font-size="10" font-weight="600">CHECK 3 — EVIDENCE QUALITY</text>
+      <text x="320" y="402" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">Agent 5A — Assign evidence level</text>
+      <text x="320" y="418" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">meta-analysis &gt; RCT &gt; cohort &gt; case &gt; preprint</text>
+
+      <line x1="320" y1="432" x2="320" y2="452" stroke="#4a6a9e" stroke-width="1.5" marker-end="url(#i-arr)"/>
+
+      <!-- CONTRADICTION CONFIDENCE -->
+      <rect x="160" y="454" width="320" height="80" rx="8" fill="#1a2a3a" stroke="#60a5fa" stroke-width="2"/>
+      <text x="320" y="476" text-anchor="middle" fill="#60a5fa" font-family="JetBrains Mono" font-size="10" font-weight="700">CHECK 4 — CONTRADICTION ANALYSIS</text>
+      <text x="320" y="492" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">Agent 5A — Flash Thinking</text>
+      <text x="175" y="508" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">claim extraction → candidate comparison</text>
+      <text x="175" y="522" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">→ context reconciliation → confidence score</text>
+
+      <line x1="480" y1="494" x2="622" y2="434" stroke="#cc3354" stroke-width="1" stroke-dasharray="3" marker-end="url(#i-red)"/>
+      <text x="530" y="458" fill="#cc3354" font-family="JetBrains Mono" font-size="8">&lt;0.60 conf</text>
+      <text x="530" y="470" fill="#cc3354" font-family="JetBrains Mono" font-size="8">no other reason</text>
+
+      <line x1="320" y1="534" x2="320" y2="554" stroke="#4a6a9e" stroke-width="1.5" marker-end="url(#i-arr)"/>
+
+      <!-- VERIFICATION VERDICT -->
+      <rect x="180" y="556" width="280" height="68" rx="8" fill="#2a2a1a" stroke="#ffd60a" stroke-width="1.5"/>
+      <text x="320" y="578" text-anchor="middle" fill="#ffd60a" font-family="JetBrains Mono" font-size="10" font-weight="600">VERIFICATION VERDICT</text>
+      <text x="320" y="594" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">Agent 5A — Final decision</text>
+      <text x="320" y="610" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">priority + admin_review flag + ingestion instructions</text>
+
+      <!-- Admin review required? -->
+      <line x1="460" y1="590" x2="560" y2="590" stroke="#7c3aed" stroke-width="1.5"/>
+      <text x="472" y="582" fill="#7c3aed" font-family="JetBrains Mono" font-size="8">admin review</text>
+      <text x="472" y="594" fill="#7c3aed" font-family="JetBrains Mono" font-size="8">required</text>
+
+      <line x1="320" y1="624" x2="320" y2="644" stroke="#4a6a9e" stroke-width="1.5" marker-end="url(#i-arr)"/>
+
+      <!-- INTERRUPT NODE 1 -->
+      <rect x="560" y="566" width="180" height="68" rx="8" fill="#2a1a3a" stroke="#a855f7" stroke-width="2" stroke-dasharray="6"/>
+      <text x="650" y="588" text-anchor="middle" fill="#a855f7" font-family="JetBrains Mono" font-size="10" font-weight="600">⏸ INTERRUPT 1</text>
+      <text x="650" y="604" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="8">Save state → Supabase</text>
+      <text x="650" y="618" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="8">Email admin → Wait</text>
+      <text x="650" y="632" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="8">Resume via Redis queue</text>
+
+      <!-- approved path from interrupt -->
+      <line x1="650" y1="634" x2="650" y2="680" stroke="#7c3aed" stroke-width="1" stroke-dasharray="4"/>
+      <text x="655" y="660" fill="#00b87d" font-family="JetBrains Mono" font-size="8">approved</text>
+      <line x1="650" y1="680" x2="462" y2="680" stroke="#7c3aed" stroke-width="1" stroke-dasharray="4" marker-end="url(#i-pur)"/>
+
+      <!-- DOCUMENT FETCH -->
+      <rect x="180" y="646" width="280" height="58" rx="8" fill="#1a3a3a" stroke="#34d399" stroke-width="1.5"/>
+      <text x="320" y="666" text-anchor="middle" fill="#34d399" font-family="JetBrains Mono" font-size="10" font-weight="600">DOCUMENT FETCH</text>
+      <text x="320" y="682" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">Agent 5B — PubMed MCP</text>
+      <text x="320" y="696" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">Full text (PMC) or abstract fallback</text>
+
+      <line x1="320" y1="704" x2="320" y2="724" stroke="#4a6a9e" stroke-width="1.5" marker-end="url(#i-arr)"/>
+
+      <!-- STRUCTURE DETECTION -->
+      <rect x="180" y="726" width="280" height="58" rx="8" fill="#1a3a3a" stroke="#34d399" stroke-width="1.5"/>
+      <text x="320" y="746" text-anchor="middle" fill="#34d399" font-family="JetBrains Mono" font-size="10" font-weight="600">STRUCTURE DETECTION</text>
+      <text x="320" y="762" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">Agent 5B — detect document type</text>
+      <text x="320" y="778" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">select chunking strategy from instructions</text>
+
+      <line x1="320" y1="784" x2="320" y2="804" stroke="#4a6a9e" stroke-width="1.5" marker-end="url(#i-arr)"/>
+
+      <!-- HIERARCHICAL CHUNKING -->
+      <rect x="160" y="806" width="320" height="90" rx="8" fill="#1a3a3a" stroke="#34d399" stroke-width="2"/>
+      <text x="320" y="828" text-anchor="middle" fill="#34d399" font-family="JetBrains Mono" font-size="10" font-weight="700">HIERARCHICAL CHUNKING</text>
+      <text x="320" y="844" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">Agent 5B — 4 levels</text>
+      <text x="175" y="860" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">L1: Document embedding (abstract+conclusion)</text>
+      <text x="175" y="874" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">L2: Section chunks (IMRAD structure-aware)</text>
+      <text x="175" y="888" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">L3A: Semantic chunks  L3B: Proposition extraction</text>
+
+      <line x1="320" y1="896" x2="320" y2="916" stroke="#4a6a9e" stroke-width="1.5" marker-end="url(#i-arr)"/>
+
+      <!-- METADATA ASSIGNMENT -->
+      <rect x="180" y="918" width="280" height="68" rx="8" fill="#1a3a3a" stroke="#34d399" stroke-width="1.5"/>
+      <text x="320" y="938" text-anchor="middle" fill="#34d399" font-family="JetBrains Mono" font-size="10" font-weight="600">METADATA ASSIGNMENT</text>
+      <text x="320" y="954" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">Agent 5B — complete payload per chunk</text>
+      <text x="320" y="970" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">freshness=1.0, contradiction flags updated</text>
+
+      <line x1="320" y1="986" x2="320" y2="1006" stroke="#4a6a9e" stroke-width="1.5" marker-end="url(#i-arr)"/>
+
+      <!-- STAGING VALIDATION -->
+      <rect x="160" y="1008" width="320" height="80" rx="8" fill="#2a2a1a" stroke="#ffd60a" stroke-width="1.5"/>
+      <text x="320" y="1030" text-anchor="middle" fill="#ffd60a" font-family="JetBrains Mono" font-size="10" font-weight="600">STAGING VALIDATION</text>
+      <text x="320" y="1046" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">Agent 5B — 3 query types must PASS</text>
+      <text x="175" y="1062" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">① trigger query improvement ② known good maintained</text>
+      <text x="175" y="1076" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">③ adversarial probe — no degradation</text>
+
+      <!-- staging fail -->
+      <line x1="480" y1="1048" x2="622" y2="1048" stroke="#cc3354" stroke-width="1.5"/>
+      <text x="490" y="1040" fill="#cc3354" font-family="JetBrains Mono" font-size="8">FAIL</text>
+      <rect x="622" y="1028" width="120" height="40" rx="6" fill="#3a1a1a" stroke="#ff4d6d" stroke-width="1"/>
+      <text x="682" y="1048" text-anchor="middle" fill="#ff4d6d" font-family="JetBrains Mono" font-size="9" font-weight="600">ROLLBACK</text>
+      <text x="682" y="1062" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">+ escalate</text>
+
+      <!-- Large change interrupt -->
+      <line x1="160" y1="1048" x2="80" y2="1048" stroke="#7c3aed" stroke-width="1" stroke-dasharray="4"/>
+      <text x="20" y="1040" fill="#7c3aed" font-family="JetBrains Mono" font-size="8">large</text>
+      <text x="20" y="1052" fill="#7c3aed" font-family="JetBrains Mono" font-size="8">change?</text>
+      <line x1="80" y1="1048" x2="80" y2="1120" stroke="#7c3aed" stroke-width="1" stroke-dasharray="4" marker-end="url(#i-pur)"/>
+
+      <!-- INTERRUPT NODE 2 -->
+      <rect x="20" y="1122" width="180" height="68" rx="8" fill="#2a1a3a" stroke="#a855f7" stroke-width="2" stroke-dasharray="6"/>
+      <text x="110" y="1144" text-anchor="middle" fill="#a855f7" font-family="JetBrains Mono" font-size="10" font-weight="600">⏸ INTERRUPT 2</text>
+      <text x="110" y="1160" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="8">Large corpus change</text>
+      <text x="110" y="1174" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="8">Admin approval required</text>
+      <line x1="200" y1="1156" x2="280" y2="1090" stroke="#7c3aed" stroke-width="1" stroke-dasharray="4" marker-end="url(#i-pur)"/>
+      <text x="218" y="1116" fill="#00b87d" font-family="JetBrains Mono" font-size="8">approved</text>
+
+      <line x1="320" y1="1088" x2="320" y2="1108" stroke="#4a6a9e" stroke-width="1.5" marker-end="url(#i-arr)"/>
+
+      <!-- PRODUCTION PROMOTION -->
+      <rect x="180" y="1110" width="280" height="80" rx="8" fill="#1a3a3a" stroke="#34d399" stroke-width="2"/>
+      <text x="320" y="1132" text-anchor="middle" fill="#34d399" font-family="JetBrains Mono" font-size="10" font-weight="700">PRODUCTION PROMOTION</text>
+      <text x="320" y="1148" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">Agent 5B — Qdrant staging → production</text>
+      <text x="320" y="1164" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">Neo4j graph updated + contradiction flags</text>
+      <text x="320" y="1180" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">Supabase ingestion log with full provenance</text>
+
+      <line x1="320" y1="1190" x2="320" y2="1210" stroke="#4a6a9e" stroke-width="1.5" marker-end="url(#i-arr)"/>
+
+      <!-- DOWNSTREAM NOTIFICATION -->
+      <rect x="200" y="1212" width="240" height="58" rx="8" fill="#141b30" stroke="#2a3a5c" stroke-width="1"/>
+      <text x="320" y="1232" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="10" font-weight="600">DOWNSTREAM NOTIFY</text>
+      <text x="320" y="1248" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="9">Agent 2 recalibrate + Agent 3 gap filled</text>
+      <text x="320" y="1262" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="9">Agent 6 ingestion event logged</text>
+
+      <!-- END -->
+      <circle cx="320" cy="1290" r="18" fill="#3a1a1a" stroke="#ff4d6d" stroke-width="2"/>
+      <text x="320" y="1286" text-anchor="middle" fill="#ff4d6d" font-family="JetBrains Mono" font-size="9" font-weight="700">END</text>
+      <text x="320" y="1298" text-anchor="middle" fill="#ff4d6d" font-family="JetBrains Mono" font-size="7">done</text>
+      <line x1="320" y1="1270" x2="320" y2="1272" stroke="#4a6a9e" stroke-width="1.5" marker-end="url(#i-arr)"/>
+    </svg>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SECTION 4: AGENT WORKFLOWS
+══════════════════════════════════════════════════════ -->
+<div class="section" id="section-agents">
+  <div class="section-title">Individual Agent Workflows</div>
+  <div class="section-desc">Detailed internal workflow for each of the eight agents. Select an agent to view its internal decision logic.</div>
+
+  <div class="agent-tabs">
+    <div class="agent-tab active" style="background:#4a9eff;border-color:#4a9eff;color:#0a0e1a;" onclick="showAgent('a1')">Agent 1 — Retrieval</div>
+    <div class="agent-tab" onclick="showAgent('a2')">Agent 2 — Evaluation</div>
+    <div class="agent-tab" onclick="showAgent('a3')">Agent 3 — Diagnosis</div>
+    <div class="agent-tab" onclick="showAgent('a4a')">Agent 4A — Instant Repair</div>
+    <div class="agent-tab" onclick="showAgent('a4b')">Agent 4B — BG Repair</div>
+    <div class="agent-tab" onclick="showAgent('a5a')">Agent 5A — Verification</div>
+    <div class="agent-tab" onclick="showAgent('a5b')">Agent 5B — Ingestion</div>
+    <div class="agent-tab" onclick="showAgent('a6')">Agent 6 — Learning</div>
+  </div>
+
+  <!-- AGENT 1 -->
+  <div class="agent-flow-panel active" id="agent-a1">
+    <div class="diagram-wrap">
+      <div class="diagram-title">Agent 1 — Agentic Retrieval and Generation</div>
+      <div class="diagram-subtitle">Five retrieval strategies with iterative evaluation and replanning loop</div>
+      <div class="grid-2">
+        <div>
+          <h4 style="font-size:13px;color:var(--blue);margin-bottom:16px;font-family:var(--display);">Query Classification</h4>
+          <div class="flow-compact">
+            <div class="flow-step blue"><span class="flow-step-num">→</span><div><strong>simple_factual</strong><br><span style="color:var(--text3)">Strategy: single_shot_hybrid — one pass, fast</span></div></div>
+            <div class="flow-step blue"><span class="flow-step-num">→</span><div><strong>multi_hop</strong><br><span style="color:var(--text3)">Strategy: iterative_decomposed — decompose → retrieve per sub-Q → accumulate</span></div></div>
+            <div class="flow-step blue"><span class="flow-step-num">→</span><div><strong>comparative</strong><br><span style="color:var(--text3)">Strategy: parallel_comparative — extract entities → parallel branches → merge</span></div></div>
+            <div class="flow-step blue"><span class="flow-step-num">→</span><div><strong>temporal</strong><br><span style="color:var(--text3)">Strategy: freshness_prioritized — mandatory freshness check → live fetch if stale</span></div></div>
+            <div class="flow-step blue"><span class="flow-step-num">→</span><div><strong>exploratory</strong><br><span style="color:var(--text3)">Strategy: broad_then_deep — broad 30 → identify subtopics → deep per subtopic</span></div></div>
+          </div>
+        </div>
+        <div>
+          <h4 style="font-size:13px;color:var(--blue);margin-bottom:16px;font-family:var(--display);">Retrieval Pipeline (all strategies)</h4>
+          <div class="flow-compact">
+            <div class="flow-step cyan"><span class="flow-step-num">1</span><span>Dense retrieval top-20 via Qdrant (S-PubMedBert embeddings)</span></div>
+            <div class="flow-step cyan"><span class="flow-step-num">2</span><span>Sparse BM25 retrieval top-20 via Qdrant sparse vectors</span></div>
+            <div class="flow-step cyan"><span class="flow-step-num">3</span><span>RRF fusion → unified top-20 ranking</span></div>
+            <div class="flow-step cyan"><span class="flow-step-num">4</span><span>Metadata filter: remove contradiction_flag=True AND freshness &lt; 0.4</span></div>
+            <div class="flow-step cyan"><span class="flow-step-num">5</span><span>MMR reranking: top-5 most relevant AND diverse chunks</span></div>
+            <div class="flow-step cyan"><span class="flow-step-num">6</span><span>Sufficiency evaluation: relevance + freshness + completeness check</span></div>
+            <div class="flow-step orange"><span class="flow-step-num">7a</span><span>SUFFICIENT → Generation with Gemini 2.0 Flash</span></div>
+            <div class="flow-step red"><span class="flow-step-num">7b</span><span>INSUFFICIENT + iterations left → replan with different angle</span></div>
+            <div class="flow-step red"><span class="flow-step-num">7c</span><span>INSUFFICIENT + max iterations → live fetch fallback</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AGENT 2 -->
+  <div class="agent-flow-panel" id="agent-a2">
+    <div class="diagram-wrap">
+      <div class="diagram-title">Agent 2 — Self Evaluation</div>
+      <div class="diagram-subtitle">Five checks run in parallel async — total time ~1.5 seconds</div>
+      <div class="checks-grid">
+        <div class="check-item" style="border-left:3px solid var(--blue)">
+          <div class="check-num" style="color:var(--blue)">①</div>
+          <div class="check-name">Retrieval Relevance</div>
+          <div class="check-desc">LLM per-chunk relevance classification. YES/NO per chunk. Gemini Flash.</div>
+          <div class="check-result fail">FAIL if 3+ of 5 chunks irrelevant → RETRIEVAL FAILURE</div>
+        </div>
+        <div class="check-item" style="border-left:3px solid var(--cyan)">
+          <div class="check-num" style="color:var(--cyan)">②</div>
+          <div class="check-name">Grounding Check</div>
+          <div class="check-desc">Claim-level support verification. Each answer claim checked against retrieved chunks. Gemini Flash.</div>
+          <div class="check-result fail">FAIL if 20%+ claims unsupported → GROUNDING FAILURE</div>
+        </div>
+        <div class="check-item" style="border-left:3px solid var(--green)">
+          <div class="check-num" style="color:var(--green)">③</div>
+          <div class="check-name">Freshness Check</div>
+          <div class="check-desc">Metadata analysis. Contradiction flags from Agent 5A. Topic velocity from Agent 6. Age score calculation. Pure math — no LLM.</div>
+          <div class="check-result fail">FAIL if freshness &lt; 0.4 → DRIFT → Agent 4A live fetch</div>
+        </div>
+        <div class="check-item" style="border-left:3px solid var(--yellow)">
+          <div class="check-num" style="color:var(--yellow)">④</div>
+          <div class="check-name">Calibration Check</div>
+          <div class="check-desc">Historical calibration curve lookup from Supabase. Compare expressed vs historical accuracy for this topic+query type. DB lookup — no LLM.</div>
+          <div class="check-result pass">ADJUST: override expressed confidence → calibrated score. Continue.</div>
+        </div>
+        <div class="check-item" style="border-left:3px solid var(--purple)">
+          <div class="check-num" style="color:var(--purple)">⑤</div>
+          <div class="check-name">Compositional Coherence</div>
+          <div class="check-desc">Cross-document reasoning check. Only fires when 3+ papers retrieved. Gemini 1.5 Pro for long context. Detects contradictions between retrieved papers.</div>
+          <div class="check-result fail">FAIL if INCOHERENT or CONTRADICTION PRESENT → COMPOSITIONAL FAILURE</div>
+        </div>
+      </div>
+      <div style="margin-top:20px;padding:16px;background:var(--panel);border-radius:8px;border-left:3px solid var(--cyan)">
+        <div style="font-size:11px;color:var(--text2);line-height:1.8">
+          <strong style="color:var(--cyan)">Output:</strong> Structured evaluation object → failure_types list + failure_class (A/B/C) + calibrated_confidence<br>
+          <strong style="color:var(--cyan)">Routing:</strong> All pass → Response Assembly. Any fail → Agent 3 Root Cause Classification
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AGENT 3 -->
+  <div class="agent-flow-panel" id="agent-a3">
+    <div class="diagram-wrap">
+      <div class="diagram-title">Agent 3 — Root Cause Classifier</div>
+      <div class="diagram-subtitle">Five sequential diagnostic tests — each confirms or eliminates a root cause hypothesis</div>
+      <div class="flow-compact" style="max-width:700px;">
+        <div class="flow-step yellow"><span class="flow-step-num">T1</span><div><strong>Existence Test</strong><br><span style="color:var(--text3)">Generate 8 alternative query phrasings. Run all against corpus. 6+ failing → COVERAGE FAILURE (Class B — Knowledge Problem). Information does not exist in corpus.</span></div></div>
+        <div class="flow-step yellow"><span class="flow-step-num">T2</span><div><strong>Chunking Boundary Test</strong><br><span style="color:var(--text3)">Check adjacent chunks of retrieved documents. Relevant info in neighboring chunks (similarity &gt;0.7) → CHUNKING FAILURE (Class A — Data Problem). Information split across boundaries.</span></div></div>
+        <div class="flow-step yellow"><span class="flow-step-num">T3</span><div><strong>Embedding Space Test</strong><br><span style="color:var(--text3)">Run BM25 on same docs retrieved by vector search. High BM25 but low vector score (gap &gt;0.3) → EMBEDDING FAILURE (Class A). Semantic gap in embedding space.</span></div></div>
+        <div class="flow-step yellow"><span class="flow-step-num">T4</span><div><strong>Query Processing Test</strong><br><span style="color:var(--text3)">Run original unexpanded query. Compare results. Strategy mismatch check. Improvement without expansion → QUERY FAILURE (Class C — Query Problem).</span></div></div>
+        <div class="flow-step yellow"><span class="flow-step-num">T5</span><div><strong>Metadata Filter Test</strong><br><span style="color:var(--text3)">Run retrieval without metadata filters. Compare results. Improvement → filters incorrectly removed relevant chunks → METADATA FAILURE (Class A).</span></div></div>
+      </div>
+      <div class="checks-grid" style="margin-top:20px;">
+        <div class="check-item" style="border-left:3px solid var(--orange)">
+          <div class="check-name">Class C → Agent 4A</div>
+          <div class="check-desc">Query problems. Instant reversible fixes. Threshold: 65% confidence minimum.</div>
+        </div>
+        <div class="check-item" style="border-left:3px solid var(--purple)">
+          <div class="check-name">Class A/B → Agent 4B</div>
+          <div class="check-desc">Data or Knowledge problems. Permanent corpus repairs. Threshold: 85% confidence minimum.</div>
+        </div>
+        <div class="check-item" style="border-left:3px solid var(--text3)">
+          <div class="check-name">Below 65% → Escalate</div>
+          <div class="check-desc">Admin notified with full evidence chain. Log failure. Monitor for pattern accumulation by Agent 6.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AGENT 4A -->
+  <div class="agent-flow-panel" id="agent-a4a">
+    <div class="diagram-wrap">
+      <div class="diagram-title">Agent 4A — Instant Repair Agent</div>
+      <div class="diagram-subtitle">Hot path only — all repairs complete within live query cycle — nothing persists to corpus</div>
+      <div class="flow-compact" style="max-width:700px;">
+        <div class="flow-step orange"><span class="flow-step-num">1</span><div><strong>Query Rewriting</strong> — for low relevance retrieval / query processing failure<br><span style="color:var(--text3)">Rewrite query with different vocabulary, structure, or specificity using Gemini Flash. Re-retrieve. Regenerate. Under 3 seconds.</span></div></div>
+        <div class="flow-step orange"><span class="flow-step-num">2</span><div><strong>Synonym Expansion</strong> — for embedding space failure / terminology gap<br><span style="color:var(--text3)">Expand query with UMLS medical synonyms and abbreviation expansions. heart attack → myocardial infarction. NSCLC → non-small cell lung cancer. Milliseconds.</span></div></div>
+        <div class="flow-step orange"><span class="flow-step-num">3</span><div><strong>Retrieval Parameter Adjustment</strong> — for too few relevant chunks<br><span style="color:var(--text3)">Increase top-k from 5 to 10. Lower similarity threshold. Re-retrieve with broader net. Milliseconds.</span></div></div>
+        <div class="flow-step orange"><span class="flow-step-num">4</span><div><strong>Live Fetch Fallback</strong> — for knowledge drift / freshness failure (score &lt;0.4)<br><span style="color:var(--text3)">Parallel calls to PubMed, Semantic Scholar, bioRxiv via MCP servers. Generate from live papers with timestamps. Queue fetched papers for Agent 5A via Redis. 3-5 seconds.</span></div></div>
+        <div class="flow-step orange"><span class="flow-step-num">5</span><div><strong>Confidence Flagging</strong> — when no instant fix possible<br><span style="color:var(--text3)">Return best available answer with honest calibrated confidence score and explicit uncertainty flags. Milliseconds.</span></div></div>
+      </div>
+      <div style="margin-top:16px;padding:14px;background:var(--panel);border-radius:8px;border-left:3px solid var(--orange)">
+        <div style="font-size:11px;color:var(--text2);line-height:1.8">
+          <strong style="color:var(--orange)">Constraints:</strong> Never touches Qdrant, Neo4j, or Supabase corpus data. Never modifies any persistent state. Maximum 2 retry attempts before falling back to confidence flagging.<br>
+          <strong style="color:var(--orange)">Feeds:</strong> Every successful repair pattern logged to Agent 6. Every live fetch paper queued to Agent 5A for verification.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AGENT 4B -->
+  <div class="agent-flow-panel" id="agent-a4b">
+    <div class="diagram-wrap">
+      <div class="diagram-title">Agent 4B — Background Repair Agent</div>
+      <div class="diagram-subtitle">Cold path only — Celery workers — always staging first, never touches production directly</div>
+      <div class="grid-2">
+        <div>
+          <h4 style="font-size:13px;color:var(--purple);margin-bottom:12px;font-family:var(--display);">Repair Types</h4>
+          <div class="flow-compact">
+            <div class="flow-step purple"><span class="flow-step-num">→</span><div><strong>Re-chunking</strong> — chunking boundary failure<br><span style="color:var(--text3)">Try alternative strategies: sentence, paragraph, semantic unit, sliding window. Evaluate on failing queries. Select best. Auto-approved if &lt;100 docs.</span></div></div>
+            <div class="flow-step purple"><span class="flow-step-num">→</span><div><strong>Synonym Augmented Indexing</strong> — embedding failure<br><span style="color:var(--text3)">Build synonym pairs for failing terminology. Augment Qdrant index with variants. Always auto-approved.</span></div></div>
+            <div class="flow-step purple"><span class="flow-step-num">→</span><div><strong>Metadata Correction</strong> — metadata filter failure<br><span style="color:var(--text3)">Correct contradiction flags or freshness scores on affected chunks. Update payload in Qdrant. Always auto-approved.</span></div></div>
+            <div class="flow-step purple"><span class="flow-step-num">→</span><div><strong>Large Cluster Restructure</strong> — high-severity contradiction<br><span style="color:var(--text3)">Affects 100+ documents. Requires admin approval. Phased promotion with extended validation.</span></div></div>
+          </div>
+        </div>
+        <div>
+          <h4 style="font-size:13px;color:var(--purple);margin-bottom:12px;font-family:var(--display);">Execution Flow (all repair types)</h4>
+          <div class="flow-compact">
+            <div class="flow-step purple"><span class="flow-step-num">1</span><span>Receive repair job from Redis queue (high/medium/low priority)</span></div>
+            <div class="flow-step purple"><span class="flow-step-num">2</span><span>Read root cause diagnosis + affected document IDs from Supabase</span></div>
+            <div class="flow-step purple"><span class="flow-step-num">3</span><span>Execute repair on staging Qdrant collection</span></div>
+            <div class="flow-step purple"><span class="flow-step-num">4</span><span>Run 3 staging validation queries — all must pass</span></div>
+            <div class="flow-step purple"><span class="flow-step-num">5</span><span>Admin approval required? → INTERRUPT → wait</span></div>
+            <div class="flow-step purple"><span class="flow-step-num">6</span><span>Promote staging → production (atomic swap)</span></div>
+            <div class="flow-step purple"><span class="flow-step-num">7</span><span>Log repair outcome to Supabase with before/after scores</span></div>
+            <div class="flow-step purple"><span class="flow-step-num">8</span><span>Notify Agent 2 (recalibrate) + Agent 6 (log for learning)</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AGENT 5A -->
+  <div class="agent-flow-panel" id="agent-a5a">
+    <div class="diagram-wrap">
+      <div class="diagram-title">Agent 5A — Relevance Verification Agent</div>
+      <div class="diagram-subtitle">Four sequential checks — each reject terminates immediately — never inserts anything</div>
+      <div class="flow-compact" style="max-width:700px;">
+        <div class="flow-step" style="border-left-color:#4a7ab5"><span class="flow-step-num">C1</span><div><strong>Domain Filter</strong> — cheap, fast — eliminates 95%+ of papers instantly<br><span style="color:var(--text3)">Compare paper embedding against corpus cluster centroids. Similarity below threshold → REJECT immediately. Gemini Flash for classification. Milliseconds.</span></div></div>
+        <div class="flow-step" style="border-left-color:#4a7ab5"><span class="flow-step-num">C2</span><div><strong>Corpus Relationship Test</strong> — checks 4 relationship types in parallel<br><span style="color:var(--text3)">① Contradiction (claim comparison) ② Citation network (Semantic Scholar) ③ Coverage gap match (Agent 6 gap map) ④ High-traffic topic match (query logs). None found → REJECT.</span></div></div>
+        <div class="flow-step" style="border-left-color:#4a7ab5"><span class="flow-step-num">C3</span><div><strong>Evidence Quality Assessment</strong> — assigns evidence level, flags weak evidence<br><span style="color:var(--text3)">meta-analysis &gt; RCT &gt; cohort &gt; case series &gt; case report &gt; preprint. Low evidence contradicting high evidence corpus → flag for admin review, continue. Gemini Flash.</span></div></div>
+        <div class="flow-step" style="border-left-color:#4a7ab5"><span class="flow-step-num">C4</span><div><strong>Contradiction Confidence Check</strong> — three-step deep analysis<br><span style="color:var(--text3)">Only fires if C2 found contradiction relationship. Claim extraction (ScispaCy+Gemini) → candidate comparison (vector similarity + deep analysis) → context reconciliation (population, temporal, outcome, study design). Confidence assigned.</span></div></div>
+      </div>
+      <div class="checks-grid" style="margin-top:20px;">
+        <div class="check-item" style="border-left:3px solid var(--green)">
+          <div class="check-name">Above 0.85 → HIGH Priority</div>
+          <div class="check-desc">Direct contradiction confirmed. Ingest within 6 hours. Admin notification.</div>
+        </div>
+        <div class="check-item" style="border-left:3px solid var(--yellow)">
+          <div class="check-name">0.60-0.85 → MEDIUM Priority</div>
+          <div class="check-desc">Probable contradiction. Ingest within 24 hours. Admin dashboard notification.</div>
+        </div>
+        <div class="check-item" style="border-left:3px solid var(--text3)">
+          <div class="check-name">Below 0.60 → LOW / REJECT</div>
+          <div class="check-desc">If no other reason qualifies — reject on contradiction grounds. Log and monitor.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AGENT 5B -->
+  <div class="agent-flow-panel" id="agent-a5b">
+    <div class="diagram-wrap">
+      <div class="diagram-title">Agent 5B — Selective Ingestion Agent</div>
+      <div class="diagram-subtitle">Execution only — follows Agent 5A's ingestion instructions precisely — staging before production always</div>
+      <div class="flow-compact" style="max-width:700px;">
+        <div class="flow-step" style="border-left-color:#2a8a6a"><span class="flow-step-num">1</span><div><strong>Document Fetch</strong><br><span style="color:var(--text3)">Full text from PMC (open access) via PubMed MCP. Abstract fallback if full text unavailable. Preprint content from bioRxiv/medRxiv MCP.</span></div></div>
+        <div class="flow-step" style="border-left-color:#2a8a6a"><span class="flow-step-num">2</span><div><strong>Structure Detection</strong><br><span style="color:var(--text3)">Detect document type from content analysis. IMRAD → structure-aware. Review → embedding similarity. Abstract only → proposition direct. OCR noisy → sliding window fallback.</span></div></div>
+        <div class="flow-step" style="border-left-color:#2a8a6a"><span class="flow-step-num">3</span><div><strong>Hierarchical Chunking (4 levels)</strong><br><span style="color:var(--text3)">L1: Document embedding (abstract+conclusion). L2: Section chunks (IMRAD). L3A: Semantic chunks within sections (embedding similarity). L3B: Proposition extraction (ScispaCy+Gemini Flash).</span></div></div>
+        <div class="flow-step" style="border-left-color:#2a8a6a"><span class="flow-step-num">4</span><div><strong>Complete Metadata Assignment</strong><br><span style="color:var(--text3)">freshness_score=1.0, topic_cluster assigned, contradiction_flag=False, evidence_level assigned, ingestion provenance recorded. Affected existing chunks: contradiction_flag set to True, freshness lowered.</span></div></div>
+        <div class="flow-step" style="border-left-color:#2a8a6a"><span class="flow-step-num">5</span><div><strong>Staging Validation (3 queries must pass)</strong><br><span style="color:var(--text3)">① Trigger query: does new paper surface correctly? ② Known good queries: does existing retrieval maintain quality? ③ Adversarial probe: no unexpected degradation. ALL must pass.</span></div></div>
+        <div class="flow-step" style="border-left-color:#2a8a6a"><span class="flow-step-num">6</span><div><strong>Admin Approval (if large change)</strong><br><span style="color:var(--text3)">100+ documents affected OR 20%+ corpus change → INTERRUPT NODE 2. Wait for admin. Otherwise auto-promote.</span></div></div>
+        <div class="flow-step" style="border-left-color:#2a8a6a"><span class="flow-step-num">7</span><div><strong>Production Promotion + Downstream Notify</strong><br><span style="color:var(--text3)">Qdrant staging → production. Neo4j graph updated. Supabase ingestion log. Notify Agent 2 + Agent 3 + Agent 6.</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AGENT 6 -->
+  <div class="agent-flow-panel" id="agent-a6">
+    <div class="diagram-wrap">
+      <div class="diagram-title">Agent 6 — Longitudinal Learning Agent</div>
+      <div class="diagram-subtitle">Observes all agents — detects patterns across time — never acts directly on corpus</div>
+      <div class="grid-2">
+        <div>
+          <h4 style="font-size:13px;color:#e879f9;margin-bottom:12px;font-family:var(--display);">Four Responsibilities</h4>
+          <div class="flow-compact">
+            <div class="flow-step" style="border-left-color:#7a2ab5"><span class="flow-step-num">R1</span><div><strong>Pattern Detection</strong><br><span style="color:var(--text3)">Topic patterns (which clusters fail most), failure type trends, query type patterns, temporal anomalies (Monday spike → pipeline issue), repair effectiveness patterns (same doc re-chunked 3x → wrong strategy).</span></div></div>
+            <div class="flow-step" style="border-left-color:#7a2ab5"><span class="flow-step-num">R2</span><div><strong>Calibration Maintenance</strong><br><span style="color:var(--text3)">Maintains calibration curves per topic cluster per query type. Detects calibration drift. Updates Agent 2's calibration thresholds. Tracks ECE (expected calibration error) — target below 0.08.</span></div></div>
+            <div class="flow-step" style="border-left-color:#7a2ab5"><span class="flow-step-num">R3</span><div><strong>Coverage Gap Intelligence</strong><br><span style="color:var(--text3)">Aggregates retrieval failures → structured gap map. Prioritizes by query frequency × severity. This map is what Agent 5A Check 2 reads. Updates as ingestions fill gaps.</span></div></div>
+            <div class="flow-step" style="border-left-color:#7a2ab5"><span class="flow-step-num">R4</span><div><strong>Strategy Improvement Signals</strong><br><span style="color:var(--text3)">Measures which strategies/thresholds work in practice. Surfaces recommendations with evidence to admin dashboard. Human approves changes — Agent 6 never auto-modifies strategies.</span></div></div>
+          </div>
+        </div>
+        <div>
+          <h4 style="font-size:13px;color:#e879f9;margin-bottom:12px;font-family:var(--display);">Information Flow</h4>
+          <div class="flow-compact">
+            <div class="flow-step" style="border-left-color:#7a2ab5"><span class="flow-step-num">IN</span><div><strong>Reads from all agents via Supabase</strong><br><span style="color:var(--text3)">Failure logs, repair outcomes, ingestion events, query traces, calibration history, strategy effectiveness records.</span></div></div>
+            <div class="flow-step green"><span class="flow-step-num">OUT</span><div><strong>Outputs calibration curves → Agent 2</strong><br><span style="color:var(--text3)">Updated thresholds for calibration check. Agent 2 reads from Supabase calibration_history table.</span></div></div>
+            <div class="flow-step" style="border-left-color:#4a7ab5"><span class="flow-step-num">OUT</span><div><strong>Outputs coverage gap map → Agent 5A</strong><br><span style="color:var(--text3)">Prioritized gap list. Agent 5A Check 2 reads from Supabase coverage_gap_map table.</span></div></div>
+            <div class="flow-step orange"><span class="flow-step-num">OUT</span><div><strong>Outputs insights → Admin Dashboard</strong><br><span style="color:var(--text3)">Pattern descriptions with evidence chains. Recommended actions. Human reviews and approves or dismisses. 7+ day average lead time before user-visible degradation.</span></div></div>
+          </div>
+          <div style="margin-top:16px;padding:12px;background:var(--panel);border-radius:8px;border-left:3px solid #7a2ab5;font-size:11px;color:var(--text2)">
+            <strong style="color:#e879f9">Key constraint:</strong> Agent 6 NEVER acts directly on the corpus or modifies agent thresholds autonomously. It observes and recommends. Humans approve changes. This prevents feedback loops where Agent 6's own actions create the patterns it responds to.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SECTION 5: DATA ARCHITECTURE
+══════════════════════════════════════════════════════ -->
+<div class="section" id="section-databases">
+  <div class="section-title">Data Architecture</div>
+  <div class="section-desc">Four cloud databases — each with one responsibility. Initial setup as three sequential phases before any workflow runs. Metadata on every chunk at every level.</div>
+
+  <div class="diagram-wrap">
+    <div class="diagram-title">Four-Level Hierarchical Index in Qdrant</div>
+    <div class="diagram-subtitle">Option B: Structure-aware primary + proposition-based secondary within each structural chunk</div>
+
+    <div style="overflow-x:auto;">
+    <svg width="900" height="360" viewBox="0 0 900 360" style="display:block;margin:0 auto;">
+      <!-- Level 1 -->
+      <rect x="350" y="20" width="200" height="60" rx="8" fill="#1a3a4a" stroke="#00d4ff" stroke-width="2"/>
+      <text x="450" y="44" text-anchor="middle" fill="#00d4ff" font-family="JetBrains Mono" font-size="11" font-weight="700">LEVEL 1 — DOCUMENT</text>
+      <text x="450" y="60" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">1 vector per paper</text>
+      <text x="450" y="74" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">abstract + conclusion embedding</text>
+
+      <!-- arrows down to level 2 -->
+      <line x1="350" y1="80" x2="200" y2="120" stroke="#2a3a5c" stroke-width="1"/>
+      <line x1="450" y1="80" x2="450" y2="120" stroke="#2a3a5c" stroke-width="1.5"/>
+      <line x1="550" y1="80" x2="700" y2="120" stroke="#2a3a5c" stroke-width="1"/>
+      <text x="450" y="105" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">IMRAD sections split</text>
+
+      <!-- Level 2 sections -->
+      <rect x="60" y="122" width="130" height="50" rx="6" fill="#1a2a3a" stroke="#4a9eff" stroke-width="1.5"/>
+      <text x="125" y="142" text-anchor="middle" fill="#4a9eff" font-family="JetBrains Mono" font-size="10" font-weight="600">ABSTRACT</text>
+      <text x="125" y="158" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">section embed</text>
+
+      <rect x="210" y="122" width="130" height="50" rx="6" fill="#1a2a3a" stroke="#4a9eff" stroke-width="1.5"/>
+      <text x="275" y="142" text-anchor="middle" fill="#4a9eff" font-family="JetBrains Mono" font-size="10" font-weight="600">METHODS</text>
+      <text x="275" y="158" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">section embed</text>
+
+      <rect x="360" y="122" width="130" height="50" rx="6" fill="#1a2a3a" stroke="#4a9eff" stroke-width="1.5"/>
+      <text x="425" y="142" text-anchor="middle" fill="#4a9eff" font-family="JetBrains Mono" font-size="10" font-weight="600">RESULTS</text>
+      <text x="425" y="158" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">section embed</text>
+
+      <rect x="510" y="122" width="130" height="50" rx="6" fill="#1a2a3a" stroke="#4a9eff" stroke-width="1.5"/>
+      <text x="575" y="142" text-anchor="middle" fill="#4a9eff" font-family="JetBrains Mono" font-size="10" font-weight="600">DISCUSSION</text>
+      <text x="575" y="158" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">section embed</text>
+
+      <rect x="660" y="122" width="130" height="50" rx="6" fill="#1a2a3a" stroke="#4a9eff" stroke-width="1.5"/>
+      <text x="725" y="142" text-anchor="middle" fill="#4a9eff" font-family="JetBrains Mono" font-size="10" font-weight="600">CONCLUSION</text>
+      <text x="725" y="158" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">section embed</text>
+
+      <!-- LEVEL 2 label -->
+      <text x="10" y="155" fill="#4a9eff" font-family="JetBrains Mono" font-size="9" font-weight="600">LEVEL 2</text>
+      <text x="10" y="167" fill="#4a9eff" font-family="JetBrains Mono" font-size="8">SECTION</text>
+
+      <!-- arrows to level 3A (from RESULTS) -->
+      <line x1="425" y1="172" x2="300" y2="210" stroke="#2a3a5c" stroke-width="1"/>
+      <line x1="425" y1="172" x2="425" y2="210" stroke="#2a3a5c" stroke-width="1.5"/>
+      <line x1="425" y1="172" x2="560" y2="210" stroke="#2a3a5c" stroke-width="1"/>
+      <text x="425" y="198" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">embedding similarity split</text>
+
+      <!-- Level 3A chunks -->
+      <rect x="200" y="212" width="140" height="44" rx="6" fill="#1a2a1a" stroke="#00e5a0" stroke-width="1.5"/>
+      <text x="270" y="230" text-anchor="middle" fill="#00e5a0" font-family="JetBrains Mono" font-size="9" font-weight="600">SEMANTIC CHUNK A</text>
+      <text x="270" y="248" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">Finding 1 passage</text>
+
+      <rect x="355" y="212" width="140" height="44" rx="6" fill="#1a2a1a" stroke="#00e5a0" stroke-width="1.5"/>
+      <text x="425" y="230" text-anchor="middle" fill="#00e5a0" font-family="JetBrains Mono" font-size="9" font-weight="600">SEMANTIC CHUNK B</text>
+      <text x="425" y="248" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">Finding 2 passage</text>
+
+      <rect x="510" y="212" width="140" height="44" rx="6" fill="#1a2a1a" stroke="#00e5a0" stroke-width="1.5"/>
+      <text x="580" y="230" text-anchor="middle" fill="#00e5a0" font-family="JetBrains Mono" font-size="9" font-weight="600">SEMANTIC CHUNK C</text>
+      <text x="580" y="248" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">Finding 3 passage</text>
+
+      <!-- LEVEL 3A label -->
+      <text x="10" y="232" fill="#00e5a0" font-family="JetBrains Mono" font-size="9" font-weight="600">LEVEL 3A</text>
+      <text x="10" y="244" fill="#00e5a0" font-family="JetBrains Mono" font-size="8">SEMANTIC</text>
+
+      <!-- arrows to level 3B (from chunk B) -->
+      <line x1="425" y1="256" x2="330" y2="298" stroke="#2a3a5c" stroke-width="1"/>
+      <line x1="425" y1="256" x2="425" y2="298" stroke="#2a3a5c" stroke-width="1.5"/>
+      <line x1="425" y1="256" x2="520" y2="298" stroke="#2a3a5c" stroke-width="1"/>
+      <text x="425" y="282" text-anchor="middle" fill="#6b7d9e" font-family="JetBrains Mono" font-size="8">ScispaCy + Gemini Flash extraction</text>
+
+      <!-- Level 3B propositions -->
+      <rect x="240" y="300" width="120" height="44" rx="6" fill="#3a1a3a" stroke="#e879f9" stroke-width="1.5"/>
+      <text x="300" y="318" text-anchor="middle" fill="#e879f9" font-family="JetBrains Mono" font-size="8" font-weight="600">PROPOSITION 1</text>
+      <text x="300" y="334" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="7">"Drug X OS: 16.7mo"</text>
+
+      <rect x="375" y="300" width="120" height="44" rx="6" fill="#3a1a3a" stroke="#e879f9" stroke-width="1.5"/>
+      <text x="435" y="318" text-anchor="middle" fill="#e879f9" font-family="JetBrains Mono" font-size="8" font-weight="600">PROPOSITION 2</text>
+      <text x="435" y="334" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="7">"vs chemo: 12.1mo"</text>
+
+      <rect x="510" y="300" width="120" height="44" rx="6" fill="#3a1a3a" stroke="#e879f9" stroke-width="1.5"/>
+      <text x="570" y="318" text-anchor="middle" fill="#e879f9" font-family="JetBrains Mono" font-size="8" font-weight="600">PROPOSITION 3</text>
+      <text x="570" y="334" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="7">"HR 0.60, p&lt;0.001"</text>
+
+      <!-- LEVEL 3B label -->
+      <text x="10" y="318" fill="#e879f9" font-family="JetBrains Mono" font-size="9" font-weight="600">LEVEL 3B</text>
+      <text x="10" y="330" fill="#e879f9" font-family="JetBrains Mono" font-size="8">PROPOSITION</text>
+    </svg>
+    </div>
+  </div>
+
+  <div class="diagram-wrap">
+    <div class="diagram-title">Four Cloud Databases — Responsibilities</div>
+    <div class="diagram-subtitle">Each database does one thing — no overlap — all free tier for MVP</div>
+    <div class="db-grid">
+      <div class="db-block" style="border-color:#00d4ff">
+        <div class="db-icon">⬡</div>
+        <div class="db-name" style="color:var(--cyan)">Qdrant Cloud</div>
+        <div class="db-service">cloud.qdrant.io — Free 1GB</div>
+        <div class="db-items">
+          • 4 collections (L1-L3B)<br>
+          • Dense + sparse hybrid<br>
+          • Payload indexes (freshness, contradiction, cluster)<br>
+          • Staging collection for repairs<br>
+          • Hot path: READ ONLY<br>
+          • Cold path: READ + WRITE
+        </div>
+      </div>
+      <div class="db-block" style="border-color:#34d399">
+        <div class="db-icon">🗄</div>
+        <div class="db-name" style="color:#34d399">Supabase PostgreSQL</div>
+        <div class="db-service">supabase.com — Free 500MB</div>
+        <div class="db-items">
+          • failure_logs<br>
+          • repair_history<br>
+          • ingestion_logs (provenance)<br>
+          • admin_approval_queue<br>
+          • calibration_history<br>
+          • coverage_gap_map<br>
+          • benchmark_ground_truth<br>
+          • query_traces
+        </div>
+      </div>
+      <div class="db-block" style="border-color:#60a5fa">
+        <div class="db-icon">◈</div>
+        <div class="db-name" style="color:#60a5fa">Neo4j AuraDB</div>
+        <div class="db-service">neo4j.com/cloud — Free 200K nodes</div>
+        <div class="db-items">
+          • Paper nodes (all metadata)<br>
+          • CITES relationships<br>
+          • CONTRADICTS relationships<br>
+          • SUPERSEDES chains<br>
+          • BELONGS_TO clusters<br>
+          • Knowledge temporal graph<br>
+          • Citation velocity tracking
+        </div>
+      </div>
+      <div class="db-block" style="border-color:#ff8c42">
+        <div class="db-icon">⚡</div>
+        <div class="db-name" style="color:var(--orange)">Upstash Redis</div>
+        <div class="db-service">upstash.com — Free 10K cmd/day</div>
+        <div class="db-items">
+          • Query embedding cache (TTL)<br>
+          • HIGH priority Celery queue<br>
+          • MEDIUM priority queue<br>
+          • LOW priority queue<br>
+          • API rate limiting counters<br>
+          • Active processing state<br>
+          • LangGraph resume jobs
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="diagram-wrap">
+    <div class="diagram-title">Initial Setup — Three Sequential Phases</div>
+    <div class="diagram-subtitle">Must complete in order before any workflow starts — completely separate from ongoing ingestion graph</div>
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background:#1a2a4a;border:2px solid var(--blue);color:var(--blue)">1</div>
+        <div class="timeline-content">
+          <div class="timeline-week">Phase 1 — 2 to 4 hours</div>
+          <div class="timeline-title" style="color:var(--blue)">Infrastructure Setup</div>
+          <div class="timeline-items">Create Qdrant collections with vector configs and payload indexes on all filter fields • Create Supabase tables with correct schemas • Create Neo4j constraints and indexes • Initialize Upstash Redis queues and configure priority levels • Configure all 8 MCP servers with API keys</div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background:#1a3a2a;border:2px solid var(--green);color:var(--green)">2</div>
+        <div class="timeline-content">
+          <div class="timeline-week">Phase 2 — 8 to 24 hours</div>
+          <div class="timeline-title" style="color:var(--green)">Corpus Seeding</div>
+          <div class="timeline-items">Bulk fetch 10,000 PubMed abstracts across 3 topic clusters (immunotherapy, drug interactions, genomics) • Hierarchical chunking all 4 levels • Batch embedding with S-PubMedBert-MS-MARCO • Bulk insert to Qdrant (no staging validation — speed over caution for initial seed) • Seed 200 PubMed QA benchmark pairs to Supabase • Build initial Neo4j citation graph from Semantic Scholar • Validate retrieval on 20 known queries</div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background:#1a3a1a;border:2px solid var(--cyan);color:var(--cyan)">3</div>
+        <div class="timeline-content">
+          <div class="timeline-week">Phase 3 — Ongoing</div>
+          <div class="timeline-title" style="color:var(--cyan)">System Start</div>
+          <div class="timeline-items">Start FastAPI application (hot path) • Start Celery workers (cold path — separate process) • Start APScheduler monitoring loops (daily bioRxiv, weekly internal sweep) • System begins serving queries • All 8 agents active</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SECTION 6: MCP ARCHITECTURE
+══════════════════════════════════════════════════════ -->
+<div class="section" id="section-mcp">
+  <div class="section-title">MCP Architecture</div>
+  <div class="section-desc">Eight Model Context Protocol servers — four for external data sources, four for internal databases. Agents reason over a tool registry rather than executing hardcoded function calls.</div>
+
+  <div class="diagram-wrap">
+    <div class="diagram-title">Eight MCP Servers — Complete Reference</div>
+    <div class="diagram-subtitle">All deployed on Railway internal network — agents connect via HTTP — external APIs never touched by agents directly</div>
+    <div class="mcp-grid">
+      <div>
+        <div class="mcp-group-title">EXTERNAL DATA SOURCES</div>
+        <div class="mcp-server"><div class="mcp-dot" style="background:#00e5a0"></div><div><strong style="color:#00e5a0">PubMed MCP</strong><br><span style="color:var(--text3);font-size:10px">search papers, fetch abstract by PMID, fetch full text by PMC ID, fetch citing papers<br>Used by: Agent 1 (live fetch), Agent 5A (monitoring), Phase 2 seeding</span></div></div>
+        <div class="mcp-server"><div class="mcp-dot" style="background:#60a5fa"></div><div><strong style="color:#60a5fa">Semantic Scholar MCP</strong><br><span style="color:var(--text3);font-size:10px">get paper details with citations, search papers, get recommendations, citation velocity<br>Used by: Agent 5A (verification), Agent 6 (citation tracking)</span></div></div>
+        <div class="mcp-server"><div class="mcp-dot" style="background:#34d399"></div><div><strong style="color:#34d399">bioRxiv / medRxiv MCP</strong><br><span style="color:var(--text3);font-size:10px">fetch new papers by date range, fetch by DOI, search preprints<br>Used by: Agent 5A (daily monitoring loop)</span></div></div>
+        <div class="mcp-server"><div class="mcp-dot" style="background:#a855f7"></div><div><strong style="color:#a855f7">arXiv MCP</strong><br><span style="color:var(--text3);font-size:10px">search papers by query and category, fetch paper details<br>Used by: Agent 5A (CS biology preprints)</span></div></div>
+      </div>
+      <div>
+        <div class="mcp-group-title">INTERNAL DATABASES</div>
+        <div class="mcp-server"><div class="mcp-dot" style="background:#00d4ff"></div><div><strong style="color:#00d4ff">Qdrant MCP</strong><br><span style="color:var(--text3);font-size:10px">hybrid search with filters, insert chunks with payload, update payload, delete, create collections, staging swap<br>Used by: Agent 1 (retrieval), Agent 4B (repairs), Agent 5B (ingestion)</span></div></div>
+        <div class="mcp-server"><div class="mcp-dot" style="background:#ffd60a"></div><div><strong style="color:#ffd60a">Supabase MCP</strong><br><span style="color:var(--text3);font-size:10px">log failure, create approval request, update approval status, read coverage gap map, read calibration, write query trace, read benchmark pairs<br>Used by: all agents for operational data</span></div></div>
+        <div class="mcp-server"><div class="mcp-dot" style="background:#4a9eff"></div><div><strong style="color:#4a9eff">Neo4j MCP</strong><br><span style="color:var(--text3);font-size:10px">create paper node, create relationship, get citation chain, get contradictions, update freshness, query temporal graph<br>Used by: Agent 5B, Agent 5A, Agent 1 (graph-aware retrieval)</span></div></div>
+        <div class="mcp-server"><div class="mcp-dot" style="background:#ff8c42"></div><div><strong style="color:#ff8c42">Redis MCP</strong><br><span style="color:var(--text3);font-size:10px">get cached embedding, set cache with TTL, enqueue job with priority, get queue depth per level<br>Used by: Agent 1 (cache), all agents (job queuing)</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="diagram-wrap">
+    <div class="diagram-title">Circuit Breaker Pattern — External MCP Servers</div>
+    <div class="diagram-subtitle">Prevents hammering failing external APIs — internal MCP servers use retry-only</div>
+    <div style="overflow-x:auto;">
+    <svg width="700" height="220" viewBox="0 0 700 220" style="display:block;margin:0 auto;">
+      <defs>
+        <marker id="cb-arr" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4a6a9e"/></marker>
+        <marker id="cb-red" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#cc3354"/></marker>
+        <marker id="cb-grn" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#00b87d"/></marker>
+        <marker id="cb-yel" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#a89000"/></marker>
+      </defs>
+
+      <!-- CLOSED STATE -->
+      <rect x="20" y="80" width="140" height="60" rx="8" fill="#1a3a2a" stroke="#00e5a0" stroke-width="2"/>
+      <text x="90" y="104" text-anchor="middle" fill="#00e5a0" font-family="JetBrains Mono" font-size="11" font-weight="700">CLOSED</text>
+      <text x="90" y="120" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">Normal operation</text>
+      <text x="90" y="134" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">requests pass through</text>
+
+      <!-- OPEN STATE -->
+      <rect x="280" y="20" width="140" height="60" rx="8" fill="#3a1a1a" stroke="#ff4d6d" stroke-width="2"/>
+      <text x="350" y="44" text-anchor="middle" fill="#ff4d6d" font-family="JetBrains Mono" font-size="11" font-weight="700">OPEN</text>
+      <text x="350" y="60" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">No requests sent</text>
+      <text x="350" y="74" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">5 min cooldown</text>
+
+      <!-- HALF-OPEN STATE -->
+      <rect x="280" y="140" width="140" height="60" rx="8" fill="#2a2a1a" stroke="#ffd60a" stroke-width="2"/>
+      <text x="350" y="164" text-anchor="middle" fill="#ffd60a" font-family="JetBrains Mono" font-size="11" font-weight="700">HALF-OPEN</text>
+      <text x="350" y="180" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">1 test request</text>
+      <text x="350" y="194" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="9">allowed through</text>
+
+      <!-- ARROWS -->
+      <!-- Closed → Open (5 failures in 10 min) -->
+      <line x1="160" y1="94" x2="278" y2="46" stroke="#cc3354" stroke-width="1.5" marker-end="url(#cb-red)"/>
+      <text x="195" y="62" fill="#cc3354" font-family="JetBrains Mono" font-size="8">5 failures</text>
+      <text x="195" y="74" fill="#cc3354" font-family="JetBrains Mono" font-size="8">in 10 min</text>
+
+      <!-- Open → Half-open (5 min timer) -->
+      <line x1="350" y1="80" x2="350" y2="138" stroke="#ffd60a" stroke-width="1.5" marker-end="url(#cb-yel)"/>
+      <text x="356" y="114" fill="#ffd60a" font-family="JetBrains Mono" font-size="8">5 min</text>
+      <text x="356" y="126" fill="#ffd60a" font-family="JetBrains Mono" font-size="8">timer</text>
+
+      <!-- Half-open → Closed (success) -->
+      <line x1="280" y1="170" x2="162" y2="110" stroke="#00b87d" stroke-width="1.5" marker-end="url(#cb-grn)"/>
+      <text x="195" y="148" fill="#00b87d" font-family="JetBrains Mono" font-size="8">test request</text>
+      <text x="195" y="160" fill="#00b87d" font-family="JetBrains Mono" font-size="8">succeeds →</text>
+
+      <!-- Half-open → Open (fail) -->
+      <path d="M 420 170 C 500 170 500 50 422 50" stroke="#cc3354" stroke-width="1.5" fill="none" marker-end="url(#cb-red)"/>
+      <text x="508" y="112" fill="#cc3354" font-family="JetBrains Mono" font-size="8">fails →</text>
+      <text x="508" y="124" fill="#cc3354" font-family="JetBrains Mono" font-size="8">reopen</text>
+
+      <!-- Fallback box -->
+      <rect x="540" y="70" width="140" height="80" rx="8" fill="#1a2a3a" stroke="#4a9eff" stroke-width="1" stroke-dasharray="4"/>
+      <text x="610" y="94" text-anchor="middle" fill="#4a9eff" font-family="JetBrains Mono" font-size="9" font-weight="600">FALLBACK</text>
+      <text x="610" y="110" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="8">Return empty result</text>
+      <text x="610" y="124" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="8">with error flag</text>
+      <text x="610" y="138" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="8">Agent uses other sources</text>
+      <line x1="420" y1="50" x2="540" y2="95" stroke="#4a6a9e" stroke-width="1" stroke-dasharray="3" marker-end="url(#cb-arr)"/>
+
+      <!-- Retry box below -->
+      <text x="90" y="166" text-anchor="middle" fill="#ffd60a" font-family="JetBrains Mono" font-size="9" font-weight="600">RETRY LOGIC</text>
+      <text x="90" y="180" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="8">1s → 2s → 4s</text>
+      <text x="90" y="194" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="8">exponential backoff</text>
+      <text x="90" y="208" text-anchor="middle" fill="#9aaac8" font-family="JetBrains Mono" font-size="8">before circuit trips</text>
+    </svg>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SECTION 7: EVALUATION METRICS
+══════════════════════════════════════════════════════ -->
+<div class="section" id="section-evaluation">
+  <div class="section-title">Evaluation Metrics</div>
+  <div class="section-desc">Three layers of metrics — RAG quality, agent performance, and system reliability. Benchmark correctness score is the single most important metric: if this line goes up week over week, FailureRAG is working.</div>
+
+  <div class="diagram-wrap">
+    <div class="diagram-title">Three-Layer Metric Framework</div>
+    <div class="diagram-subtitle">Primary metric: benchmark correctness score over time — everything else is diagnostic</div>
+    <div class="metric-grid">
+      <div class="metric-block" style="border-color:rgba(0,212,255,0.3)">
+        <div class="metric-layer" style="color:var(--cyan)">Layer 1 — RAG Quality</div>
+        <div class="metric-item"><span class="metric-name">★ Benchmark Correctness</span><span class="metric-val" style="color:var(--cyan)">↑ weekly</span></div>
+        <div class="metric-item"><span class="metric-name">MRR (vs BEIR)</span><span class="metric-val" style="color:var(--green)">&gt;0.65</span></div>
+        <div class="metric-item"><span class="metric-name">Faithfulness Score</span><span class="metric-val" style="color:var(--green)">&gt;0.90</span></div>
+        <div class="metric-item"><span class="metric-name">Corpus Freshness</span><span class="metric-val" style="color:var(--green)">&gt;0.75</span></div>
+        <div class="metric-item"><span class="metric-name">Live Fetch Rate</span><span class="metric-val" style="color:var(--green)">&lt;10%</span></div>
+        <div class="metric-item"><span class="metric-name">Contradiction Resolution</span><span class="metric-val" style="color:var(--green)">&gt;85%</span></div>
+      </div>
+      <div class="metric-block" style="border-color:rgba(255,214,10,0.3)">
+        <div class="metric-layer" style="color:var(--yellow)">Layer 2 — Agent Performance</div>
+        <div class="metric-item"><span class="metric-name">A2 Eval Precision</span><span class="metric-val" style="color:var(--green)">&gt;0.88</span></div>
+        <div class="metric-item"><span class="metric-name">A2 Eval Recall</span><span class="metric-val" style="color:var(--green)">&gt;0.92</span></div>
+        <div class="metric-item"><span class="metric-name">A3 Diagnosis Accuracy</span><span class="metric-val" style="color:var(--green)">&gt;0.85</span></div>
+        <div class="metric-item"><span class="metric-name">A4A Repair Success</span><span class="metric-val" style="color:var(--green)">&gt;0.75</span></div>
+        <div class="metric-item"><span class="metric-name">A4B Regression Rate</span><span class="metric-val" style="color:var(--green)">&lt;0.05</span></div>
+        <div class="metric-item"><span class="metric-name">A5A Approval Precision</span><span class="metric-val" style="color:var(--green)">&gt;0.85</span></div>
+        <div class="metric-item"><span class="metric-name">A6 Pattern Lead Time</span><span class="metric-val" style="color:var(--green)">&gt;7 days</span></div>
+      </div>
+      <div class="metric-block" style="border-color:rgba(168,85,247,0.3)">
+        <div class="metric-layer" style="color:var(--purple)">Layer 3 — System Reliability</div>
+        <div class="metric-item"><span class="metric-name">P50 Latency</span><span class="metric-val" style="color:var(--green)">&lt;4 sec</span></div>
+        <div class="metric-item"><span class="metric-name">P95 Latency</span><span class="metric-val" style="color:var(--green)">&lt;8 sec</span></div>
+        <div class="metric-item"><span class="metric-name">P99 Latency</span><span class="metric-val" style="color:var(--green)">&lt;15 sec</span></div>
+        <div class="metric-item"><span class="metric-name">Hot Path Uptime</span><span class="metric-val" style="color:var(--green)">&gt;99.5%</span></div>
+        <div class="metric-item"><span class="metric-name">Hallucination Rate</span><span class="metric-val" style="color:var(--green)">&lt;5%</span></div>
+        <div class="metric-item"><span class="metric-name">Confident-Wrong Rate</span><span class="metric-val" style="color:var(--red)">&lt;2%</span></div>
+        <div class="metric-item"><span class="metric-name">Corpus Integrity</span><span class="metric-val" style="color:var(--green)">&gt;99.9%</span></div>
+        <div class="metric-item"><span class="metric-name">Celery Job Success</span><span class="metric-val" style="color:var(--green)">&gt;95%</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="diagram-wrap">
+    <div class="diagram-title">Three Admin Dashboards</div>
+    <div class="diagram-subtitle">Real-time operations + weekly quality trends + human approval queue</div>
+    <div class="grid-3">
+      <div class="agent-card" style="border-color:rgba(0,212,255,0.3)">
+        <div class="agent-card-header">
+          <div class="agent-num" style="background:#1a3a4a;color:var(--cyan)">⚡</div>
+          <div>
+            <div class="agent-card-title" style="color:var(--cyan)">Real-Time Operations</div>
+            <div class="agent-card-role">Updates every 30 seconds</div>
+          </div>
+        </div>
+        <div class="flow-compact">
+          <div class="flow-step cyan"><span style="font-size:10px">Hot path P50 + P95 latency — live</span></div>
+          <div class="flow-step cyan"><span style="font-size:10px">Queries per minute — last hour</span></div>
+          <div class="flow-step cyan"><span style="font-size:10px">Live fetch rate — last hour</span></div>
+          <div class="flow-step cyan"><span style="font-size:10px">Active background jobs count</span></div>
+          <div class="flow-step cyan"><span style="font-size:10px">Corpus freshness score — current</span></div>
+          <div class="flow-step cyan"><span style="font-size:10px">Active alerts with red badge</span></div>
+        </div>
+      </div>
+      <div class="agent-card" style="border-color:rgba(255,214,10,0.3)">
+        <div class="agent-card-header">
+          <div class="agent-num" style="background:#2a2a1a;color:var(--yellow)">📈</div>
+          <div>
+            <div class="agent-card-title" style="color:var(--yellow)">Weekly Quality Report</div>
+            <div class="agent-card-role">Auto-generated weekly</div>
+          </div>
+        </div>
+        <div class="flow-compact">
+          <div class="flow-step yellow"><span style="font-size:10px">★ Benchmark correctness trend line</span></div>
+          <div class="flow-step yellow"><span style="font-size:10px">Faithfulness score week-over-week</span></div>
+          <div class="flow-step yellow"><span style="font-size:10px">Corpus freshness trend</span></div>
+          <div class="flow-step yellow"><span style="font-size:10px">Failure type distribution bar chart</span></div>
+          <div class="flow-step yellow"><span style="font-size:10px">Top 5 Agent 6 pattern insights</span></div>
+          <div class="flow-step yellow"><span style="font-size:10px">Strategy effectiveness summary</span></div>
+        </div>
+      </div>
+      <div class="agent-card" style="border-color:rgba(168,85,247,0.3)">
+        <div class="agent-card-header">
+          <div class="agent-num" style="background:#2a1a3a;color:var(--purple)">✋</div>
+          <div>
+            <div class="agent-card-title" style="color:var(--purple)">Approval Queue</div>
+            <div class="agent-card-role">Notification-driven</div>
+          </div>
+        </div>
+        <div class="flow-compact">
+          <div class="flow-step purple"><span style="font-size:10px">Pending approvals sorted by priority + age</span></div>
+          <div class="flow-step purple"><span style="font-size:10px">Full contradiction evidence per item</span></div>
+          <div class="flow-step purple"><span style="font-size:10px">Staging validation results shown</span></div>
+          <div class="flow-step purple"><span style="font-size:10px">Scope of corpus change displayed</span></div>
+          <div class="flow-step purple"><span style="font-size:10px">Approve / Reject / Defer / Request Info</span></div>
+          <div class="flow-step purple"><span style="font-size:10px">Full audit trail in Supabase</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SECTION 8: BUILD ROADMAP
+══════════════════════════════════════════════════════ -->
+<div class="section" id="section-roadmap">
+  <div class="section-title">8-Week Build Roadmap</div>
+  <div class="section-desc">Each week has a clear demo-able deliverable. Zero cost throughout development using all free tiers.</div>
+
+  <div class="diagram-wrap">
+    <div class="diagram-title">Week-by-Week Development Plan</div>
+    <div class="diagram-subtitle">Demo-able deliverable at end of each week — eight weeks to complete system</div>
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background:#1a2a4a;border:2px solid var(--blue);color:var(--blue)">W1</div>
+        <div class="timeline-content">
+          <div class="timeline-week">Week 1 — Foundation</div>
+          <div class="timeline-title" style="color:var(--blue)">Databases and Basic Retrieval</div>
+          <div class="timeline-items">All 4 cloud databases set up • 10,000 PubMed abstracts seeded across 3 topic clusters • PubMed MCP + Qdrant MCP running • Agent 1 single-shot hybrid retrieval working • 200 PubMed QA benchmark pairs loaded<br><strong style="color:var(--blue)">Demo: Ask a biomedical question and get a retrieved answer</strong></div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background:#1a3a4a;border:2px solid var(--cyan);color:var(--cyan)">W2</div>
+        <div class="timeline-content">
+          <div class="timeline-week">Week 2 — Self Evaluation</div>
+          <div class="timeline-title" style="color:var(--cyan)">Agent 2 — Five Parallel Checks</div>
+          <div class="timeline-items">All 5 evaluation checks implemented (Gemini Flash + Gemini 1.5 Pro) • Async parallel execution • Supabase MCP + failure logging • Initial calibration baseline from 200 benchmark queries<br><strong style="color:var(--cyan)">Demo: Show failure rate per check type in dashboard</strong></div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background:#2a2a1a;border:2px solid var(--yellow);color:var(--yellow)">W3</div>
+        <div class="timeline-content">
+          <div class="timeline-week">Week 3 — Diagnosis and Instant Repair</div>
+          <div class="timeline-title" style="color:var(--yellow)">Agents 3 and 4A — Full Hot Path</div>
+          <div class="timeline-items">Agent 3 five diagnostic tests (Flash Thinking) • Agent 4A — query rewriting, live fetch, confidence flagging • Full hot path end-to-end • Latency under 8 seconds P95<br><strong style="color:var(--yellow)">Demo: System detects failure, diagnoses, and repairs in real time</strong></div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background:#2a1a2a;border:2px solid var(--purple);color:var(--purple)">W4</div>
+        <div class="timeline-content">
+          <div class="timeline-week">Week 4 — Background Repair</div>
+          <div class="timeline-title" style="color:var(--purple)">Agent 4B — Celery Workers and Isolation</div>
+          <div class="timeline-items">Celery + Upstash Redis three-priority queues • Agent 4B re-chunking + synonym indexing • Staging validation before promotion • Hot path isolation confirmed<br><strong style="color:var(--purple)">Demo: Corpus repairs in background — hot path latency unaffected</strong></div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background:#1a2a3a;border:2px solid #60a5fa;color:#60a5fa">W5</div>
+        <div class="timeline-content">
+          <div class="timeline-week">Week 5 — Knowledge Freshness</div>
+          <div class="timeline-title" style="color:#60a5fa">Agents 5A and 5B — Selective Ingestion</div>
+          <div class="timeline-items">All 4 external MCP servers (Semantic Scholar, bioRxiv, arXiv, PubMed complete) • Neo4j MCP • Agent 5A four-check verification • Agent 5B hierarchical ingestion + staging • APScheduler daily monitoring<br><strong style="color:#60a5fa">Demo: New papers automatically evaluated and selectively ingested</strong></div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background:#3a1a3a;border:2px solid #e879f9;color:#e879f9">W6</div>
+        <div class="timeline-content">
+          <div class="timeline-week">Week 6 — Human-in-the-Loop and Agent 6</div>
+          <div class="timeline-title" style="color:#e879f9">Admin Workflow and Longitudinal Learning</div>
+          <div class="timeline-items">Human approval communication (Supabase → email → dashboard → Redis resume) • Admin dashboard (Next.js) built • Agent 6 pattern detection + calibration + coverage gap map<br><strong style="color:#e879f9">Demo: End-to-end approval flow — email → dashboard → approve → corpus updated</strong></div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background:#1a3a2a;border:2px solid var(--green);color:var(--green)">W7</div>
+        <div class="timeline-content">
+          <div class="timeline-week">Week 7 — Frontend</div>
+          <div class="timeline-title" style="color:var(--green)">Query Interface + Demo Interface</div>
+          <div class="timeline-items">Query interface (confidence scores, freshness indicators, uncertainty flags) • Demo interface (3-panel split, Framer Motion agent activity feed, before/after comparison) • All three UI modes functional<br><strong style="color:var(--green)">Demo: Full transparency mode showing agent reasoning in real time</strong></div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background:#2a1a1a;border:2px solid var(--orange);color:var(--orange)">W8</div>
+        <div class="timeline-content">
+          <div class="timeline-week">Week 8 — Demo Preparation</div>
+          <div class="timeline-title" style="color:var(--orange)">Polish, Benchmark, Rehearsal</div>
+          <div class="timeline-items">Full 200 QA benchmark run — before and after metrics computed • Three reproducible demo queries identified and tested 10x each • Error handling stress tests • LangSmith trace review • Full 7-minute demo rehearsed 3 times<br><strong style="color:var(--orange)">Demo: Complete 7-minute demo with before/after benchmark comparison</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="diagram-wrap">
+    <div class="diagram-title">Complete Technology Stack</div>
+    <div class="diagram-subtitle">All free tier during development — zero cost MVP</div>
+    <div class="grid-2">
+      <div class="flow-compact">
+        <div class="flow-step" style="border-left-color:#4285f4"><span class="flow-step-num">LLM</span><div><strong style="color:#4285f4">Gemini 2.0 Flash</strong> — high-volume classification and generation<br><strong style="color:#4285f4">Gemini 2.0 Flash Thinking</strong> — complex reasoning (Agents 3, 5A, 6)<br><strong style="color:#4285f4">Gemini 1.5 Pro</strong> — cross-document compositional reasoning</div></div>
+        <div class="flow-step cyan"><span class="flow-step-num">DB</span><div><strong>Qdrant Cloud</strong> · <strong>Supabase PostgreSQL</strong> · <strong>Neo4j AuraDB</strong> · <strong>Upstash Redis</strong></div></div>
+        <div class="flow-step blue"><span class="flow-step-num">AI</span><div><strong>LangGraph</strong> (orchestration) · <strong>LangSmith</strong> (observability) · <strong>FastMCP</strong> (MCP servers)</div></div>
+        <div class="flow-step" style="border-left-color:#34d399"><span class="flow-step-num">ML</span><div><strong>S-PubMedBert-MS-MARCO</strong> (embeddings) · <strong>ScispaCy+spaCy</strong> (biomedical NLP)</div></div>
+        <div class="flow-step orange"><span class="flow-step-num">DOC</span><div><strong>pdfplumber</strong> (PDF extraction) · <strong>EasyOCR</strong> (scanned documents fallback)</div></div>
+      </div>
+      <div class="flow-compact">
+        <div class="flow-step" style="border-left-color:#ff6b35"><span class="flow-step-num">BE</span><div><strong>FastAPI Python 3.11</strong> (main API) · <strong>Celery</strong> (background workers) · <strong>APScheduler</strong> (monitoring loops) · <strong>Pydantic v2</strong> (state validation)</div></div>
+        <div class="flow-step" style="border-left-color:#000000"><span class="flow-step-num">FE</span><div><strong>Next.js</strong> · <strong>Tailwind CSS</strong> · <strong>Shadcn UI</strong> · <strong>Recharts</strong> · <strong>React Query</strong> · <strong>Framer Motion</strong></div></div>
+        <div class="flow-step green"><span class="flow-step-num">OPS</span><div><strong>Railway</strong> (FastAPI + Celery + MCP servers) · <strong>Vercel</strong> (Next.js) · <strong>Sentry</strong> (error tracking) · <strong>Celery Flower</strong> (task monitoring)</div></div>
+        <div class="flow-step" style="border-left-color:#a89000"><span class="flow-step-num">DEV</span><div><strong>Poetry</strong> (Python deps) · <strong>pytest + pytest-asyncio</strong> (testing) · <strong>Docker</strong> (local dev databases)</div></div>
+        <div class="flow-step" style="border-left-color:#4285f4"><span class="flow-step-num">$</span><div><strong style="color:var(--green)">Total MVP Cost: ₹0</strong> — all services on free tier during development</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<script>
+function showSection(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('section-' + name).classList.add('active');
+  event.target.classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function showAgent(id) {
+  document.querySelectorAll('.agent-flow-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.agent-tab').forEach(t => {
+    t.classList.remove('active');
+    t.style.background = '';
+    t.style.borderColor = '';
+    t.style.color = '';
+  });
+  document.getElementById('agent-' + id).classList.add('active');
+  event.target.classList.add('active');
+
+  const colors = {a1:'#4a9eff',a2:'#00d4ff',a3:'#ffd60a',a4a:'#ff8c42',a4b:'#a855f7',a5a:'#60a5fa',a5b:'#34d399',a6:'#e879f9'};
+  if (colors[id]) {
+    event.target.style.background = colors[id];
+    event.target.style.borderColor = colors[id];
+    event.target.style.color = '#0a0e1a';
+  }
+}
+</script>
+
+</body>
+</html>

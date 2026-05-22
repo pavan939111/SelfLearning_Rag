@@ -1,0 +1,72 @@
+# Keys and secrets — NEVER commit these
+keys.txt
+.env
+*.key
+secrets/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Testing and logs
+logs/
+*.log
+test_output/
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Checkpoints and temp files
+ingestion_checkpoint.json
+*.checkpoint
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
+# Model cache
+.cache/
+models/
+*.bin
+*.safetensors
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Windows
+desktop.ini

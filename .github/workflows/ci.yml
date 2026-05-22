@@ -1,0 +1,68 @@
+name: Self-Learning and Self-Healing RAG CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  backend-checks:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.13
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+    
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+    
+    - name: Check imports
+      run: |
+        python -c "from agents.agent1_retrieval import QueryClassifier"
+        python -c "from agents.agent2_evaluator import Agent2Evaluator"
+        python -c "from agents.agent3_classifier import Agent3Classifier"
+        python -c "from agents.agent4a_formulator import Agent4AFormulator"
+        python -c "from agents.agent7_generator import Agent7Generator"
+        python -c "from agents.cache_manager import CacheManager"
+        python -c "from agents.conversation_memory import ConversationMemory"
+        python -c "from ingestion.fetcher import PaperRecord"
+        python -c "from ingestion.chunker import HierarchicalChunker"
+        echo "All imports OK"
+    
+    - name: Check no old Gemini imports
+      run: |
+        if grep -r "google.generativeai" agents/ ingestion/ api/; then
+          echo "Old Gemini imports found"
+          exit 1
+        fi
+        echo "Gemini migration clean"
+    
+    - name: Check no keys in code
+      run: |
+        if grep -r "AIzaSy" agents/ api/ ingestion/; then
+          echo "API keys found in code"
+          exit 1
+        fi
+        echo "No hardcoded keys found"
+
+  frontend-checks:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Node 18
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    
+    - name: Install dependencies
+      run: cd frontend && npm install
+    
+    - name: Build check
+      run: cd frontend && npm run build

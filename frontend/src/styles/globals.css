@@ -1,0 +1,43 @@
+:root {
+  --bg:         #0a0e1a;
+  --bg2:        #0f1525;
+  --bg3:        #141b30;
+  --panel:      #1a2240;
+  --border:     #2a3a5c;
+  --border2:    #344870;
+  --cyan:       #00d4ff;
+  --cyan2:      #00a8cc;
+  --green:      #00e5a0;
+  --green2:     #00b87d;
+  --orange:     #ff8c42;
+  --red:        #ff4d6d;
+  --purple:     #a855f7;
+  --yellow:     #ffd60a;
+  --text:       #e8eef8;
+  --text2:      #9aaac8;
+  --text3:      #6b7d9e;
+  --mono:       'JetBrains Mono', monospace;
+  --display:    'Syne', sans-serif;
+  --radius:     10px;
+  --radius-sm:  6px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { 
+  background: var(--border2); 
+  border-radius: 3px; 
+}
+
+a { color: var(--cyan); text-decoration: none; }
+button { cursor: pointer; font-family: var(--mono); }
