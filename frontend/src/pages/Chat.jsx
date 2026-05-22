@@ -174,11 +174,11 @@ export default function Chat() {
           )}
 
           {messages.map((m) => (
-            <MessageBubble key={m.id} message={m} />
+            <MessageBubble key={m.id} message={m} sessionId={activeSessionId} />
           ))}
           
           {loading && (
-            <MessageBubble message={{ loading: true }} />
+            <MessageBubble message={{ loading: true }} sessionId={activeSessionId} />
           )}
 
           <div ref={messagesEndRef} />

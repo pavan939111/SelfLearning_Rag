@@ -1,11 +1,23 @@
 import time
 import asyncio
 import json
+from pydantic import BaseModel
+from typing import Optional
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from api.models.requests import ChatRequest
 from api.models.responses import ChatResponse
 from utils.logger import get_logger
+
+class FeedbackRequest(BaseModel):
+    session_id: str
+    query: str
+    answer: str
+    rating: int
+    topic_cluster: Optional[str] = None
+    confidence: Optional[float] = None
+    cycle_ran: Optional[bool] = None
+    cache_hit: Optional[bool] = None
 
 # Import Agents
 from agents.agent1_retrieval import QueryClassifier, MetadataPreFilter, HybridRetriever
@@ -240,6 +252,33 @@ async def chat_endpoint(request: ChatRequest):
             processing_time_ms=processing_time_ms,
             cache_hit=False
         )
+
+@router.post("/chat/feedback")
+async def chat_feedback(request: FeedbackRequest):
+    """
+    Records user thumbs up / thumbs down feedback.
+    Never crashes, best-effort insert into Supabase.
+    """
+    try:
+        from database.supabase_client import SupabaseManager
+        sb = SupabaseManager()
+        if sb.client:
+            sb.client.table("user_feedback").insert({
+                "session_id": request.session_id,
+                "query": request.query,
+                "answer": request.answer,
+                "rating": request.rating,
+                "topic_cluster": request.topic_cluster,
+                "confidence": request.confidence,
+                "cycle_ran": request.cycle_ran,
+                "cache_hit": request.cache_hit
+            }).execute()
+        logger.info(f"Feedback recorded: {request.rating} for session {request.session_id}")
+    except Exception as e:
+        logger.error(f"Failed to record feedback to Supabase: {e}")
+    
+    # Always return success
+    return {"success": True, "message": "Feedback recorded"}
 
 @router.get("/chat/stream")
 async def chat_stream(session_id: str, query: str):

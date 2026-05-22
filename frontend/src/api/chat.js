@@ -18,3 +18,13 @@ export const clearSession = async (sessionId) => {
   )
   return response.data
 }
+
+export const submitFeedback = async (feedbackData) => {
+  try {
+    const response = await client.post('/chat/feedback', feedbackData)
+    return response.data
+  } catch (err) {
+    console.error('Feedback submission failed:', err)
+    return null
+  }
+}

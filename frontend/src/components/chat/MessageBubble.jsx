@@ -2,8 +2,10 @@ import { motion } from 'framer-motion'
 import ConfidenceBar from './ConfidenceBar'
 import CitationTag from './CitationTag'
 import LoadingSpinner from '../shared/LoadingSpinner'
+import FeedbackButtons from './FeedbackButtons'
+import { submitFeedback } from '../../api/chat'
 
-export default function MessageBubble({ message }) {
+export default function MessageBubble({ message, sessionId }) {
   const isUser = message.role === 'user'
 
   const renderTextWithCitations = (text, citations) => {
@@ -194,6 +196,16 @@ export default function MessageBubble({ message }) {
             ))}
           </div>
         </div>
+      )}
+
+      {message.role === 'assistant' && !message.loading && (
+        <FeedbackButtons
+          message={message}
+          sessionId={sessionId}
+          onFeedback={(rating) => {
+            console.log('Feedback submitted:', rating)
+          }}
+        />
       )}
     </motion.div>
   )

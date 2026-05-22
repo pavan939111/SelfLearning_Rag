@@ -27,6 +27,7 @@ export function useChat(sessionId) {
         id: Date.now() + 1,
         role: 'assistant',
         content: data.answer,
+        query: query,
         citations: data.citations || [],
         confidence: data.confidence,
         hasGaps: data.has_gaps,
@@ -38,6 +39,7 @@ export function useChat(sessionId) {
         cacheHit: data.cache_hit,
         processingTime: data.processing_time_ms,
         queryType: data.query_type,
+        topicCluster: data.query_type,
         timestamp: new Date().toISOString()
       }
 

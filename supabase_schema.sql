@@ -138,3 +138,24 @@ CREATE INDEX IF NOT EXISTS idx_benchmark_run
   ON public.benchmark_results(run_id);
 CREATE INDEX IF NOT EXISTS idx_failures_session 
   ON public.agent_failures(session_id);
+
+
+-- User feedback tracking
+CREATE TABLE IF NOT EXISTS public.user_feedback (
+  id bigint primary key generated always as identity,
+  session_id text,
+  query text,
+  answer text,
+  rating integer,
+  topic_cluster text,
+  confidence float,
+  cycle_ran bool,
+  cache_hit bool,
+  created_at timestamptz default now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_feedback_rating
+ON public.user_feedback(rating);
+
+CREATE INDEX IF NOT EXISTS idx_feedback_cluster
+ON public.user_feedback(topic_cluster);
