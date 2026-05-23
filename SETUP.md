@@ -1,68 +1,73 @@
-# Self-Learning and Self-Healing RAG Setup Guide
+# FailureRAG Setup Guide
 
-## 1. Cloud Service Setup (all free tier)
+## Prerequisites
+- Python 3.13
+- Node.js 18+
+- Git
 
-### Qdrant Cloud
-1. Go to cloud.qdrant.io
-2. Create account and new cluster (free tier)
-3. Copy Cluster URL and API key
+## Cloud Services (all free tier)
 
-### Supabase
-1. Go to supabase.com
-2. Create new project
-3. Copy Project URL and anon key
-4. Run the SQL from supabase_schema.sql in SQL editor
+### 1. Qdrant Cloud
+  URL: cloud.qdrant.io
+  Create free cluster
+  Copy: Cluster URL, API key
 
-### Neo4j AuraDB
-1. Go to console.neo4j.io
-2. Create free AuraDB instance
-3. Copy URI, username, password
-4. Note: instance pauses after inactivity — resume if needed
+### 2. Supabase
+  URL: supabase.com
+  Create project
+  Copy: Project URL, anon key
+  Run: supabase_schema.sql in SQL Editor
 
-### Upstash Redis
-1. Go to upstash.com
-2. Create Redis database (free tier)
-3. Copy Redis URL and password
-4. URL format: rediss://endpoint:6379
+### 3. Neo4j AuraDB
+  URL: console.neo4j.io
+  Create free instance
+  Copy: URI (neo4j+s://...), username, password
+  Note: pauses after inactivity — resume if needed
 
-### Google AI Studio
-1. Go to aistudio.google.com
-2. Create API key
-3. Free tier: 1500 requests/day per key
+### 4. Upstash Redis
+  URL: upstash.com
+  Create Redis database
+  Copy: Redis URL (rediss://...), password
 
-### Semantic Scholar (optional but recommended)
-1. Go to semanticscholar.org/product/api
-2. Request API key (approved within hours)
-3. Rate limit: 1 request/second
+### 5. Google AI Studio
+  URL: aistudio.google.com
+  Create API key
+  Free tier: 1500 requests/day
 
-## 2. Supabase Schema
+### 6. Semantic Scholar (optional)
+  URL: semanticscholar.org/product/api
+  Request API key (approved within hours)
+  Improves citation velocity tracking
 
-Run this SQL in your Supabase SQL Editor
-before starting the application:
+## Installation
 
-[Include all CREATE TABLE statements from 
-the schema we built throughout development]
+1. Clone repository
+   git clone https://github.com/pavan939111/SelfLearning_Rag.git
+   cd SelfLearning_Rag
 
-## 3. Keys Configuration
+2. Install Python dependencies
+   pip install -r requirements.txt
 
-Create keys.txt in project root:
+3. Create keys.txt (copy from keys.txt.example)
+   Fill in all values from cloud services above
 
-QDRANT_URL=your_qdrant_url
-QDRANT_API_KEY=your_key
-SUPABASE_URL=your_supabase_url
-SUPABASE_KEY=your_key
-GEMINI_API_KEY=your_gemini_key
-NEO4J_URI=neo4j+s://your_instance.databases.neo4j.io
-NEO4J_USERNAME=neo4j
-NEO4J_PASSWORD=your_password
-REDIS_URL=rediss://your_upstash_endpoint:6379
-REDIS_PASSWORD=your_password
+4. Test connections
+   python test_connections.py
+   All 4 databases should show CONNECTED
 
-Never commit this file — it is in .gitignore
+5. Create Supabase tables
+   Copy supabase_schema.sql content
+   Run in Supabase SQL Editor
 
-## 4. Running the System
+6. Install frontend dependencies
+   cd frontend
+   npm install
+   cd ..
 
-### Development mode (all components):
+## Running the System
+
+### Development (all terminals)
+
 Terminal 1 — Backend API:
   uvicorn api.main:app --port 8000 --reload
 
@@ -72,18 +77,58 @@ Terminal 2 — Frontend:
 Terminal 3 — Background workers (optional):
   python start_worker.py
 
-Terminal 4 — Monitor ingestion (optional):
-  tail -f logs/ingestion.log
+### Initial corpus setup (one time)
 
-### Initial corpus setup:
-  python run_ingestion.py
-  (Takes 1-2 hours for 1767 papers)
+python run_ingestion.py
 
-## 5. Verification
+Takes 1-2 hours for 1,767 papers.
+Checkpointed — safe to interrupt and resume.
 
-Run full system verification:
-  python scripts/verify_complete_system.py
+### Seed benchmark questions
 
-Expected: 10/12 checks passing
-(Neo4j offline and benchmark count
- are acceptable warnings)
+python scripts/seed_benchmarks.py
+
+### Run baseline benchmark
+
+uvicorn api.main:app --port 8000
+python scripts/run_benchmark.py
+
+### Populate Neo4j (after ingestion)
+
+python scripts/backfill_neo4j.py
+python scripts/build_contradiction_graph.py
+
+## Verification
+
+python scripts/verify_all_phases.py
+
+Expected: 31/32 checks passing
+(Neo4j offline = acceptable warning)
+
+## URLs when running
+
+Frontend:     http://localhost:5173
+Backend API:  http://localhost:8000
+API docs:     http://localhost:8000/docs
+Health check: http://localhost:8000/health
+
+## Common Issues
+
+### Gemini 429 quota exhausted
+  Wait for reset (midnight Pacific)
+  Add additional API keys to keys.txt
+  System falls back gracefully — never crashes
+
+### Neo4j DNS resolution failed
+  Instance paused after inactivity
+  Go to console.neo4j.io and resume
+  Wait 3-5 minutes for DNS propagation
+
+### Redis SSL error
+  Ensure REDIS_URL uses rediss:// not redis://
+  Upstash requires SSL
+
+### Embedding model download slow
+  First run downloads ~400MB from HuggingFace
+  Subsequent runs use cache
+  Set HF_TOKEN for faster downloads

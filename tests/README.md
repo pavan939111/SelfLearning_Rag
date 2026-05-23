@@ -3,16 +3,19 @@
 ## Structure
 
 tests/
-  unit/           — Individual component tests
-  integration/    — Agent pipeline tests  
-  system/         — End to end system tests
+  unit/           Individual component tests
+  integration/    Agent pipeline tests
+  system/         End-to-end system tests
 
 ## Running Tests
 
-### Quick connection check (run first):
+Set PYTHONPATH first (Windows):
+  $env:PYTHONPATH="c:\Users\mahip\OneDrive\Desktop\SelfLearning_Rag"
+
+### Connection check (always run first):
   python test_connections.py
 
-### Unit tests (no server needed):
+### Unit tests (fast, no server needed):
   python tests/unit/test_fetcher.py
   python tests/unit/test_chunker.py
   python tests/unit/test_qdrant.py
@@ -21,39 +24,40 @@ tests/
   python tests/integration/test_agent1.py
   python tests/integration/test_agent2.py
   python tests/integration/test_agent6.py
-
-### System tests (full pipeline):
-  python tests/system/test_repair_cycle.py
-  python tests/system/test_live_fetch_cycle.py
-
-### API tests (server must be running on 8000):
-  uvicorn api.main:app --port 8000
   python tests/integration/test_api.py
 
-### Full system verification:
-  python scripts/verify_complete_system.py
+### System tests (full pipeline, Gemini required):
+  python tests/system/test_repair_cycle.py
+  python tests/system/test_live_fetch_cycle.py
+  python tests/system/test_agent6_loop.py
+  python tests/system/test_agent4b_staging.py
 
-## Test Categories
+### Full verification (run before any commit):
+  python scripts/verify_all_phases.py
+  Target: 31/32 or higher
 
-Unit — tests one component in isolation.
-  No external API calls where possible.
-  Fast. Run these first.
+## What Each Test Covers
 
-Integration — tests agents working together.
-  Requires Qdrant, Supabase, Redis connected.
-  Requires Gemini quota available.
-  Medium speed.
+### Unit
+  test_fetcher.py  — PubMedFetcher, PaperRecord
+  test_chunker.py  — HierarchicalChunker 4 levels
+  test_qdrant.py   — Qdrant insert and search
 
-System — tests complete user flows.
-  Requires all databases and Gemini quota.
-  Slowest. Run before major changes.
+### Integration
+  test_agent1.py   — Full retrieval pipeline
+  test_agent2.py   — All 5 quality checks
+  test_agent4b.py  — Celery task registration
+  test_agent6.py   — Learning accumulation
+  test_api.py      — All FastAPI endpoints
 
-## Setting PYTHONPATH
+### System
+  test_repair_cycle.py    — A2→A3→A4A full cycle
+  test_live_fetch_cycle.py — Live fetch end to end
+  test_agent6_loop.py     — Complete learning loop
+  test_agent4b_staging.py — Staging validation
 
-Set before running any test:
+## Verification Script
 
-Windows:
-  $env:PYTHONPATH="c:\path\to\failurerag"
-
-Mac/Linux:
-  export PYTHONPATH=/path/to/failurerag
+scripts/verify_all_phases.py covers all 32 checks.
+Run this for complete system status.
+Expected: 31/32 PASS (Neo4j offline = WARN not FAIL)

@@ -11,9 +11,7 @@ in real time, and gets smarter with every query.
 
 ## Demo
 
-[Add screenshot or GIF here after recording]
-
-**86.7% benchmark pass rate** on 15 biomedical QA pairs
+**86.7% benchmark pass rate** on 50 biomedical QA pairs
 out of the box — before any learning has occurred.
 
 ---

@@ -1,55 +1,125 @@
-# FailureRAG Backend Architecture & Current State
+# FailureRAG Backend Architecture Summary
 
-## 1. Core Databases
-- **Qdrant**: Vector database storing document, section, semantic, and proposition level embeddings (768 dimensions) using `BiomedicalEmbedder`. Includes Staging collections for safe chunk repair testing before production promotion.
-- **Supabase**: PostgreSQL database storing relational data, including `benchmark_results`, `agent6_insights`, `repair_queue` (pending admin approvals), and `agent_failures`.
-- **Neo4j AuraDB**: Graph database linking Papers and Entities/Topics for citation velocity and graph-based retrieval.
-- **Redis**: Serves as the high-speed Semantic Cache (using SimHash for fast retrieval) and as the message broker for background Celery tasks.
+## Quick Reference
 
-## 2. Multi-Agent Pipeline
+**Entry point:** uvicorn api.main:app --port 8000
+**Workers:** python start_worker.py
+**Ingestion:** python run_ingestion.py
 
-### Agent 1: Retrieval
-- **QueryClassifier**: Extracts user intents, main topics, and medical entities.
-- **MetadataPreFilter**: Generates Qdrant filters for precise, focused search.
-- **HybridRetriever**: Pulls relevant chunks from the hierarchical Qdrant collections.
+## API Endpoints
 
-### Agent 2: Quality Gate (Evaluator)
-- Evaluates retrieved chunks for **Freshness**, **Completeness/Grounding**, and **Calibration**. 
-- If chunks fail any test (e.g., the chunks are outdated or don't fully answer the query), it halts generation and escalates the query to Agent 3.
+### Chat
+POST /chat
+  Body: {session_id, query, top_k, user_id}
+  Returns: {answer, citations, confidence,
+            confidence_lower, confidence_upper,
+            output_format, claim_provenance,
+            cache_hit, cycle_ran, live_fetch_used,
+            query_suggestions, processing_time_ms}
 
-### Agent 3: Diagnostic Classifier
-- Determines the exact root cause of the retrieval failure (e.g., "query too narrow", "knowledge gap", "chunking boundary error").
-- Classifies the failure into severity classes (A, B, C) and routes to either Agent 4A or 4B.
+POST /chat/feedback
+  Body: {session_id, query, answer, rating,
+         topic_cluster, confidence, cycle_ran}
+  Returns: {success: true}
 
-### Agent 4A & 4B: Repair Cycle
-- **Agent 4A (Runtime Repair)**: Immediately modifies the query or prompts a re-retrieval (e.g., expanding or narrowing search terms).
-- **Agent 4B (Corpus Repair)**: Identifies structural issues (e.g., poor chunking). If a fix affects > 50 papers, it routes a request to the Admin `repair_queue`. It promotes repaired chunks to a Qdrant **Staging Collection** first, validates them using test queries (avg_score > 0.5), and only then promotes to Production.
+GET /chat/stream?session_id=X&query=Y
+  Returns: SSE stream of agent activity events
+  Event types: cache, agent1, agent2, agent3,
+               agent4a, agent7, system
 
-### Agent 5A: Selective Ingestion
-- Evaluates new papers before they enter the corpus.
-- Employs strict ingestion rules:
-  1. Contradiction Detection (avoids duplicating or conflicting with existing knowledge).
-  2. Fills known Agent 6 coverage gaps.
-  3. Matches high-traffic query patterns.
-  4. High citation velocity / Recency constraints.
+### Health
+GET /health
+  Returns: {status, databases, agents, system}
 
-### Agent 6: Continuous Learning
-- Observes the results of the multi-agent pipeline globally.
-- Writes findings to `agent6_insights` in Supabase.
-- Maps knowledge coverage gaps and tracks topic query velocity to dynamically tune Redis cache TTLs.
+### Admin
+GET  /admin/stats
+GET  /admin/corpus-health
+GET  /admin/pending-approvals
+POST /admin/approve-repair/{id}
+GET  /admin/benchmark-trend
+GET  /admin/latest-benchmark
+GET  /admin/strategy-recommendations
+POST /admin/approve-strategy/{id}
+GET  /admin/repair-history
 
-### Agent 7: Generator
-- The final step in the hot path. Generates clinical responses using the successfully retrieved (or repaired) chunks.
-- Injects explicit citation markers, confidence scores, and necessary "gap acknowledgments" if the answer is incomplete.
+## Key Design Decisions
 
-## 3. APIs and Infrastructure
-- **FastAPI**: Main backend running on port 8000. Includes `/api/chat` for the hot path and `/admin` endpoints for system stats and repair approvals.
-- **Celery & Celery Beat**: Manages asynchronous background workers like `live_fetch_ingester` and `rechunk_documents`.
-- **Semantic Cache (`CacheManager`)**: Maps similar query embeddings to saved retrieval chunks to bypass Qdrant and LLM execution entirely for repeat queries, granting massive speedups.
+### Why pre-generation evaluation?
+Agent 2 evaluates chunks BEFORE generation.
+Zero wasted LLM calls on bad evidence.
+Generation is guaranteed to be grounded.
 
-## 4. Next Steps for Frontend Integration
-To proceed with the frontend build, your UI will interact directly with these established boundaries:
+### Why merge-not-replace in repair cycle?
+Agent 4A finds missing pieces via targeted sub-queries.
+New chunks merged with original good chunks.
+Agent 7 gets most complete picture possible.
 
-- **Chat Interface**: Needs to POST to `/api/chat` with `{ "session_id": "...", "query": "..." }`. The frontend must parse the response to display the `answer`, `citations`, `confidence`, and whether a `cycle_ran` (to show the user that the agent had to "think harder" and perform a self-repair).
-- **Admin Dashboard**: Needs to GET `/admin/stats` and GET `/admin/pending-approvals` to display system health and allow administrators to click "Approve" or "Reject" on large-scale Agent 4B structural repairs.
-- **Graph Visualization**: Future integration with Neo4j to visualize topic clusters and paper citations directly in the browser.
+### Why cache chunks not answers?
+Generated answers must adapt to conversation context.
+Cache the expensive part — retrieval.
+Agent 7 always generates fresh from cached chunks.
+
+### Why Celery for repairs?
+Background repairs must never block the user.
+Three priority queues ensure hot path
+never waits for corpus repairs.
+
+### Why Pydantic for inter-agent communication?
+Type safety at agent boundaries.
+ValidationError caught immediately at source.
+Automatic Redis serialization (model_dump_json).
+LangGraph-ready for future migration.
+
+## File Structure
+
+agents/
+  models.py           — All Pydantic inter-agent contracts
+  agent1_retrieval.py — QueryClassifier, MetadataPreFilter,
+                        HybridRetriever, GraphExpansionRetriever
+  agent2_evaluator.py — Agent2Evaluator (5 checks)
+  agent3_classifier.py — Agent3Classifier (5 diagnostic tests)
+  agent4a_formulator.py — Agent4AFormulator + knowledge_drift
+  agent4b_repair.py   — Agent4BRepair (Celery queue interface)
+  agent5a_verifier.py — Agent5AVerifier (citation velocity)
+  agent6_learning.py  — Agent6Learning (all learning loops)
+  agent7_generator.py — Agent7Generator (structured output)
+  cache_manager.py    — CacheManager (SimHash + dynamic TTL)
+  conversation_memory.py — ConversationMemory + SessionTopicModel
+  live_fetcher.py     — LiveFetcher (PubMed E-utilities)
+  live_fetch_ingester.py — LiveFetchIngester
+  repair_cycle.py     — RepairCycle (A2→A3→A4A)
+  stream_monitor.py   — StreamMonitor (daily sweep)
+
+api/
+  main.py             — FastAPI app + APScheduler
+  routes/
+    chat.py           — POST /chat + SSE /chat/stream
+    health.py         — GET /health
+    admin.py          — All /admin/* endpoints
+  models/
+    requests.py       — ChatRequest, AdminApprovalRequest
+    responses.py      — ChatResponse, HealthResponse
+
+database/
+  qdrant_client.py    — QdrantManager (4 collections + staging)
+  supabase_client.py  — SupabaseManager (all tables)
+  neo4j_client.py     — Neo4jManager (graph operations)
+  redis_client.py     — RedisManager (cache + queues)
+
+ingestion/
+  fetcher.py          — PubMedFetcher, PaperRecord
+  chunker.py          — HierarchicalChunker (4 levels)
+  embedder.py         — BiomedicalEmbedder (S-PubMedBert)
+  pipeline.py         — IngestionPipeline + IngestionStats
+
+workers/
+  celery_app.py       — Celery config (3 priority queues)
+  repair_tasks.py     — rechunk, reembed, metadata,
+                        live_fetch_papers, log_failure
+
+scripts/
+  run_ingestion.py    — Full corpus ingestion
+  run_benchmark.py    — Benchmark runner
+  seed_benchmarks.py  — Seed 50 QA pairs
+  backfill_neo4j.py   — Populate Neo4j from corpus
+  verify_all_phases.py — Complete system verification

@@ -17,6 +17,7 @@ SelfLearning_Rag/
 │   ├── agent4a_formulator.py    # Agent 4A: Gap Analyzer, Query Formulator, Live PubMed Fetcher
 │   ├── agent4b_repair.py        # Agent 4B: Background repair scheduler
 │   ├── agent5a_verifier.py      # Agent 5A: Standalone Quality-Gate Verifier for Ingestion
+│   ├── agent5b_ingestion.py     # Agent 5B: Selective Ingestion (pipeline.py)
 │   ├── agent6_learning.py       # Agent 6: Observes queries, records patterns, calibration & gaps
 │   ├── agent7_generator.py      # Agent 7: Citation-grounded Conversational Response Generator
 │   ├── cache_manager.py         # 32-bit SimHash semantic cache manager (Redis)
