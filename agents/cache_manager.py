@@ -4,6 +4,7 @@ import numpy as np
 from config import get_config
 from utils.logger import get_logger
 from database.redis_client import RedisManager
+from agents.models import RetrievalResult
 
 class CacheManager:
     """
@@ -34,45 +35,43 @@ class CacheManager:
             "default": 24 * 3600              # 24 hours
         }
 
-    def _generate_cache_key(self, query_embedding: list[float]) -> str:
+    def _generate_cache_key(self, query_embedding: list) -> str:
         """
         Generate a semantic hash from the query embedding using a 32-bit SimHash.
         Uses 32 random hyperplanes with a fixed seed for projection.
         """
-        try:
-            if not query_embedding or not isinstance(query_embedding, (list, np.ndarray)):
-                self.logger.warning("Invalid query embedding passed to _generate_cache_key.")
-                return "cache:default"
-                
-            # Step 1: Convert embedding to numpy array
-            embedding_array = np.array(query_embedding, dtype=float)
-            
-            # Step 2: Create 32 random hyperplanes consistent across calls
-            np.random.seed(42)
-            hyperplanes = np.random.randn(32, len(query_embedding))
-            
-            # Step 3: Project embedding onto each hyperplane
-            projections = hyperplanes @ embedding_array
-            bits = (projections > 0).astype(int)
-            
-            # Step 4: Convert 32 bits to 8-char hex string
-            binary_str = "".join(map(str, bits))
-            hex_hash = format(int(binary_str, 2), "08x")
-            
-            # Step 5: Return key
-            return f"cache:{hex_hash}"
-        except Exception as e:
-            self.logger.error(f"Failed to generate 32-bit semantic SimHash: {e}")
-            return "cache:default"
+        import numpy as np
+        emb = np.array(query_embedding, dtype=np.float32)
+        np.random.seed(42)
+        hyperplanes = np.random.randn(32, len(emb))
+        projections = hyperplanes @ emb
+        bits = (projections > 0).astype(int)
+        hash_int = int(
+            ''.join(map(str, bits)), 2
+        )
+        hex_hash = format(hash_int, '08x')
+        return f'cache:{hex_hash}'
 
     def _get_ttl(self, topic_cluster: str) -> int:
         """
         Return TTL seconds based on topic_cluster topic velocity.
-        Tries to use Agent6 dynamic velocity calculations; falls back to static TTL.
+        Tries to use config overrides first, then Agent6 dynamic velocity, then falls back to static TTL.
         """
         if not topic_cluster:
             return self.DEFAULT_TTL["default"]
             
+        default_ttl = self.DEFAULT_TTL.get(topic_cluster, self.DEFAULT_TTL["default"])
+        
+        # 1. Config Overrides
+        try:
+            from utils.config_overrides import get_override
+            override_val = get_override(f'cache_ttl_{topic_cluster}', None)
+            if override_val is not None:
+                return int(override_val)
+        except Exception as e:
+            self.logger.warning(f"Failed to check cache TTL override: {e}")
+            
+        # 2. Agent 6 Dynamic Velocity
         try:
             from agents.agent6_learning import Agent6Learning
             agent6 = Agent6Learning()
@@ -89,7 +88,7 @@ class CacheManager:
         except Exception as e:
             self.logger.warning(f"Failed to use Agent 6 velocity for cache TTL, falling back to defaults: {e}")
             
-        return self.DEFAULT_TTL.get(topic_cluster, self.DEFAULT_TTL["default"])
+        return default_ttl
 
     def get(self, query_embedding: list[float]) -> list[dict] | None:
         """
@@ -107,9 +106,9 @@ class CacheManager:
             cached_val = self.client.get(key)
             if cached_val:
                 self.logger.info(f"Cache HIT for key: {key}")
-                chunks = json.loads(cached_val)
-                if isinstance(chunks, list):
-                    return chunks
+                chunks_data = json.loads(cached_val)
+                if isinstance(chunks_data, list):
+                    return [RetrievalResult.model_validate(c) for c in chunks_data]
             else:
                 self.logger.info(f"Cache MISS for key: {key}")
                 
@@ -136,18 +135,14 @@ class CacheManager:
             ttl = self._get_ttl(topic_cluster)
             
             # Serialize chunks to standard dictionaries
-            serializable_chunks = []
-            for chunk in chunks:
-                if hasattr(chunk, "to_dict"):
-                    serializable_chunks.append(chunk.to_dict())
-                elif isinstance(chunk, dict):
-                    serializable_chunks.append(chunk)
-                else:
-                    self.logger.warning(f"Chunk of unknown type ignored: {type(chunk)}")
+            if chunks and hasattr(chunks[0], 'model_dump'):
+                stored = [c.model_dump() for c in chunks]
+            else:
+                stored = chunks
                     
-            serialized_val = json.dumps(serializable_chunks)
+            serialized_val = json.dumps(stored)
             
-            self.logger.info(f"Writing {len(serializable_chunks)} chunks to cache key: {key} (TTL: {ttl}s)")
+            self.logger.info(f"Writing {len(stored)} chunks to cache key: {key} (TTL: {ttl}s)")
             self.client.set(key, serialized_val, ex=ttl)
             return True
         except Exception as e:

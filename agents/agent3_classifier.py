@@ -8,13 +8,7 @@ from utils.llm_utils import get_gemini_key
 from database.qdrant_client import QdrantManager
 from ingestion.embedder import BiomedicalEmbedder
 
-@dataclass
-class DiagnosisResult:
-    failure_class: str
-    root_cause: str
-    confidence: float
-    evidence: str
-    route_to: str
+from agents.models import DiagnosisResult
 
 class Agent3Classifier:
     """

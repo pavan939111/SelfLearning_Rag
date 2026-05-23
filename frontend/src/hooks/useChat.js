@@ -30,6 +30,8 @@ export function useChat(sessionId) {
         query: query,
         citations: data.citations || [],
         confidence: data.confidence,
+        confidenceLower: data.confidence_lower,
+        confidenceUpper: data.confidence_upper,
         hasGaps: data.has_gaps,
         gapAcknowledgment: data.gap_acknowledgment,
         hasContradiction: data.has_contradiction,
@@ -40,6 +42,9 @@ export function useChat(sessionId) {
         processingTime: data.processing_time_ms,
         queryType: data.query_type,
         topicCluster: data.query_type,
+        outputFormat: data.output_format || 'prose',
+        querySuggestions: data.query_suggestions || [],
+        claimProvenance: data.claim_provenance || [],
         timestamp: new Date().toISOString()
       }
 

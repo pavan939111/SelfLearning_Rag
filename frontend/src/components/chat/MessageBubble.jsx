@@ -3,9 +3,139 @@ import ConfidenceBar from './ConfidenceBar'
 import CitationTag from './CitationTag'
 import LoadingSpinner from '../shared/LoadingSpinner'
 import FeedbackButtons from './FeedbackButtons'
+import ClaimProvenancePanel from './ClaimProvenancePanel'
+import QuerySuggestions from './QuerySuggestions'
 import { submitFeedback } from '../../api/chat'
 
-export default function MessageBubble({ message, sessionId }) {
+function parseMarkdownTable(text) {
+  const lines = text.split('\n')
+  const tableLines = lines.filter(l => l.trim().startsWith('|'))
+  
+  if (tableLines.length < 2) return null
+  
+  const headers = tableLines[0]
+    .split('|')
+    .filter(h => h.trim())
+    .map(h => h.trim())
+  
+  // Skip separator row (---|---|---)
+  const rows = tableLines.slice(2).map(row =>
+    row.split('|')
+       .filter(cell => cell.trim() !== '')
+       .map(cell => cell.trim())
+  ).filter(row => row.length > 0)
+  
+  return { headers, rows }
+}
+
+function parseMarkdownList(text) {
+  const lines = text.split('\n')
+  const items = lines
+    .filter(l => /^\d+\./.test(l.trim()))
+    .map(l => l.replace(/^\d+\.\s*/, '').trim())
+  return items.length > 0 ? items : null
+}
+
+function renderTable(tableData) {
+  if (!tableData) return null
+  return (
+    <div style={{
+      overflowX: 'auto',
+      margin: '12px 0',
+      borderRadius: '8px',
+      border: '1px solid var(--border)',
+    }}>
+      <table style={{
+        width: '100%',
+        borderCollapse: 'collapse',
+        fontSize: '12px',
+        minWidth: '400px',
+      }}>
+        <thead>
+          <tr>
+            {tableData.headers.map((h, i) => (
+              <th key={i} style={{
+                background: 'var(--panel)',
+                color: i === 0 ? 'var(--text2)' : 'var(--cyan)',
+                padding: '10px 14px',
+                textAlign: 'left',
+                borderBottom: '2px solid var(--border)',
+                borderRight: '1px solid var(--border)',
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
+              }}>
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {tableData.rows.map((row, ri) => (
+            <tr key={ri} style={{
+              background: ri % 2 === 0 
+                ? 'var(--bg2)' : 'var(--bg3)',
+            }}>
+              {row.map((cell, ci) => (
+                <td key={ci} style={{
+                  padding: '9px 14px',
+                  borderBottom: '1px solid var(--border)',
+                  borderRight: '1px solid var(--border)',
+                  color: ci === 0 
+                    ? 'var(--text)' : 'var(--text2)',
+                  fontWeight: ci === 0 ? 600 : 400,
+                  lineHeight: 1.5,
+                }}>
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function renderList(items) {
+  if (!items) return null
+  return (
+    <ol style={{
+      margin: '12px 0',
+      paddingLeft: '0',
+      listStyle: 'none',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '8px',
+    }}>
+      {items.map((item, i) => (
+        <li key={i} style={{
+          display: 'flex',
+          gap: '10px',
+          padding: '8px 12px',
+          background: 'var(--bg3)',
+          borderRadius: '6px',
+          border: '1px solid var(--border)',
+          borderLeft: '3px solid var(--cyan)',
+          fontSize: '12px',
+          color: 'var(--text2)',
+          lineHeight: 1.5,
+        }}>
+          <span style={{
+            color: 'var(--cyan)',
+            fontWeight: 700,
+            flexShrink: 0,
+            minWidth: '20px',
+          }}>
+            {i + 1}.
+          </span>
+          {item}
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+export default function MessageBubble({ message, sessionId, onSuggestionSelect }) {
   const isUser = message.role === 'user'
 
   const renderTextWithCitations = (text, citations) => {
@@ -32,6 +162,8 @@ export default function MessageBubble({ message, sessionId }) {
     parts.push(text.substring(lastIndex))
     return parts.length > 0 ? parts : text
   }
+
+
 
   if (message.loading) {
     return (
@@ -111,9 +243,94 @@ export default function MessageBubble({ message, sessionId }) {
         maxWidth: '85%'
       }}
     >
-      <div style={{ fontSize: '13px', lineHeight: 1.8, color: isFallback ? 'var(--text2)' : 'var(--text)', whiteSpace: 'pre-wrap' }}>
-        {renderTextWithCitations(message.content, message.citations)}
-      </div>
+      {message.proactiveContradictionDetected && (
+        <div style={{
+          background: 'rgba(255,140,66,0.08)',
+          border: '1px solid rgba(255,140,66,0.3)',
+          borderRadius: '6px',
+          padding: '8px 12px',
+          marginBottom: '10px',
+          fontSize: '11px',
+          color: 'var(--orange)'
+        }}>
+          ⚡ Contradicting evidence found in corpus. Multiple perspectives presented below.
+        </div>
+      )}
+
+      {(() => {
+        const format = message.outputFormat || 'prose'
+        const content = message.content || ''
+        
+        if (format === 'table') {
+          const tableData = parseMarkdownTable(content)
+          if (tableData) {
+            // Get text before and after table
+            const lines = content.split('\n')
+            const beforeTable = lines
+              .slice(0, lines.findIndex(l => l.trim().startsWith('|')))
+              .join('\n').trim()
+            const afterTableStart = lines
+              .findIndex((l, i) => 
+                i > 0 && !l.trim().startsWith('|') && 
+                lines[i-1].trim().startsWith('|')
+              )
+            const afterTable = afterTableStart > 0
+              ? lines.slice(afterTableStart).join('\n').trim()
+              : ''
+            
+            return (
+              <div>
+                {beforeTable && (
+                  <p style={{ fontSize:'13px', color:'var(--text)', 
+                              marginBottom:'8px', lineHeight:1.8 }}>
+                    {renderTextWithCitations(beforeTable, message.citations)}
+                  </p>
+                )}
+                {/* Notice we do not use renderTextWithCitations on table cells to avoid breaking layout or just let the tags sit as text */}
+                {renderTable(tableData)}
+                {afterTable && (
+                  <p style={{ fontSize:'13px', color:'var(--text2)',
+                              marginTop:'8px', lineHeight:1.8 }}>
+                    {renderTextWithCitations(afterTable, message.citations)}
+                  </p>
+                )}
+              </div>
+            )
+          }
+        }
+        
+        if (format === 'list') {
+          const items = parseMarkdownList(content)
+          if (items) {
+            const afterListMatch = content.match(/\n\n([^0-9].+)$/)
+            const summary = afterListMatch ? afterListMatch[1] : ''
+            return (
+              <div>
+                {renderList(items)}
+                {summary && (
+                  <p style={{ fontSize:'12px', color:'var(--text3)',
+                              marginTop:'8px', lineHeight:1.6,
+                              fontStyle:'italic' }}>
+                    {renderTextWithCitations(summary, message.citations)}
+                  </p>
+                )}
+              </div>
+            )
+          }
+        }
+        
+        // Default prose rendering
+        return (
+          <div style={{
+            fontSize: '13px',
+            color: isFallback ? 'var(--text2)' : 'var(--text)',
+            lineHeight: 1.8,
+            whiteSpace: 'pre-wrap',
+          }}>
+            {renderTextWithCitations(content, message.citations)}
+          </div>
+        )
+      })()}
 
       {isFallback && (
         <div style={{
@@ -130,7 +347,11 @@ export default function MessageBubble({ message, sessionId }) {
       )}
 
       <div style={{ display: 'flex', gap: '12px', marginTop: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-        <ConfidenceBar confidence={message.confidence} />
+        <ConfidenceBar 
+          confidence={message.confidence} 
+          confidenceLower={message.confidenceLower}
+          confidenceUpper={message.confidenceUpper}
+        />
         
         {message.processingTime && (
           <div style={{ color: 'var(--text3)', fontSize: '11px' }}>
@@ -154,6 +375,22 @@ export default function MessageBubble({ message, sessionId }) {
           <div style={{ color: 'var(--text3)', fontSize: '11px', border: '1px solid var(--border)', padding: '2px 8px', borderRadius: '10px' }}>
             {message.queryType}
           </div>
+        )}
+        
+        {message.outputFormat && message.outputFormat !== 'prose' && (
+          <span style={{
+            padding: '2px 7px',
+            background: 'rgba(168,85,247,0.1)',
+            border: '1px solid rgba(168,85,247,0.3)',
+            color: 'var(--purple)',
+            borderRadius: '4px',
+            fontSize: '9px',
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+          }}>
+            {message.outputFormat}
+          </span>
         )}
       </div>
 
@@ -196,6 +433,17 @@ export default function MessageBubble({ message, sessionId }) {
             ))}
           </div>
         </div>
+      )}
+
+      {message.claimProvenance && message.claimProvenance.length > 0 && (
+        <ClaimProvenancePanel provenance={message.claimProvenance} />
+      )}
+
+      {message.querySuggestions && message.querySuggestions.length > 0 && message.hasGaps && (
+        <QuerySuggestions 
+          suggestions={message.querySuggestions} 
+          onSelect={onSuggestionSelect} 
+        />
       )}
 
       {message.role === 'assistant' && !message.loading && (

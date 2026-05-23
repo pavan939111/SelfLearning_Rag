@@ -6,60 +6,21 @@ from config import get_config
 from utils.logger import get_logger
 from utils.llm_utils import get_gemini_key
 
-@dataclass
-class SufficiencyResult:
-    is_sufficient: bool
-    reason: str
-    suggestion: str
+from agents.models import (
+    QueryClassification, FilterConfig,
+    RetrievalResult, SufficiencyResult
+)
 
-@dataclass
-class FilterConfig:
-    must_conditions: list[dict]
-    should_conditions: list[dict]
-    min_year: int | None
-    topic_cluster: str | None
-    requires_fresh: bool
-
-@dataclass
-class RetrievalResult:
-    chunk_id: str
-    paper_id: str
-    text: str
-    score: float
-    level: str
-    section_type: str
-    topic_cluster: str
-    year: int
-    freshness_score: float
-    contradiction_flag: bool
-    keyword_matches: int
-
-@dataclass
-class QueryClassification:
-    query: str
-    query_type: str
-    main_topics: list[str]
-    requires_recent: bool
-    entities: list[str]
-
-    def to_dict(self):
-        return {
-            "query": self.query,
-            "query_type": self.query_type,
-            "main_topics": self.main_topics,
-            "requires_recent": self.requires_recent,
-            "entities": self.entities
-        }
-
-@dataclass
 class Agent1Result:
-    query: str
-    classification: QueryClassification
-    results: list[RetrievalResult]
-    sufficiency: SufficiencyResult
-    filter_was_relaxed: bool
-    query_was_rewritten: bool
-    rewritten_query: str
+    # We can keep internal wrappers as standard classes or dataclasses per the user's instructions: "Keep as dataclass: Internal computation results that never cross agent boundaries."
+    def __init__(self, query: str, classification: QueryClassification, results: list[RetrievalResult], sufficiency: SufficiencyResult, filter_was_relaxed: bool, query_was_rewritten: bool, rewritten_query: str):
+        self.query = query
+        self.classification = classification
+        self.results = results
+        self.sufficiency = sufficiency
+        self.filter_was_relaxed = filter_was_relaxed
+        self.query_was_rewritten = query_was_rewritten
+        self.rewritten_query = rewritten_query
 
 class QueryClassifier:
     """
@@ -340,7 +301,8 @@ class HybridRetriever:
                  query: str, 
                  classification = None, 
                  filter_config = None, 
-                 top_k: int = 5) -> list[RetrievalResult]:
+                 top_k: int = 5,
+                 session_id: str | None = None) -> list[RetrievalResult]:
         """
         Main retrieval entry point.
         Supports both retrieve(query, classification, filter_config, top_k)
@@ -359,7 +321,24 @@ class HybridRetriever:
             if filter_config is None:
                 filter_config = FilterConfig(must_conditions=[], should_conditions=[], min_year=0, topic_cluster=None, requires_fresh=False)
 
-            query_emb = self.embedder.embed_text(query)
+            from utils.config_overrides import get_override
+            qtype = getattr(classification, "query_type", "simple_factual")
+            if qtype == "multi_hop":
+                top_k = get_override('retrieval_top_k_multi_hop', top_k)
+
+            embedding_query = query
+            if session_id:
+                from agents.conversation_memory import SessionTopicModel
+                topic_model = SessionTopicModel()
+                bias = topic_model.get_retrieval_bias(session_id, query)
+                if bias:
+                    embedding_query = topic_model.build_biased_query(query, bias)
+                    if bias.get("preferred_cluster") and not filter_config.topic_cluster:
+                        filter_config.topic_cluster = bias["preferred_cluster"]
+                        filter_config.must_conditions.append({"key": "topic_cluster", "match": bias["preferred_cluster"]})
+                    self.logger.info(f"Session bias applied: {bias.get('preferred_cluster')}")
+
+            query_emb = self.embedder.embed_text(embedding_query)
             
             # Step 1: Dense Retrieval with Pre-filters
             filters = {}
@@ -378,6 +357,10 @@ class HybridRetriever:
 
             # Step 4: Apply metadata filtering (Safety Check)
             filtered = []
+            
+            from utils.config_overrides import get_override
+            freshness_threshold = get_override('temporal_freshness_threshold', 0.5)
+            
             for r in fused_results:
                 # Contradiction check
                 if r.get("contradiction_flag", False):
@@ -386,7 +369,7 @@ class HybridRetriever:
                 if filter_config.min_year and r.get("year", 0) < filter_config.min_year:
                     continue
                 # Freshness check
-                if filter_config.requires_fresh and r.get("freshness_score", 0) < 0.5:
+                if filter_config.requires_fresh and r.get("freshness_score", 0) < freshness_threshold:
                     continue
                 filtered.append(r)
 
@@ -414,10 +397,24 @@ class HybridRetriever:
                     year=r["year"],
                     freshness_score=r["freshness_score"],
                     contradiction_flag=r["contradiction_flag"],
-                    keyword_matches=r.get("keyword_matches", 0)
+                    keyword_matches=r.get("keyword_matches", 0),
+                    from_graph=r.get("from_graph", False)
                 )
                 for r in final_list
             ]
+
+            # Graph Expansion
+            if len(results_to_return) < top_k * 2:
+                try:
+                    graph_expander = GraphExpansionRetriever()
+                    expanded_results = graph_expander.expand_with_graph(
+                        results_to_return, query_emb, top_k
+                    )
+                    if any(getattr(r, 'from_graph', False) for r in expanded_results):
+                        self.logger.info("Graph expansion added citation neighbors")
+                    results_to_return = expanded_results
+                except Exception as e:
+                    self.logger.warning(f"Graph expansion failed: {e}")
 
             # Safeguard: if temporal query produces fewer than 3 chunks after pre-filter/retry
             qtype = getattr(classification, "query_type", "")
@@ -429,13 +426,15 @@ class HybridRetriever:
                 )
                 
                 # Append LIVE_FETCH_SIGNAL sentinel dict to trigger immediate live fetch
-                results_to_return.append({
-                    "chunk_id": "LIVE_FETCH_SIGNAL",
-                    "text": "",
-                    "score": 0.0,
-                    "live_fetch_required": True,
-                    "topic_cluster": filter_config.topic_cluster or "immunotherapy"
-                })
+                results_to_return.append(RetrievalResult(
+                    chunk_id="LIVE_FETCH_SIGNAL",
+                    paper_id="",
+                    text="",
+                    score=0.0,
+                    level="",
+                    topic_cluster=filter_config.topic_cluster or "immunotherapy",
+                    live_fetch=True
+                ))
 
             return results_to_return
 
@@ -468,7 +467,7 @@ class RetrievalSufficiencyEvaluator:
         # Filter out sentinel markers if present to avoid AttributeError on dictionary fields
         clean_results = [
             r for r in results 
-            if not (isinstance(r, dict) and r.get("chunk_id") == "LIVE_FETCH_SIGNAL")
+            if r.chunk_id != "LIVE_FETCH_SIGNAL"
         ]
 
         # Check 1: Quantity
@@ -603,3 +602,110 @@ class Agent1Retrieval:
             query_was_rewritten=query_was_rewritten,
             rewritten_query=rewritten_query
         )
+
+class GraphExpansionRetriever:
+    def __init__(self):
+        from database.neo4j_client import Neo4jManager
+        from database.qdrant_client import QdrantManager
+        from ingestion.embedder import BiomedicalEmbedder
+        self.neo4j = Neo4jManager()
+        self.qdrant = QdrantManager()
+        self.embedder = BiomedicalEmbedder()
+        self.logger = get_logger(__name__)
+
+    def expand_with_graph(self, initial_results: list, query_embedding: list[float], top_k: int = 5) -> list:
+        if not self.neo4j.driver:
+            return initial_results
+            
+        # Step 1: Extract paper_ids from initial results
+        paper_ids = list(set(r.paper_id for r in initial_results if hasattr(r, 'paper_id')))
+        if not paper_ids:
+            return initial_results
+            
+        # Step 2: Get graph neighbors
+        citation_neighbors = self.neo4j.get_citation_neighbors(paper_ids, depth=1)
+        contradiction_neighbors = self.neo4j.get_contradiction_neighbors(paper_ids)
+        all_neighbor_ids = list(set(citation_neighbors + contradiction_neighbors))
+        
+        if not all_neighbor_ids:
+            return initial_results
+            
+        # Step 3: Fetch chunks for neighbor papers from Qdrant
+        neighbor_chunks = []
+        for neighbor_id in all_neighbor_ids[:10]:
+            try:
+                results = self.qdrant.search_chunks(
+                    query_embedding=query_embedding,
+                    level='semantic',
+                    top_k=2,
+                    filters={'paper_id': neighbor_id}
+                )
+                neighbor_chunks.extend(results)
+            except Exception as e:
+                self.logger.warning(f"Failed to fetch neighbor chunks for {neighbor_id}: {e}")
+                
+        if not neighbor_chunks:
+            return initial_results
+            
+        # Step 4: Convert neighbor chunks to RetrievalResult format
+        neighbor_results = []
+        for chunk in neighbor_chunks:
+            neighbor_results.append(RetrievalResult(
+                chunk_id=chunk['chunk_id'],
+                paper_id=chunk['paper_id'],
+                text=chunk['text'],
+                score=chunk['score'] * 0.85,  # slight penalty for graph hop
+                level=chunk['level'],
+                section_type=chunk['section_type'],
+                topic_cluster=chunk.get('topic_cluster', ''),
+                year=chunk.get('year', 2020),
+                freshness_score=chunk.get('freshness_score', 1.0),
+                contradiction_flag=chunk.get('contradiction_flag', False),
+                keyword_matches=0,
+                from_graph=True
+            ))
+            
+        # Step 5: Combine and re-rank with MMR
+        all_candidates = initial_results + neighbor_results
+        
+        # We need query_embedding as np array
+        import numpy as np
+        query_emb = np.array(query_embedding)
+        
+        # We'll use HybridRetriever's _mmr_rerank to simplify if possible, but it takes list of dicts.
+        # Let's implement a simple MMR here for the objects.
+        # Get embeddings for chunks to calculate similarity
+        texts = [r.text for r in all_candidates]
+        chunk_embs_list = self.embedder.embed_batch(texts)
+        chunk_embs = np.array(chunk_embs_list)
+        # Normalize embeddings
+        chunk_embs = chunk_embs / np.linalg.norm(chunk_embs, axis=1, keepdims=True)
+        query_norm = query_emb / np.linalg.norm(query_emb)
+        
+        selected_indices = []
+        candidates = list(range(len(all_candidates)))
+        lambda_param = 0.7
+        
+        while len(selected_indices) < top_k and candidates:
+            best_mmr = -1e9
+            best_idx = -1
+            
+            for i in candidates:
+                sim_query = np.dot(query_norm, chunk_embs[i])
+                sim_selected = 0
+                if selected_indices:
+                    sim_selected = max(np.dot(chunk_embs[i], chunk_embs[j]) for j in selected_indices)
+                
+                mmr_score = lambda_param * sim_query - (1 - lambda_param) * sim_selected
+                
+                if mmr_score > best_mmr:
+                    best_mmr = mmr_score
+                    best_idx = i
+                    
+            if best_idx != -1:
+                selected_indices.append(best_idx)
+                candidates.remove(best_idx)
+            else:
+                break
+                
+        return [all_candidates[i] for i in selected_indices]

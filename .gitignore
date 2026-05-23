@@ -1,8 +1,8 @@
-# Keys and secrets — NEVER commit these
+# Secrets — NEVER commit
 keys.txt
 .env
 *.key
-secrets/
+config_overrides.json
 
 # Python
 __pycache__/
@@ -11,21 +11,10 @@ __pycache__/
 *.so
 .Python
 build/
-develop-eggs/
 dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
 
 # Virtual environments
 venv/
@@ -33,17 +22,15 @@ venv/
 env/
 ENV/
 
-# Testing and logs
+# Logs and runtime files
 logs/
 *.log
-test_output/
-.pytest_cache/
-htmlcov/
-.coverage
-
-# Checkpoints and temp files
 ingestion_checkpoint.json
 *.checkpoint
+
+# Test outputs
+test_output/
+tests/output/
 
 # IDE
 .vscode/
@@ -57,24 +44,24 @@ Thumbs.db
 frontend/node_modules/
 frontend/dist/
 frontend/.env
+frontend/.env.local
 
-# Model cache
+# Model cache — large files
 .cache/
 models/
 *.bin
 *.safetensors
+*.pt
+*.pth
 
 # Jupyter
 .ipynb_checkpoints/
-*.ipynb
 
 # Windows
 desktop.ini
+Thumbs.db
 
-# Test outputs
-tests/output/
-test_output/
-*.test.log
-
-# Verification outputs  
+# Verification and scratch files
 scripts/output/
+verify_*.py
+test_models.py

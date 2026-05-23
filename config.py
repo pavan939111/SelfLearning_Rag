@@ -56,6 +56,13 @@ class Settings(BaseSettings):
     
     # Global Config
     log_level: str = keys_from_file.get("LOG_LEVEL", "INFO")
+    
+    # API Keys for auth
+    api_keys: list[str] = [
+        keys_from_file.get(f"API_KEY_{i}") 
+        for i in range(1, 10) 
+        if keys_from_file.get(f"API_KEY_{i}")
+    ]
 
 # Global Header Constants
 SEMANTIC_SCHOLAR_HEADERS = {

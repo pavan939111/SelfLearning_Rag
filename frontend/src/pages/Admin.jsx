@@ -6,6 +6,7 @@ import StatCard from '../components/admin/StatCard'
 import BenchmarkChart from '../components/admin/BenchmarkChart'
 import ActivityTable from '../components/admin/ActivityTable'
 import InsightsList from '../components/admin/InsightsList'
+import PredictionsPanel from '../components/admin/PredictionsPanel'
 
 export default function Admin() {
   const { health, stats, corpusHealth, loading, lastUpdated, refresh } = useAdminStats(30000)
@@ -159,8 +160,12 @@ export default function Admin() {
         gridTemplateColumns: '1fr 1fr',
         gap: '20px',
         marginBottom: '24px',
+        alignItems: 'start'
       }}>
-        <InsightsList stats={stats} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <InsightsList stats={stats} />
+          <PredictionsPanel predictions={stats?.predictions ?? []} />
+        </div>
         <ActivityTable
           getPendingApprovals={getPendingApprovals}
           approveRepair={approveRepair}

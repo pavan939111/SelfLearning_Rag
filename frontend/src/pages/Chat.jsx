@@ -174,7 +174,12 @@ export default function Chat() {
           )}
 
           {messages.map((m) => (
-            <MessageBubble key={m.id} message={m} sessionId={activeSessionId} />
+            <MessageBubble 
+              key={m.id} 
+              message={m} 
+              sessionId={activeSessionId} 
+              onSuggestionSelect={handleSend}
+            />
           ))}
           
           {loading && (

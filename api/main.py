@@ -1,10 +1,14 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
+from uuid import uuid4
+from datetime import datetime as dt_tz, timezone
 
 from api.routes import health, chat, admin
 from api.middleware.rate_limit import RateLimitMiddleware
+from api.middleware.auth import verify_api_key
+from config import get_config
 from utils.logger import get_logger
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -12,6 +16,34 @@ import datetime
 
 logger = get_logger(__name__)
 scheduler = AsyncIOScheduler()
+
+async def run_daily_monitor():
+    logger.info("Starting daily stream monitor...")
+    try:
+        from agents.stream_monitor import StreamMonitor
+        monitor = StreamMonitor()
+        results = monitor.run_daily_sweep()
+        logger.info(f"Daily monitor complete: {results}")
+        
+        # Store stats in Redis
+        from database.redis_client import RedisManager
+        redis = RedisManager()
+        if redis.client:
+            redis.client.set("monitor:last_run", datetime.datetime.now(datetime.timezone.utc).isoformat(), ex=86400)
+            redis.client.set("monitor:papers_found_today", str(results.get("papers_found", 0)), ex=86400)
+            redis.client.set("monitor:papers_ingested_today", str(results.get("papers_ingested", 0)), ex=86400)
+    except Exception as e:
+        logger.error(f"Daily monitor failed: {e}")
+
+async def run_gap_sweep():
+    logger.info("Starting gap-targeted sweep...")
+    try:
+        from agents.stream_monitor import StreamMonitor
+        monitor = StreamMonitor()
+        results = monitor.run_gap_targeted_sweep()
+        logger.info(f"Gap sweep complete: {results}")
+    except Exception as e:
+        logger.error(f"Gap sweep failed: {e}")
 
 async def run_weekly_benchmark():
     logger.info("Starting scheduled weekly benchmark...")
@@ -158,6 +190,18 @@ async def lifespan(app: FastAPI):
             id='freshness_sweep',
             replace_existing=True
         )
+        scheduler.add_job(
+            run_daily_monitor,
+            CronTrigger(hour=4),
+            id='daily_monitor',
+            replace_existing=True
+        )
+        scheduler.add_job(
+            run_gap_sweep,
+            CronTrigger(day_of_week='sun', hour=3),
+            id='weekly_gap_sweep',
+            replace_existing=True
+        )
         scheduler.start()
         
         logger.info("FailureRAG API started")
@@ -186,18 +230,32 @@ app.add_middleware(
 )
 
 # Rate Limiting
-app.add_middleware(RateLimitMiddleware, max_requests=60, window_seconds=60)
+app.add_middleware(RateLimitMiddleware)
+
+# Request ID Middleware
+@app.middleware("http")
+async def add_request_id(request: Request, call_next):
+    request_id = str(uuid4())
+    request.state.request_id = request_id
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    return response
 
 # Global Exception Handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Unhandled exception: {str(exc)}")
+    req_id = getattr(request.state, "request_id", str(uuid4()))
+    logger.exception(f"Unhandled exception [req={req_id}]: {str(exc)}")
     return JSONResponse(
         status_code=500,
-        content={"error": "Internal Server Error", "detail": "An unexpected error occurred."}
+        content={
+            "error": "Internal server error",
+            "request_id": req_id,
+            "timestamp": dt_tz.now(timezone.utc).isoformat()
+        }
     )
 
 # Routers
 app.include_router(health.router, tags=["Health"])
-app.include_router(chat.router, tags=["Chat"])
-app.include_router(admin.router, prefix="/admin", tags=["Admin"])
+app.include_router(chat.router, tags=["Chat"], dependencies=[Depends(verify_api_key)])
+app.include_router(admin.router, prefix="/admin", tags=["Admin"], dependencies=[Depends(verify_api_key)])

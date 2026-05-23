@@ -1,37 +1,24 @@
-# Database clients
-qdrant-client==1.9.1
-supabase==2.5.0
-neo4j==5.20.0
-redis==5.0.4
-
-# ML and embeddings
-sentence-transformers==3.0.1
-torch==2.3.1
-transformers==4.41.2
-
-# Google Gemini (new SDK)
+qdrant-client==1.18.0
+supabase==2.30.0
+neo4j==6.2.0
+redis==7.1.0
+sentence-transformers==5.4.1
+torch==2.11.0
+transformers==5.7.0
 google-genai==1.0.0
-
-# PubMed fetching
-biopython==1.83
+biopython==1.87
 requests==2.32.3
-xmltodict==0.13.0
-
-# API framework
-fastapi==0.111.0
-uvicorn==0.30.1
+xmltodict==1.0.4
+fastapi==0.136.1
+uvicorn==0.46.0
 httpx==0.27.0
 python-multipart==0.0.9
-
-# Background workers
 celery==5.3.6
 flower==2.0.1
-apscheduler==3.10.4
-
-# Utilities
-python-dotenv==1.0.1
-pydantic==2.7.4
-pydantic-settings==2.3.4
-loguru==0.7.2
-tenacity==8.3.0
-numpy==1.26.4
+apscheduler==3.11.2
+pydantic==2.13.3
+pydantic-settings==2.14.0
+loguru==0.7.3
+tenacity==9.1.2
+numpy==2.2.4
+python-dotenv==1.2.1

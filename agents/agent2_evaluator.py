@@ -6,27 +6,9 @@ from config import get_config
 from utils.logger import get_logger
 from utils.llm_utils import get_gemini_key
 
-@dataclass
-class EvaluationResult:
-    """Stores the outcome of a single quality check."""
-    check_name: str
-    passed: bool
-    score: float
-    reason: str
-    suggestion: str
-
-@dataclass
-class Agent2Result:
-    """Aggregated result of all Agent 2 quality evaluations."""
-    all_passed: bool
-    failed_check: str
-    checks: list[EvaluationResult] = field(default_factory=list)
-    calibrated_confidence: float = 0.75
-    contradiction_found: bool = False
-    contradicting_chunks: list[str] = field(default_factory=list)
-    live_fetch_needed: bool = False
-    coverage_gaps: list[str] = field(default_factory=list)
-    retrieval_results: list = field(default_factory=list)
+from agents.models import (
+    EvaluationResult, Agent2Result, RetrievalResult
+)
 
 class Agent2Evaluator:
     """
@@ -235,50 +217,96 @@ class Agent2Evaluator:
             suggestion="live_fetch" if not passed else ""
         )
 
-    def _check_calibration(self, results: list) -> tuple[EvaluationResult, float]:
+    def _check_calibration(self, results: list, user_id: str = "") -> tuple[EvaluationResult, float]:
         """
-        Check 4: Metadata check to calibrate confidence based on corpus density.
+        Check 4: Metadata check to calibrate confidence based on Agent 6 learning curves.
         """
         self.logger.info("Running Check 4: Calibration...")
         if not results:
             return EvaluationResult("calibration", True, 0.5, "No results", ""), 0.5
             
-        # 1. Determine common topic cluster
+        # Step 1: Determine common topic cluster
         clusters = [r.topic_cluster if hasattr(r, 'topic_cluster') else r.get('topic_cluster', 'unknown') for r in results]
-        main_cluster = max(set(clusters), key=clusters.count) if clusters else "default"
+        main_cluster = max(set(clusters), key=clusters.count) if clusters else "immunotherapy"
         
-        # 2. Query Supabase for corpus size
+        # Step 2: Read Agent 6 calibration
         try:
-            from database.supabase_client import SupabaseManager
-            sb = SupabaseManager()
-            # Perform a count query
-            response = sb.client.table("ingestion_logs").select("id", count="exact").eq("topic_cluster", main_cluster).eq("status", "success").execute()
-            count = response.count if response.count is not None else 0
+            from agents.agent6_learning import Agent6Learning
+            agent6 = Agent6Learning()
+            cal_point = agent6.get_calibration(main_cluster, user_id)
         except Exception as e:
-            self.logger.warning(f"Supabase calibration query failed: {e}")
-            count = -1
+            self.logger.warning(f"Failed to read from Agent 6: {e}")
+            cal_point = None
             
-        # 3. Base confidence tiers
-        if count >= 500: base = 0.90
-        elif count >= 200: base = 0.82
-        elif count >= 100: base = 0.75
-        elif count >= 50:  base = 0.65
-        elif count >= 0:   base = 0.50
-        else:              base = 0.70 # Fallback default
-        
-        # 4. Adjust by average retrieval score
         scores = [r.score if hasattr(r, 'score') else r.get('score', 0.0) for r in results]
         avg_score = sum(scores) / len(scores) if scores else 0.0
         
-        calibrated = base * (0.5 + 0.5 * avg_score)
+        # Step 3: If calibration data exists
+        if cal_point and cal_point.sample_size >= 5:
+            calibrated = cal_point.actual_pass_rate * (0.5 + 0.5 * avg_score)
+            expressed = cal_point.expressed_confidence
+            self.logger.info(f"Using Agent 6 calibration for {main_cluster}: expressed={expressed:.2f} actual={cal_point.actual_pass_rate:.2f}")
+            reason = f"Confidence {calibrated:.2f} dynamically calibrated by Agent 6 for {main_cluster}"
+            
+        # Step 4: Fallback
+        else:
+            self.logger.info(f"No Agent 6 calibration yet for {main_cluster} — using corpus count fallback")
+            try:
+                from database.supabase_client import SupabaseManager
+                sb = SupabaseManager()
+                response = sb.client.table("ingestion_logs").select("id", count="exact").eq("topic_cluster", main_cluster).eq("status", "success").execute()
+                count = response.count if response.count is not None else 0
+            except Exception as e:
+                self.logger.warning(f"Supabase calibration query failed: {e}")
+                count = -1
+                
+            if count >= 500: base = 0.90
+            elif count >= 200: base = 0.82
+            elif count >= 100: base = 0.75
+            elif count >= 50:  base = 0.65
+            elif count >= 0:   base = 0.50
+            else:              base = 0.70
+            
+            calibrated = base * (0.5 + 0.5 * avg_score)
+            expressed = calibrated
+            reason = f"Confidence {calibrated:.2f} based on corpus size fallback"
+            
+        # Step 5: Cap at 0.95 maximum
         calibrated = min(calibrated, 0.95)
         
+        # Step 6: Log drift warning
+        diff = abs(expressed - calibrated)
+        if diff > 0.15:
+            self.logger.warning(f"Calibration drift detected: {main_cluster} expressed {expressed:.2f} but calibrated to {calibrated:.2f}")
+
+        # Calculate confidence interval:
+        sample_size = cal_point.sample_size if cal_point else 0
+        import math
+        p = calibrated
+        n = sample_size
+        
+        if n >= 30:
+            z = 1.96
+            center = (p + (z*z)/(2*n)) / (1 + (z*z)/n)
+            margin = z * math.sqrt(p*(1-p)/n + (z*z)/(4*n*n)) / (1 + (z*z)/n)
+            lower = max(0.0, center - margin)
+            upper = min(1.0, center + margin)
+        elif n >= 10:
+            margin = 1.96 * math.sqrt(p*(1-p)/n)
+            lower = max(0.0, p - margin)
+            upper = min(1.0, p + margin)
+        else:
+            lower = max(0.0, p - 0.20)
+            upper = min(1.0, p + 0.20)
+
         return EvaluationResult(
             check_name="calibration",
             passed=True,
             score=calibrated,
-            reason=f"Confidence {calibrated:.2f} based on corpus size {count if count >= 0 else 'unknown'}",
-            suggestion=""
+            reason=reason,
+            suggestion="",
+            confidence_lower=lower,
+            confidence_upper=upper
         ), calibrated
 
     def _check_cross_chunk_contradiction(self, results: list) -> tuple[EvaluationResult, bool, list[str]]:
@@ -377,10 +405,11 @@ class Agent2Evaluator:
                 suggestion=""
             ), False, []
 
-    def evaluate(self, 
+    def evaluate(self,
                  query: str, 
                  classification, 
-                 retrieval_results: list) -> Agent2Result:
+                 retrieval_results: list,
+                 user_id: str = "") -> Agent2Result:
         """
         Executes the quality gate evaluation pipeline.
         
@@ -432,7 +461,7 @@ class Agent2Evaluator:
             live_fetch_needed = not freshness_check.passed or getattr(self, "_live_fetch_needed", False)
 
             # Check 4: Calibration (NON-BLOCKING)
-            calibration_check, confidence = self._check_calibration(clean_results)
+            calibration_check, confidence = self._check_calibration(clean_results, user_id)
             checks.append(calibration_check)
 
             # Check 5: Cross-Chunk Contradiction (NON-BLOCKING)
@@ -446,6 +475,8 @@ class Agent2Evaluator:
                 coverage_gaps=gaps if 'gaps' in locals() else [],
                 live_fetch_needed=live_fetch_needed,
                 calibrated_confidence=confidence,
+                confidence_lower=calibration_check.confidence_lower,
+                confidence_upper=calibration_check.confidence_upper,
                 contradiction_found=found_contra,
                 contradicting_chunks=contra_chunks
             )

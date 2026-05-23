@@ -276,3 +276,65 @@ class Neo4jManager:
         except Exception as e:
             logger.warning(f"Neo4j stats error: {e}")
             return {"total_contradictions": 0}
+
+    def get_citation_neighbors(self, paper_ids: list[str], depth: int = 1) -> list[str]:
+        if not self.driver or not paper_ids: return []
+        try:
+            cypher = f"""
+            MATCH (p:Paper)
+            WHERE p.paper_id IN $paper_ids
+            MATCH (p)-[:CITES|CITED_BY*1..{depth}]-(neighbor:Paper)
+            RETURN DISTINCT neighbor.paper_id as paper_id
+            LIMIT 20
+            """
+            res_list = []
+            with self.driver.session() as session:
+                res = session.run(cypher, paper_ids=paper_ids)
+                for record in res:
+                    if record["paper_id"]:
+                        res_list.append(record["paper_id"])
+            return res_list
+        except Exception as e:
+            logger.warning(f"Neo4j get_citation_neighbors error: {e}")
+            return []
+
+    def get_contradiction_neighbors(self, paper_ids: list[str]) -> list[str]:
+        if not self.driver or not paper_ids: return []
+        try:
+            cypher = """
+            MATCH (p:Paper)
+            WHERE p.paper_id IN $paper_ids
+            MATCH (p)-[:CONTRADICTS]-(other:Paper)
+            RETURN DISTINCT other.paper_id as paper_id
+            """
+            res_list = []
+            with self.driver.session() as session:
+                res = session.run(cypher, paper_ids=paper_ids)
+                for record in res:
+                    if record["paper_id"]:
+                        res_list.append(record["paper_id"])
+            return res_list
+        except Exception as e:
+            logger.warning(f"Neo4j get_contradiction_neighbors error: {e}")
+            return []
+
+    def get_cluster_papers(self, topic_cluster: str, limit: int = 10) -> list[str]:
+        if not self.driver or not topic_cluster: return []
+        try:
+            cypher = """
+            MATCH (p:Paper)-[:BELONGS_TO]->(c:TopicCluster)
+            WHERE c.name = $topic_cluster
+            RETURN p.paper_id as paper_id
+            ORDER BY p.year DESC
+            LIMIT $limit
+            """
+            res_list = []
+            with self.driver.session() as session:
+                res = session.run(cypher, topic_cluster=topic_cluster, limit=limit)
+                for record in res:
+                    if record["paper_id"]:
+                        res_list.append(record["paper_id"])
+            return res_list
+        except Exception as e:
+            logger.warning(f"Neo4j get_cluster_papers error: {e}")
+            return []

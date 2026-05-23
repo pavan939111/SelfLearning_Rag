@@ -5,35 +5,10 @@ from utils.logger import get_logger
 from utils.llm_utils import get_gemini_key
 from agents.agent1_retrieval import QueryClassifier, MetadataPreFilter
 
-@dataclass
-class SubQuery:
-    """Represents a targeted retrieval attempt for a specific information gap."""
-    query_text: str
-    strategy: str
-    filter_config: object
-    target_gap: str
-
-@dataclass
-class LiveFetchResult:
-    source: str = "pubmed_live"
-    papers_fetched: int = 0
-    chunks_returned: list = None
-    query_used: str = ""
-    success: bool = False
-
-    def __post_init__(self):
-        if self.chunks_returned is None:
-            self.chunks_returned = []
-
-@dataclass
-class FormulationResult:
-    """The complete set of formulated sub-queries produced by Agent 4A."""
-    original_query: str
-    sub_queries: list[SubQuery] = field(default_factory=list)
-    gaps_identified: list[str] = field(default_factory=list)
-    strategy_explanation: str = ""
-    live_fetch_result: LiveFetchResult = None
-    used_live_fetch: bool = False
+from agents.models import (
+    SubQuery, LiveFetchResult, FormulationResult,
+    FilterConfig
+)
 
 class Agent4AFormulator:
     """

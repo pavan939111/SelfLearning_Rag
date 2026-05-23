@@ -99,3 +99,54 @@ class SupabaseManager:
         except Exception as e:
             logger.error(f"Failed to get ingestion stats from Supabase: {e}")
             return {}
+
+    def get_user_profile(self, user_id: str) -> dict | None:
+        if not self.client or not user_id:
+            return None
+        try:
+            response = self.client.table("user_profiles").select("*").eq("user_id", user_id).execute()
+            if response.data and len(response.data) > 0:
+                return response.data[0]
+            return None
+        except Exception as e:
+            logger.warning(f"Failed to fetch user profile for {user_id}: {e}")
+            return None
+
+    def update_user_profile(self, user_id: str, query: str, topic_cluster: str, rating: int = 0) -> None:
+        if not self.client or not user_id:
+            return
+            
+        try:
+            profile = self.get_user_profile(user_id)
+            
+            if not profile:
+                # Create new
+                clusters = topic_cluster if topic_cluster else ""
+                self.client.table("user_profiles").insert({
+                    "user_id": user_id,
+                    "preferred_clusters": clusters,
+                    "query_history_count": 1,
+                    "positive_feedback_count": 1 if rating > 0 else 0,
+                    "negative_feedback_count": 1 if rating < 0 else 0
+                }).execute()
+            else:
+                # Update existing
+                clusters = profile.get("preferred_clusters", "")
+                if topic_cluster:
+                    clusters = f"{clusters},{topic_cluster}" if clusters else topic_cluster
+                    
+                updates = {
+                    "query_history_count": profile.get("query_history_count", 0) + 1,
+                    "preferred_clusters": clusters,
+                    "last_active": "now()"
+                }
+                
+                if rating > 0:
+                    updates["positive_feedback_count"] = profile.get("positive_feedback_count", 0) + 1
+                elif rating < 0:
+                    updates["negative_feedback_count"] = profile.get("negative_feedback_count", 0) + 1
+                    
+                self.client.table("user_profiles").update(updates).eq("user_id", user_id).execute()
+                
+        except Exception as e:
+            logger.warning(f"Failed to update user profile for {user_id}: {e}")

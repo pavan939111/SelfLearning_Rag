@@ -49,13 +49,20 @@ def run_benchmark():
     total_time_ms = 0
     cache_hit_count = 0
     cycle_triggered_count = 0
+    
+    # Grouping counters
+    by_type_total = {"factual_recall": 0, "multi_hop": 0, "comparative": 0, "temporal": 0, "exploratory": 0}
+    by_type_pass = {"factual_recall": 0, "multi_hop": 0, "comparative": 0, "temporal": 0, "exploratory": 0}
+    
+    by_diff_total = {"easy": 0, "medium": 0, "hard": 0, "adversarial": 0}
+    by_diff_pass = {"easy": 0, "medium": 0, "hard": 0, "adversarial": 0}
 
-    api_url = "http://127.0.0.1:8000/api/chat"
+    api_url = "http://127.0.0.1:8000/chat"
 
     # Ensure uvicorn/fastapi is running or print warning
     try:
         # Check health endpoint first
-        requests.get("http://127.0.0.1:8000/api/health", timeout=15)
+        requests.get("http://127.0.0.1:8000/health", timeout=15)
     except Exception as e:
         print(f"\n[WARNING] FastAPI server at http://127.0.0.1:8000 is not reachable: {e}!")
         print("Please start the FastAPI server with: python -m uvicorn api.main:app --port 8000\n")
@@ -64,6 +71,15 @@ def run_benchmark():
     for i, q in enumerate(questions):
         q_id = q.get("question_id")
         q_text = q.get("question")
+        q_type = q.get("question_type", "factual_recall") or "factual_recall"
+        q_diff = q.get("difficulty", "medium") or "medium"
+        
+        # Initialize if missing
+        if q_type not in by_type_total: by_type_total[q_type] = 0
+        if q_type not in by_type_pass: by_type_pass[q_type] = 0
+        if q_diff not in by_diff_total: by_diff_total[q_diff] = 0
+        if q_diff not in by_diff_pass: by_diff_pass[q_diff] = 0
+        
         print(f"\n[{i+1}/{total_questions}] Running question {q_id}: '{q_text[:50]}...'")
 
         payload = {
@@ -100,8 +116,15 @@ def run_benchmark():
                 print(f"  Result: {status_str} | Confidence: {confidence:.2f} | Time: {processing_time_ms}ms | Cache Hit: {cache_hit}")
 
                 # Update aggregates
+        
+                by_type_total[q_type] += 1
+                by_diff_total[q_diff] += 1
+                
                 if agent2_passed:
                     agent2_pass_count += 1
+                    by_type_pass[q_type] += 1
+                    by_diff_pass[q_diff] += 1
+                    
                 total_confidence += confidence
                 total_time_ms += processing_time_ms
                 if cache_hit:
@@ -167,19 +190,44 @@ def run_benchmark():
     # 3. Print summary report
     avg_confidence = total_confidence / total_questions if total_questions > 0 else 0.0
     avg_time = total_time_ms / total_questions if total_questions > 0 else 0.0
+    overall_pct = (agent2_pass_count / total_questions * 100) if total_questions > 0 else 0.0
 
-    print("\n" + "="*50)
-    print("Summary report:")
-    print(f"  Total questions: {total_questions}")
-    print(f"  Agent 2 pass rate: {agent2_pass_count}/{total_questions}")
-    print(f"  Average confidence: {avg_confidence:.2f}")
-    print(f"  Average response time: {int(avg_time)}ms")
-    print(f"  Cache hits: {cache_hit_count}/{total_questions}")
-    print(f"  Cycle triggered: {cycle_triggered_count}/{total_questions}")
-    print("="*50)
-    print(f"BENCHMARK BASELINE RECORDED — run_id: {run_id}")
-    print("Compare future runs to measure improvement")
-    print("="*50 + "\n")
+    print("\n" + "="*42)
+    print("FAILURERAG BENCHMARK RESULTS")
+    print(f"Run ID: {run_id}")
+    print("="*42)
+    
+    print("\nBY QUESTION TYPE:")
+    for t in ["factual_recall", "multi_hop", "comparative", "temporal", "exploratory"]:
+        if t in by_type_total and by_type_total[t] > 0:
+            tot = by_type_total[t]
+            pas = by_type_pass[t]
+            pct = (pas / tot) * 100
+            print(f"  {t.ljust(18)} {pas:02d}/{tot:02d} ({pct:.1f}%)")
+            
+    print("\nBY DIFFICULTY:")
+    for d in ["easy", "medium", "hard", "adversarial"]:
+        if d in by_diff_total and by_diff_total[d] > 0:
+            tot = by_diff_total[d]
+            pas = by_diff_pass[d]
+            pct = (pas / tot) * 100
+            print(f"  {d.ljust(18)} {pas:02d}/{tot:02d} ({pct:.1f}%)")
+            
+    print(f"\nOVERALL: {agent2_pass_count}/{total_questions} ({overall_pct:.1f}%)")
+    print(f"\nAVG CONFIDENCE: {avg_confidence:.2f}")
+    print(f"AVG RESPONSE TIME: {int(avg_time)}ms")
+    
+    cache_pct = (cache_hit_count / total_questions * 100) if total_questions > 0 else 0.0
+    cycle_pct = (cycle_triggered_count / total_questions * 100) if total_questions > 0 else 0.0
+    print(f"CACHE HIT RATE: {cache_pct:.1f}%")
+    print(f"CYCLE TRIGGERED: {cycle_pct:.1f}%")
+    
+    print("\nIMPROVEMENT vs BASELINE:")
+    baseline = 86.7
+    diff = overall_pct - baseline
+    sign = "+" if diff >= 0 else ""
+    print(f"  Overall: {sign}{diff:.1f}% (was {baseline}%)")
+    print("="*42 + "\n")
 
 if __name__ == "__main__":
     run_benchmark()

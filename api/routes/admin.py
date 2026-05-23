@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 import os
+from config import get_config
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -10,9 +11,13 @@ router = APIRouter()
 def get_stats():
     from database.qdrant_client import QdrantManager
     from database.supabase_client import SupabaseManager
+    from agents.agent6_learning import Agent6Learning
+    from database.redis_client import RedisManager
     
     qdrant = QdrantManager()
     supabase = SupabaseManager()
+    agent6 = Agent6Learning()
+    redis = RedisManager()
     
     qdrant_counts = {}
     corpus_ready = False
@@ -48,13 +53,43 @@ def get_stats():
     # Simple check if ingestion is running by looking for the lock/checkpoint file
     running = os.path.exists("checkpoint.json") or os.path.exists("logs/ingestion_stats.json")
     
+    feedback_stats = agent6.get_feedback_stats()
+
+    # Get monitor stats from Redis
+    monitor_stats = {
+        "last_monitor_run": None,
+        "papers_found_today": 0,
+        "papers_ingested_today": 0
+    }
+    if redis.client:
+        try:
+            last_run = redis.client.get("monitor:last_run")
+            found = redis.client.get("monitor:papers_found_today")
+            ingested = redis.client.get("monitor:papers_ingested_today")
+            
+            if last_run:
+                # Handle bytes vs str depending on Redis client configuration
+                monitor_stats["last_monitor_run"] = last_run.decode('utf-8') if isinstance(last_run, bytes) else last_run
+            if found:
+                monitor_stats["papers_found_today"] = int(found)
+            if ingested:
+                monitor_stats["papers_ingested_today"] = int(ingested)
+        except Exception as e:
+            logger.warning(f"Failed to get monitor stats from Redis: {e}")
+
     return {
         "qdrant_counts": qdrant_counts,
         "supabase_stats": supabase_stats,
         "ingestion_running": running,
         "corpus_ready": corpus_ready,
         "agent6_insights": agent6_insights,
-        "top_gaps": top_gaps
+        "top_gaps": top_gaps,
+        "feedback_stats": feedback_stats,
+        "monitor_stats": monitor_stats,
+        "last_monitor_run": monitor_stats["last_monitor_run"],
+        "papers_found_today": monitor_stats["papers_found_today"],
+        "papers_ingested_today": monitor_stats["papers_ingested_today"],
+        "predictions": agent6.generate_predictions()
     }
 
 @router.get("/recent-failures")
@@ -279,10 +314,45 @@ def get_benchmark_trend():
     # Reverse to chronological order for charts
     history.reverse()
     
+    # Fake feedback per week / or mock to match length (since we don't have historical weekly feedback)
+    # The requirement is just: "Also include feedback positive rate per week"
+    # We will compute real feedback trend from user_feedback table
+    feedback_trend = []
+    from database.supabase_client import SupabaseManager
+    supabase = SupabaseManager()
+    if supabase.client:
+        try:
+            fb_res = supabase.client.table("user_feedback").select("rating, created_at").order("created_at").execute()
+            if fb_res.data:
+                # Group by date
+                dates = {}
+                for row in fb_res.data:
+                    dt = row["created_at"].split("T")[0]
+                    if dt not in dates:
+                        dates[dt] = {"pos": 0, "total": 0}
+                    dates[dt]["total"] += 1
+                    if row["rating"] == 1:
+                        dates[dt]["pos"] += 1
+                
+                # Match to the dates in history
+                for h in history:
+                    dt = h["date"].split("T")[0]
+                    if dt in dates and dates[dt]["total"] > 0:
+                        feedback_trend.append(dates[dt]["pos"] / dates[dt]["total"])
+                    else:
+                        feedback_trend.append(0.0)
+            else:
+                feedback_trend = [0.0] * len(history)
+        except:
+            feedback_trend = [0.0] * len(history)
+    else:
+        feedback_trend = [0.0] * len(history)
+    
     return {
         "labels": [h["date"].split("T")[0] for h in history],
         "pass_rates": [h["pass_rate"] for h in history],
-        "avg_confidence": [h["avg_confidence"] for h in history]
+        "avg_confidence": [h["avg_confidence"] for h in history],
+        "feedback_positive_rate": feedback_trend
     }
 
 @router.get("/latest-benchmark")
@@ -299,3 +369,69 @@ def get_latest_benchmark():
         latest["improvement_vs_previous"] = latest["pass_rate"] - prev["pass_rate"]
         
     return latest
+
+@router.get("/strategy-recommendations")
+def get_strategy_recommendations():
+    from database.supabase_client import SupabaseManager
+    supabase = SupabaseManager()
+    if not supabase.client:
+        return []
+        
+    try:
+        res = supabase.client.table("strategy_recommendations").select("*").eq("status", "pending").execute()
+        return res.data
+    except Exception as e:
+        if "PGRST205" not in str(e):
+            logger.warning(f"Failed to fetch strategy recommendations: {e}")
+        return []
+
+from pydantic import BaseModel
+class ApproveStrategyRequest(BaseModel):
+    decision: str
+    reason: str = ""
+
+@router.post("/approve-strategy/{recommendation_id}")
+def approve_strategy(recommendation_id: str, request: ApproveStrategyRequest):
+    from database.supabase_client import SupabaseManager
+    from utils.config_overrides import apply_override
+    import datetime
+    
+    supabase = SupabaseManager()
+    if not supabase.client:
+        return JSONResponse(status_code=500, content={"error": "Supabase not connected"})
+        
+    try:
+        res = supabase.client.table("strategy_recommendations").select("*").eq("recommendation_id", recommendation_id).execute()
+        if not res.data:
+            return JSONResponse(status_code=404, content={"error": "Recommendation not found"})
+            
+        rec = res.data[0]
+        
+        if request.decision.lower() == "approve":
+            # Apply the parameter change
+            parameter = rec.get("parameter")
+            recommended_value = rec.get("recommended_value")
+            applied = apply_override(parameter, recommended_value)
+            
+            # Update status
+            supabase.client.table("strategy_recommendations").update({
+                "status": "approved",
+                "reviewed_at": datetime.datetime.now().isoformat()
+            }).eq("recommendation_id", recommendation_id).execute()
+            
+            return {
+                "applied": applied,
+                "parameter": parameter,
+                "new_value": recommended_value
+            }
+        else:
+            supabase.client.table("strategy_recommendations").update({
+                "status": "rejected",
+                "reviewed_at": datetime.datetime.now().isoformat()
+            }).eq("recommendation_id", recommendation_id).execute()
+            
+            return {"rejected": True}
+            
+    except Exception as e:
+        logger.error(f"Failed to approve strategy recommendation {recommendation_id}: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})

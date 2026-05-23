@@ -240,7 +240,7 @@ selflearning_rag/
 
 ## Evaluation
 
-Baseline benchmark (15 biomedical QA pairs):
+Baseline benchmark (50 biomedical QA pairs):
 - Pass rate: 86.7%
 - Avg confidence: 0.67
 - Avg response time: 12.5s

@@ -10,43 +10,31 @@ from database.qdrant_client import QdrantManager
 from database.supabase_client import SupabaseManager
 from utils.logger import get_logger
 
-@dataclass
-class IngestionStats:
+from pydantic import BaseModel
+
+class IngestionStats(BaseModel):
     total_papers: int = 0
     successful_papers: int = 0
     failed_papers: int = 0
-    chunks_document: int = 0
-    chunks_section: int = 0
-    chunks_semantic: int = 0
-    chunks_proposition: int = 0
-    inserted_document: int = 0
-    inserted_section: int = 0
-    inserted_semantic: int = 0
-    inserted_proposition: int = 0
-    start_time: float = field(default_factory=time.time)
+    total_chunks: dict = {}
+    total_points_inserted: dict = {}
     duration_seconds: float = 0.0
 
-    def to_dict(self):
-        return {
-            "total_papers": self.total_papers,
-            "successful_papers": self.successful_papers,
-            "failed_papers": self.failed_papers,
-            "chunks": {
-                "document": self.chunks_document,
-                "section": self.chunks_section,
-                "semantic": self.chunks_semantic,
-                "proposition": self.chunks_proposition,
-            },
-            "inserted": {
-                "document": self.inserted_document,
-                "section": self.inserted_section,
-                "semantic": self.inserted_semantic,
-                "proposition": self.inserted_proposition,
-            },
-            "duration_seconds": round(self.duration_seconds, 2),
-            "papers_per_hour": round((self.successful_papers / (self.duration_seconds / 3600)), 2) if self.duration_seconds > 0 else 0,
-            "timestamp": datetime.now().isoformat()
-        }
+    def __init__(self, **data):
+        super().__init__(**data)
+        if not self.total_chunks:
+            self.total_chunks = {
+                'document': 0, 'section': 0,
+                'semantic': 0, 'proposition': 0
+            }
+        if not self.total_points_inserted:
+            self.total_points_inserted = {
+                'document': 0, 'section': 0,
+                'semantic': 0, 'proposition': 0
+            }
+
+    def to_dict(self) -> dict:
+        return self.model_dump()
 
 class IngestionPipeline:
     def __init__(self):
@@ -89,10 +77,10 @@ class IngestionPipeline:
             result = self.chunker.chunk_paper(paper)
             
             # Update stats for chunks
-            stats.chunks_document += len(result.get("document", []))
-            stats.chunks_section += len(result.get("sections", []))
-            stats.chunks_semantic += len(result.get("semantic", []))
-            stats.chunks_proposition += len(result.get("propositions", []))
+            stats.total_chunks['document'] += len(result.get("document", []))
+            stats.total_chunks['section'] += len(result.get("sections", []))
+            stats.total_chunks['semantic'] += len(result.get("semantic", []))
+            stats.total_chunks['proposition'] += len(result.get("propositions", []))
 
             # 2. Embedding and Insertion for each level
             for level in ["document", "section", "semantic", "proposition"]:
@@ -105,10 +93,10 @@ class IngestionPipeline:
                 chunk_embeddings = self.embedder.embed_chunks(chunks)
                 inserted = self.qdrant.insert_chunks(chunk_embeddings, level)
                 
-                if level == "document": stats.inserted_document += inserted
-                elif level == "section": stats.inserted_section += inserted
-                elif level == "semantic": stats.inserted_semantic += inserted
-                elif level == "proposition": stats.inserted_proposition += inserted
+                if level == "document": stats.total_points_inserted['document'] += inserted
+                elif level == "section": stats.total_points_inserted['section'] += inserted
+                elif level == "semantic": stats.total_points_inserted['semantic'] += inserted
+                elif level == "proposition": stats.total_points_inserted['proposition'] += inserted
 
             stats.successful_papers += 1
             

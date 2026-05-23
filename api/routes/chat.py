@@ -7,6 +7,7 @@ from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from api.models.requests import ChatRequest
 from api.models.responses import ChatResponse
+from config import get_config
 from utils.logger import get_logger
 
 class FeedbackRequest(BaseModel):
@@ -18,13 +19,15 @@ class FeedbackRequest(BaseModel):
     confidence: Optional[float] = None
     cycle_ran: Optional[bool] = None
     cache_hit: Optional[bool] = None
+    user_id: Optional[str] = None
 
 # Import Agents
+from agents.models import PipelineState
 from agents.agent1_retrieval import QueryClassifier, MetadataPreFilter, HybridRetriever
 from agents.agent2_evaluator import Agent2Evaluator
 from agents.repair_cycle import RepairCycle
 from agents.agent7_generator import Agent7Generator
-from agents.conversation_memory import ConversationMemory
+from agents.conversation_memory import ConversationMemory, SessionTopicModel, FollowUpResolver
 from agents.cache_manager import CacheManager
 from ingestion.embedder import BiomedicalEmbedder
 from agents.agent6_learning import Agent6Learning
@@ -41,6 +44,8 @@ evaluator = Agent2Evaluator()
 cycle = RepairCycle()
 generator = Agent7Generator()
 memory = ConversationMemory()
+topic_model = SessionTopicModel()
+resolver = FollowUpResolver()
 
 cache = CacheManager()
 embedder = BiomedicalEmbedder()
@@ -68,102 +73,142 @@ async def chat_endpoint(request: ChatRequest):
         # Step 3: Load conversation history
         history = memory.get_history_for_agent7(request.session_id)
         
+        # Step 3.2: Resolve follow-up queries
+        original_query = request.query
+        resolved_query = resolver.resolve_follow_up(original_query, request.session_id, history)
+        follow_up_resolved = resolved_query != original_query
+        if follow_up_resolved:
+            logger.info(f"Follow-up resolved: '{original_query}' -> '{resolved_query}'")
+            
+        # Initialize PipelineState
+        state = PipelineState(
+            query=resolved_query,
+            session_id=request.session_id,
+            resolved_query=resolved_query if follow_up_resolved else "",
+            follow_up_resolved=follow_up_resolved
+        )
+        
         # Step 3.5: Classify the query (always needed for classification query_type & freshness validation)
-        classification = classifier.classify(request.query)
+        state.classification = classifier.classify(state.query)
+        
+        # Step 3.6: Proactive contradiction check via Neo4j
+        contradicting_papers_count = 0
+        try:
+            from database.neo4j_client import Neo4jManager
+            neo4j = Neo4jManager()
+            topic_cluster = getattr(state.classification, 'topic_cluster', 'default')
+            topic_papers = neo4j.get_cluster_papers(topic_cluster, limit=20)
+            
+            if topic_papers:
+                for paper_id in topic_papers[:10]:
+                    neighbors = neo4j.get_contradiction_neighbors([paper_id])
+                    if neighbors:
+                        state.topic_has_contradictions = True
+                        contradicting_papers_count += len(neighbors)
+                        
+            if state.topic_has_contradictions:
+                state.proactive_contradiction_note = (
+                    "Note: This topic has known contradicting findings in our knowledge base. "
+                    "I will present multiple perspectives where evidence conflicts."
+                )
+        except Exception as e:
+            logger.warning(f"Proactive contradiction check failed: {e}")
         
         # STEP 1 — Before Agent 1: Cache lookup
-        cached_chunks = None
         query_embedding = None
         try:
-            query_embedding = embedder.embed_text(request.query)
+            query_embedding = embedder.embed_text(state.query)
             cached_chunks = cache.get(query_embedding)
+            if cached_chunks:
+                state.retrieval_results = cached_chunks
         except Exception as cache_err:
             logger.warning(f"Cache lookup failed: {cache_err}")
-            
-        agent2_result = None
-        initial_results = None
         
         # STEP 2 — If cache hit
-        if cached_chunks is not None:
+        if state.retrieval_results:
             logger.info("Semantic cache HIT! Evaluating cached chunks...")
             try:
                 # Run Agent 2 with only freshness and completeness grounding checks
-                freshness_check = evaluator._check_freshness(classification, cached_chunks)
-                completeness_check, gaps = evaluator._check_completeness_grounding(request.query, cached_chunks)
+                freshness_check = evaluator._check_freshness(state.classification, state.retrieval_results)
+                completeness_check, gaps = evaluator._check_completeness_grounding(state.query, state.retrieval_results)
                 
                 if freshness_check.passed and completeness_check.passed:
                     logger.info("Cached chunks PASSED all quality validation gates. Serving from cache.")
                     # Build Agent2Result representing cache success
-                    from agents.agent2_evaluator import Agent2Result
-                    calibration_check, confidence = evaluator._check_calibration(cached_chunks)
+                    from agents.models import Agent2Result
+                    calibration_check, confidence = evaluator._check_calibration(state.retrieval_results)
                     
-                    agent2_result = Agent2Result(
+                    state.agent2_result = Agent2Result(
                         all_passed=True,
                         failed_check="",
                         checks=[completeness_check, freshness_check, calibration_check],
-                        retrieval_results=cached_chunks,
+                        retrieval_results=state.retrieval_results,
                         calibrated_confidence=confidence,
                         live_fetch_needed=False
                     )
                     
-                    cache_hit = True
-                    initial_results = cached_chunks
+                    state.cache_hit = True
                 else:
                     logger.info("Cached chunks failed quality checks (stale or incomplete). Proceeding to full retrieval.")
             except Exception as eval_cache_err:
                 logger.warning(f"Error evaluating cached chunks: {eval_cache_err}. Proceeding to full retrieval.")
                 
         # STEP 3 — If cache miss (or stale cache)
-        if agent2_result is None or not cache_hit:
+        if state.agent2_result is None or not state.cache_hit:
             logger.info("Cache MISS or stale. Executing full retrieval and validation flow...")
             
             # Step 4: Agent 1 - Classify and Retrieve
-            filter_config = pre_filter.build_filter(classification)
-            initial_results = retriever.retrieve(
-                query=request.query, 
-                classification=classification, 
+            filter_config = pre_filter.build_filter(state.classification)
+            state.retrieval_results = retriever.retrieve(
+                query=state.query, 
+                classification=state.classification, 
                 filter_config=filter_config, 
-                top_k=request.top_k
+                top_k=request.top_k,
+                session_id=state.session_id
             )
             
             # Step 5: Agent 2 - Evaluate chunks (Quality Gate)
-            agent2_result = evaluator.evaluate(request.query, classification, initial_results)
+            state.agent2_result = evaluator.evaluate(
+                state.query, 
+                state.classification, 
+                state.retrieval_results,
+                user_id=request.user_id
+            )
             
             # Write to cache on pass
-            if agent2_result.all_passed:
+            if state.agent2_result.all_passed:
                 try:
-                    clusters = [r.topic_cluster if hasattr(r, 'topic_cluster') else r.get('topic_cluster', 'unknown') for r in initial_results]
+                    clusters = [r.topic_cluster if hasattr(r, 'topic_cluster') else r.get('topic_cluster', 'unknown') for r in state.retrieval_results]
                     topic_cluster = max(set(clusters), key=clusters.count) if clusters else "default"
-                    cache.set(query_embedding, initial_results, topic_cluster)
+                    cache.set(query_embedding, state.retrieval_results, topic_cluster)
                 except Exception as cache_write_err:
                     logger.warning(f"Failed to write to cache: {cache_write_err}")
                     
         # Step 6: Repair Cycle (only runs if cache miss and Agent 2 failed)
-        cycle_result = None
         cycle_ran = False
         cycle_exit_reason = ""
         initial_failed_check = ""
         
-        if not agent2_result.all_passed:
-            initial_failed_check = agent2_result.failed_check
+        if not state.agent2_result.all_passed:
+            initial_failed_check = state.agent2_result.failed_check
             logger.info("Agent 2 flagged issues. Initiating Repair Cycle...")
-            cycle_result = cycle.run(request.query, classification, initial_results, request.session_id)
+            state.cycle_result = cycle.run(state.query, state.classification, state.retrieval_results, state.session_id)
             cycle_ran = True
-            cycle_exit_reason = cycle_result.exit_reason
+            cycle_exit_reason = state.cycle_result.exit_reason
             
             # Make sure agent2_result reflects the final outcome from the cycle
-            if cycle_result.agent2_result:
-                agent2_result = cycle_result.agent2_result
+            if state.cycle_result.agent2_result:
+                state.agent2_result = state.cycle_result.agent2_result
                 
             # Log the autonomous failure recovery to Supabase for the Admin Dashboard
             try:
                 from database.supabase_client import SupabaseManager
                 sb = SupabaseManager()
                 if sb.client:
-                    root_cause = cycle_result.diagnosis_history[-1].root_cause if getattr(cycle_result, 'diagnosis_history', []) else ""
+                    root_cause = state.cycle_result.diagnosis_history[-1].root_cause if getattr(state.cycle_result, 'diagnosis_history', []) else ""
                     sb.client.table("agent_failures").insert({
-                        "session_id": request.session_id,
-                        "query": request.query,
+                        "session_id": state.session_id,
+                        "query": state.query,
                         "failed_check": initial_failed_check,
                         "root_cause": root_cause,
                         "exit_reason": cycle_exit_reason,
@@ -172,62 +217,108 @@ async def chat_endpoint(request: ChatRequest):
             except Exception as e:
                 logger.error(f"Failed to log agent failure to Supabase: {e}")
                 
+        # Step 6.5: Get Personal Context for Generation
+        personal_context_msg = ""
+        if request.user_id:
+            from agents.agent6_learning import Agent6Learning
+            agent6 = Agent6Learning()
+            personal = agent6.get_personal_context(request.user_id)
+            preferred = personal.get("preferred_cluster")
+            if preferred:
+                personal_context_msg = f"This researcher frequently works with {preferred} literature."
+
         # Step 7: Agent 7 - Generate final response
-        response = generator.generate(
-            query=request.query,
-            classification=classification,
-            agent2_result=agent2_result,
-            cycle_result=cycle_result,
-            conversation_history=history
+        # We append personal context to contradiction note or similar field, but let's just pass it in history
+        history_with_context = list(history)
+        if personal_context_msg:
+            history_with_context.append({"role": "system", "content": personal_context_msg})
+
+        state.response = generator.generate(
+            query=state.query,
+            classification=state.classification,
+            agent2_result=state.agent2_result,
+            cycle_result=state.cycle_result,
+            conversation_history=history_with_context,
+            proactive_contradiction_note=state.proactive_contradiction_note
         )
         
         # Step 8: Save conversation memory
         memory.add_turn(
-            session_id=request.session_id, 
+            session_id=state.session_id, 
             role="user", 
-            content=request.query, 
-            query_type=classification.query_type, 
+            content=state.query, 
+            query_type=state.classification.query_type, 
             confidence=None
         )
         memory.add_turn(
-            session_id=request.session_id, 
+            session_id=state.session_id, 
             role="assistant", 
-            content=response.answer, 
+            content=state.response.answer, 
             query_type=None, 
-            confidence=response.confidence
+            confidence=state.response.confidence
         )
         
         # Step 9: Build and return Response
         processing_time_ms = int((time.time() - start_time) * 1000)
         
+        # Step 8.5: Update session topic model
+        topic_model.update_session_model(
+            session_id=state.session_id,
+            query=state.query,
+            response=state.response.answer
+        )
+        
+        # Get final bias state for response
+        bias_state = topic_model.get_retrieval_bias(state.session_id, state.query)
+        state.session_topic = bias_state.get("preferred_cluster", "default") if bias_state else "default"
+        state.session_bias_applied = len(bias_state) > 0 if bias_state else False
+
+        # Calculate graph expansion metrics
+        final_chunks = state.cycle_result.final_chunks if state.cycle_result else (state.agent2_result.retrieval_results if state.agent2_result else state.retrieval_results)
+        graph_papers_added = sum(1 for r in final_chunks if getattr(r, 'from_graph', False)) if final_chunks else 0
+        graph_expansion_used = graph_papers_added > 0
+        
         # Non-blocking observation
         import asyncio
         asyncio.create_task(
             _observe_async(
-                session_id=request.session_id,
-                query=request.query,
-                classification=classification,
-                agent2_result=agent2_result,
-                cycle_result=cycle_result
+                session_id=state.session_id,
+                query=state.query,
+                classification=state.classification,
+                agent2_result=state.agent2_result,
+                cycle_result=state.cycle_result
             )
         )
         
         return ChatResponse(
-            session_id=request.session_id,
-            query=request.query,
-            answer=response.answer,
-            citations=response.citations,
-            confidence=response.confidence,
-            has_gaps=response.has_gaps,
-            gap_acknowledgment=response.gap_acknowledgment,
-            has_contradiction=response.has_contradiction,
-            contradiction_note=response.contradiction_note,
-            query_type=classification.query_type if classification else "unknown",
-            chunks_used=response.chunks_used,
+            session_id=state.session_id,
+            query=original_query,
+            answer=state.response.answer,
+            citations=state.response.citations,
+            confidence=state.response.confidence,
+            confidence_lower=getattr(state.response, 'confidence_lower', state.response.confidence),
+            confidence_upper=getattr(state.response, 'confidence_upper', state.response.confidence),
+            has_gaps=state.response.has_gaps,
+            gap_acknowledgment=state.response.gap_acknowledgment,
+            has_contradiction=state.response.has_contradiction,
+            contradiction_note=state.response.contradiction_note,
+            query_type=state.classification.query_type if state.classification else "unknown",
+            chunks_used=state.response.chunks_used,
             cycle_ran=cycle_ran,
             cycle_exit_reason=cycle_exit_reason,
             processing_time_ms=processing_time_ms,
-            cache_hit=cache_hit
+            cache_hit=state.cache_hit,
+            session_bias_applied=state.session_bias_applied,
+            session_topic=state.session_topic,
+            follow_up_resolved=state.follow_up_resolved,
+            resolved_query=state.resolved_query,
+            graph_expansion_used=graph_expansion_used,
+            graph_papers_added=graph_papers_added,
+            output_format=state.response.output_format,
+            claim_provenance=[vars(p) if not isinstance(p, dict) else p for p in state.response.claim_provenance] if state.response.claim_provenance else [],
+            query_suggestions=state.response.query_suggestions or [],
+            proactive_contradiction_detected=state.topic_has_contradictions,
+            contradicting_papers_count=contradicting_papers_count
         )
         
     except Exception as e:
@@ -250,7 +341,17 @@ async def chat_endpoint(request: ChatRequest):
             cycle_ran=False,
             cycle_exit_reason="error",
             processing_time_ms=processing_time_ms,
-            cache_hit=False
+            cache_hit=False,
+            session_bias_applied=False,
+            session_topic="",
+            follow_up_resolved=False,
+            resolved_query="",
+            graph_expansion_used=False,
+            graph_papers_added=0,
+            output_format="prose",
+            claim_provenance=[],
+            proactive_contradiction_detected=False,
+            contradicting_papers_count=0
         )
 
 @router.post("/chat/feedback")
@@ -274,6 +375,31 @@ async def chat_feedback(request: FeedbackRequest):
                 "cache_hit": request.cache_hit
             }).execute()
         logger.info(f"Feedback recorded: {request.rating} for session {request.session_id}")
+        
+        async def _feedback_learning_async():
+            try:
+                from agents.agent6_learning import Agent6Learning
+                agent6_inst = Agent6Learning()
+                agent6_inst.observe_user_feedback(
+                    session_id=request.session_id,
+                    query=request.query,
+                    rating=request.rating,
+                    topic_cluster=request.topic_cluster or 'unknown',
+                    confidence=request.confidence or 0.0,
+                    cycle_ran=request.cycle_ran or False
+                )
+                if request.user_id:
+                    agent6_inst.update_personal_profile(
+                        user_id=request.user_id,
+                        query=request.query,
+                        topic_cluster=request.topic_cluster or 'unknown',
+                        rating=request.rating
+                    )
+            except Exception as e:
+                logger.error(f"Agent6 feedback learning error: {e}")
+        
+        asyncio.create_task(_feedback_learning_async())
+        
     except Exception as e:
         logger.error(f"Failed to record feedback to Supabase: {e}")
     
@@ -359,7 +485,7 @@ async def chat_stream(session_id: str, query: str):
             yield f"data: {json.dumps({'agent': 'agent7', 'step': 'generate', 'status': 'complete', 'detail': f'Response ready — {len(response.citations)} citations', 'duration_ms': int((time.time()-t)*1000)})}\n\n"
             
             # Final answer
-            yield f"data: {json.dumps({'agent': 'system', 'step': 'answer', 'status': 'done', 'answer': response.answer, 'citations': response.citations, 'confidence': response.confidence, 'has_gaps': response.has_gaps, 'gap_acknowledgment': response.gap_acknowledgment, 'has_contradiction': response.has_contradiction, 'contradiction_note': response.contradiction_note, 'cycle_ran': cycle_result is not None, 'cache_hit': cache_hit, 'processing_time_ms': int((time.time()-start)*1000)})}\n\n"
+            yield f"data: {json.dumps({'agent': 'system', 'step': 'answer', 'status': 'done', 'answer': response.answer, 'citations': response.citations, 'confidence': response.confidence, 'has_gaps': response.has_gaps, 'gap_acknowledgment': response.gap_acknowledgment, 'has_contradiction': response.has_contradiction, 'contradiction_note': response.contradiction_note, 'cycle_ran': cycle_result is not None, 'cache_hit': cache_hit, 'processing_time_ms': int((time.time()-start)*1000), 'output_format': response.output_format, 'claim_provenance': [vars(p) for p in response.claim_provenance] if response.claim_provenance else [], 'proactive_contradiction_detected': topic_has_contradictions})}\n\n"
             
         except Exception as e:
             yield f"data: {json.dumps({'agent': 'system', 'step': 'error', 'status': 'error', 'detail': str(e)})}\n\n"

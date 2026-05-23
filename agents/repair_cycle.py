@@ -1,21 +1,14 @@
-from dataclasses import dataclass, field
+from agents.models import (
+    CycleResult, DiagnosisResult, FormulationResult
+)
+from pydantic import ValidationError
+
 from config import get_config
 from utils.logger import get_logger
-from agents.agent1_retrieval import HybridRetriever
-from agents.agent2_evaluator import Agent2Evaluator, Agent2Result
-from agents.agent3_classifier import Agent3Classifier, DiagnosisResult
+from agents.agent2_evaluator import Agent2Evaluator
+from agents.agent3_classifier import Agent3Classifier
 from agents.agent4a_formulator import Agent4AFormulator
-
-@dataclass
-class CycleResult:
-    """Outcome of the complete autonomous repair cycle."""
-    final_chunks: list
-    agent2_result: Agent2Result | None
-    iterations_run: int
-    exit_reason: str
-    diagnosis_history: list[DiagnosisResult] = field(default_factory=list)
-    all_chunks_seen: list = field(default_factory=list)
-    agent4b_action: str = "none"
+from agents.agent1_retrieval import HybridRetriever
 
 class RepairCycle:
     """
@@ -97,7 +90,16 @@ class RepairCycle:
                     )
                     
                 # Step 3: Run Agent 3 Diagnosis
-                diagnosis = self.agent3.diagnose(query, classification, current_chunks, agent2_result)
+                try:
+                    diagnosis = self.agent3.diagnose(query, classification, current_chunks, agent2_result)
+                except ValidationError as e:
+                    self.logger.error(f"Agent 3 returned invalid data: {e}")
+                    diagnosis = DiagnosisResult(
+                        failure_class='C',
+                        root_cause='unknown',
+                        confidence=0.5,
+                        route_to='escalate'
+                    )
                 diagnosis_history.append(diagnosis)
                 
                 # EXIT 3: Class A or B Diagnosis (External problem, internal repair won't help)
@@ -126,7 +128,14 @@ class RepairCycle:
                     
                 # Step 4: Run Agent 4A Formulation
                 self.logger.info(f"Cycle {iterations}: Running Agent 4A Formulation...")
-                formulation = self.agent4a.formulate(query, classification, current_chunks, agent2_result, diagnosis)
+                try:
+                    formulation = self.agent4a.formulate(query, classification, current_chunks, agent2_result, diagnosis)
+                except ValidationError as e:
+                    self.logger.error(f"Agent 4A returned invalid data: {e}")
+                    formulation = FormulationResult(
+                        original_query=query,
+                        gaps_identified=['unknown']
+                    )
                 
                 if getattr(formulation, "used_live_fetch", False):
                     if formulation.live_fetch_result and formulation.live_fetch_result.success:

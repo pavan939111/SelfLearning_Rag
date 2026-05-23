@@ -5,18 +5,11 @@ from dataclasses import dataclass, field
 from config import get_config
 from utils.logger import get_logger
 from utils.llm_utils import get_gemini_key
+import json
 
-@dataclass
-class GeneratedResponse:
-    answer: str
-    citations: list[dict] = field(default_factory=list)
-    confidence: float = 0.0
-    has_gaps: bool = False
-    gap_acknowledgment: str = ""
-    has_contradiction: bool = False
-    contradiction_note: str = ""
-    query_type: str = ""
-    chunks_used: int = 0
+from agents.models import (
+    ClaimProvenance, GeneratedResponse
+)
 
 class Agent7Generator:
     """
@@ -50,7 +43,224 @@ class Agent7Generator:
             
         return f"{first_author} {year}"
 
-    def generate(self, query: str, classification, agent2_result, cycle_result, conversation_history: list[dict]) -> GeneratedResponse:
+    def _detect_output_format(self, query: str, classification) -> str:
+        query_lower = query.lower()
+        entities = getattr(classification, 'entities', [])
+        query_type = getattr(classification, 'query_type', '')
+        
+        # Table — comparative queries with 2+ entities
+        if query_type == 'comparative':
+            if len(entities) >= 2:
+                return 'table'
+            # Also check query words
+            compare_words = [
+                'compare', 'versus', 'vs', 'difference between',
+                'contrast', 'which is better', 'similarities'
+            ]
+            if any(w in query_lower for w in compare_words):
+                return 'table'
+        
+        # List — explicit list requests
+        list_words = [
+            'list', 'what are the', 'enumerate',
+            'give me all', 'name the', 'types of',
+            'examples of', 'which drugs', 'what drugs',
+            'side effects', 'adverse effects',
+            'what are', 'how many'
+        ]
+        if any(w in query_lower for w in list_words):
+            return 'list'
+        
+        # Summary — overview requests
+        summary_words = [
+            'summarize', 'summary', 'overview',
+            'brief', 'outline', 'describe overall',
+            'what is known about', 'explain'
+        ]
+        if any(w in query_lower for w in summary_words):
+            return 'summary'
+        
+        return 'prose'
+
+    def _build_format_instructions(self, output_format: str, entities: list[str]) -> str:
+        if output_format == 'table':
+            entity_headers = ' | '.join(entities[:3]) if entities else 'Option A | Option B'
+            
+            return f"""
+Format your response as a markdown comparison table.
+
+Use this exact structure:
+| Feature | {entity_headers} |
+|---------|{'|'.join(['---'] * min(len(entities), 3))}|
+| Mechanism | ... | ... |
+| Efficacy | ... | ... |
+| Side Effects | ... | ... |
+| Patient Population | ... | ... |
+| Evidence Level | ... | ... |
+| Key Citation | ... | ... |
+
+Rules:
+- Fill every cell with specific data from the evidence
+- Use (Author Year) inline for citations in cells
+- After the table write ONE paragraph summary
+- If data unavailable for a cell write: "Limited evidence"
+"""
+        elif output_format == 'list':
+            return """
+Format your response as a numbered list.
+
+Use this exact structure:
+1. [Specific fact or item] (Author Year)
+2. [Specific fact or item] (Author Year)
+3. [Specific fact or item] (Author Year)
+
+Rules:
+- Each item is ONE clear specific fact
+- Every item must have an inline citation
+- Maximum 8 items
+- After the list write ONE sentence summary
+"""
+        elif output_format == 'summary':
+            return """
+Format your response as a structured summary.
+
+Use this exact structure:
+**KEY FINDING:** [One sentence — the most important finding]
+
+**EVIDENCE:** 
+- [Supporting point 1 with citation]
+- [Supporting point 2 with citation]
+- [Supporting point 3 with citation]
+
+**LIMITATIONS:**
+[What is not well-covered or uncertain]
+
+**CONFIDENCE:** [High/Medium/Low — based on evidence quality]
+"""
+        else:  # prose
+            return """
+Write a clear conversational response.
+Use natural paragraph format.
+Embed citations inline as (Author Year).
+"""
+
+    def _extract_claim_provenance(self, answer: str, chunks: list) -> list[ClaimProvenance]:
+        try:
+            chunks_text = ""
+            chunk_map = {}
+            for i, c in enumerate(chunks):
+                cid = getattr(c, 'chunk_id', f"chunk_{i}") if not isinstance(c, dict) else c.get('chunk_id', f"chunk_{i}")
+                text = getattr(c, 'text', '') if not isinstance(c, dict) else c.get('text', '')
+                paper_id = getattr(c, 'paper_id', 'unknown') if not isinstance(c, dict) else c.get('paper_id', 'unknown')
+                year = getattr(c, 'year', 0) if not isinstance(c, dict) else c.get('year', 0)
+                journal = getattr(c, 'journal', 'Unknown') if not isinstance(c, dict) else c.get('journal', 'Unknown')
+                
+                chunks_text += f"[{cid}]: {text}\n\n"
+                chunk_map[cid] = {
+                    "paper_id": paper_id,
+                    "year": year,
+                    "journal": journal
+                }
+
+            prompt = f"""Given this answer and the source chunks it was generated from, identify each specific factual claim in the answer and link it to the chunk that supports it.
+            
+Answer:
+{answer}
+
+Source chunks:
+{chunks_text}
+
+Return JSON array only:
+[
+  {{
+    "claim": "specific factual claim text",
+    "chunk_id": "which chunk supports this",
+    "confidence": 0.0 to 1.0,
+    "quote": "relevant excerpt from chunk"
+  }}
+]"""
+            client = genai.Client(api_key=get_gemini_key())
+            res = client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.1
+                )
+            )
+            
+            raw_text = res.text.strip()
+            # simple json extraction
+            if "```json" in raw_text:
+                raw_text = raw_text.split("```json")[1].split("```")[0].strip()
+            elif "```" in raw_text:
+                raw_text = raw_text.split("```")[1].strip()
+                
+            data = json.loads(raw_text)
+            provenance = []
+            for item in data:
+                cid = item.get("chunk_id")
+                meta = chunk_map.get(cid, {})
+                provenance.append(ClaimProvenance(
+                    claim=item.get("claim", ""),
+                    chunk_id=cid,
+                    paper_id=meta.get("paper_id", "unknown"),
+                    paper_year=meta.get("year", 0),
+                    journal=meta.get("journal", "Unknown"),
+                    confidence=float(item.get("confidence", 0.0)),
+                    quote=item.get("quote", "")
+                ))
+            return provenance
+        except Exception as e:
+            self.logger.warning(f"Claim provenance extraction failed: {e}")
+            return []
+
+    def _generate_query_suggestions(self, query: str, agent2_result, coverage_gaps: list) -> list[str]:
+        if agent2_result and getattr(agent2_result, 'all_passed', False):
+            return []
+            
+        if not coverage_gaps:
+            return []
+            
+        try:
+            gap_topics = [g if isinstance(g, str) else g.get('topic', '') for g in coverage_gaps[:3]]
+            
+            prompt = f"""The user asked: {query}
+             
+The system could not fully answer because these aspects are not well-covered in our knowledge base:
+{gap_topics}
+             
+Suggest 2-3 RELATED questions that:
+1. The user might also be interested in
+2. ARE likely to be well-covered in a biomedical corpus about immunotherapy, drug interactions, and genomics
+3. Are genuinely useful follow-ups
+             
+Return JSON array of question strings only.
+No explanation."""
+
+            client = genai.Client(api_key=get_gemini_key())
+            res = client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.3
+                )
+            )
+            
+            raw_text = res.text.strip()
+            if "```json" in raw_text:
+                raw_text = raw_text.split("```json")[1].split("```")[0].strip()
+            elif "```" in raw_text:
+                raw_text = raw_text.split("```")[1].strip()
+                
+            suggestions = json.loads(raw_text)
+            if isinstance(suggestions, list):
+                return [str(s) for s in suggestions[:3]]
+            return []
+        except Exception as e:
+            self.logger.warning(f"Failed to generate query suggestions: {e}")
+            return []
+
+    def generate(self, query: str, classification, agent2_result, cycle_result, conversation_history: list[dict], proactive_contradiction_note: str = "") -> GeneratedResponse:
         self.logger.info("Starting Agent 7 Generation...")
         
         # Step 1: Prepare context from verified chunks
@@ -99,35 +309,58 @@ class Agent7Generator:
                     content = turn.get("content", "")
                     conv_text += f"{role.capitalize()}: {content}\n"
                     
-            # Step 3: Build Generation Prompt
             confidence = getattr(agent2_result, 'calibrated_confidence', 0.0) if agent2_result else 0.0
             has_contradiction = getattr(agent2_result, 'contradiction_found', False) if agent2_result else False
             coverage_gaps = getattr(agent2_result, 'coverage_gaps', []) if agent2_result else []
             
-            prompt_parts = []
-            if conv_text:
-                prompt_parts.append(f"Conversation so far:\n{conv_text}\n")
-                
-            prompt_parts.append(f"Current question: {query}\n\nEvidence (use ONLY these sources):\n{evidence_text}")
+            output_format = self._detect_output_format(
+                query, classification
+            )
+            format_instructions = self._build_format_instructions(
+                output_format,
+                getattr(classification, 'entities', [])
+            )
             
-            prompt_parts.append("Instructions:\n- Answer conversationally as if explaining to a researcher.")
-            prompt_parts.append("- Cite each fact inline: (AuthorYear) using the exact keys from the evidence brackets.")
-            prompt_parts.append("- If evidence only partially answers the question say so honestly.")
-            prompt_parts.append(f"- Confidence level for this answer: {confidence:.2f}")
-            
+            contra_note = ""
             if has_contradiction:
-                prompt_parts.append("- Note that sources disagree on certain points based on the evidence.")
-            if coverage_gaps:
-                prompt_parts.append("- Acknowledge these gaps honestly: " + ", ".join(coverage_gaps))
+                contra_note = "\n- Note that sources disagree on certain points based on the evidence."
                 
-            prompt_parts.append("\nAnswer:")
-            full_prompt = "\n".join(prompt_parts)
+            gap_note = ""
+            if coverage_gaps:
+                gap_note = "\n- Acknowledge these gaps honestly: " + ", ".join(coverage_gaps)
+                
+            full_prompt = f"""
+You are a biomedical research assistant.
+Answer ONLY from the provided evidence.
+
+{format_instructions}
+
+Current question: {query}
+
+Conversation context:
+{conv_text}
+
+Evidence (use ONLY these sources):
+{evidence_text}
+
+Calibrated confidence level: {confidence:.0%}
+{contra_note}
+{gap_note}
+
+Answer:"""
             
             system_instruction = (
                 "You are a biomedical research assistant. Answer questions based ONLY on the provided evidence. "
                 "Cite sources inline as (AuthorYear) format. Be conversational and clear. "
                 "If evidence is limited say so honestly."
             )
+            
+            if proactive_contradiction_note:
+                system_instruction += (
+                    "\nIMPORTANT: This topic has known contradictions. "
+                    "Present both sides explicitly. Do not pick one side. "
+                    "Format: 'Study A found X while Study B found Y...'"
+                )
 
             # Step 4: Generate with Gemini Flash
             client = genai.Client(api_key=get_gemini_key())
@@ -151,7 +384,12 @@ class Agent7Generator:
                         citations_list.append(meta)
                         seen_cite_keys.add(cite_key)
             
-            # Step 6: Build Final Response
+            # Step 6: Extract claims
+            provenance = None
+            if chunks:
+                provenance = self._extract_claim_provenance(answer_text, chunks)
+
+            # Step 7: Build Final Response
             gap_ack = ""
             if coverage_gaps:
                 gap_ack = "While this covers the primary aspects of your query, please note that information regarding " + ", ".join(coverage_gaps) + " was limited in the retrieved literature."
@@ -159,16 +397,26 @@ class Agent7Generator:
             contra_note = "There appears to be conflicting evidence on this topic in the retrieved literature." if has_contradiction else ""
             query_type = getattr(classification, 'query_type', 'unknown') if classification else 'unknown'
             
+            suggestions = self._generate_query_suggestions(query, agent2_result, coverage_gaps)
+            
+            conf_lower = getattr(agent2_result, 'confidence_lower', confidence) if agent2_result else confidence
+            conf_upper = getattr(agent2_result, 'confidence_upper', confidence) if agent2_result else confidence
+            
             return GeneratedResponse(
                 answer=answer_text,
                 citations=citations_list,
                 confidence=confidence,
+                confidence_lower=conf_lower,
+                confidence_upper=conf_upper,
                 has_gaps=len(coverage_gaps) > 0,
                 gap_acknowledgment=gap_ack,
                 has_contradiction=has_contradiction,
                 contradiction_note=contra_note,
                 query_type=query_type,
-                chunks_used=len(chunks)
+                chunks_used=len(chunks),
+                output_format=output_format,
+                claim_provenance=provenance or [],
+                query_suggestions=suggestions
             )
 
         except Exception as e:

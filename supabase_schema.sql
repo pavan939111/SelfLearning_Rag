@@ -159,3 +159,11 @@ ON public.user_feedback(rating);
 
 CREATE INDEX IF NOT EXISTS idx_feedback_cluster
 ON public.user_feedback(topic_cluster);
+
+
+ALTER TABLE public.benchmark_questions
+ADD COLUMN IF NOT EXISTS question_type text,
+ADD COLUMN IF NOT EXISTS expected_citations integer,
+ADD COLUMN IF NOT EXISTS min_confidence float,
+ADD COLUMN IF NOT EXISTS requires_recent bool default false,
+ADD COLUMN IF NOT EXISTS known_answer_keywords text;

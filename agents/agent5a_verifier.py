@@ -6,14 +6,7 @@ from database.qdrant_client import QdrantManager
 from utils.logger import get_logger
 from utils.llm_utils import get_gemini_key
 
-@dataclass
-class VerificationResult:
-    paper_id: str
-    passed: bool
-    failed_check: str      # empty if passed
-    reason: str
-    priority: str          # high/medium/low — for ingestion queue
-    ingestion_instructions: dict  # what Agent 5B should do
+from agents.models import VerificationResult
 
 class Agent5AVerifier:
     """

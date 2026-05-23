@@ -34,6 +34,7 @@ celery_app = Celery(
 
 # Configure Celery
 celery_app.conf.update(
+    broker_use_ssl={'ssl_cert_reqs': None},
     task_serializer="json",
     accept_content=["json"],
     result_serializer="json",
