@@ -9,6 +9,7 @@
 ## API Endpoints
 
 ### Chat
+```text
 POST /chat
   Body: {session_id, query, top_k, user_id}
   Returns: {answer, citations, confidence,
@@ -26,12 +27,16 @@ GET /chat/stream?session_id=X&query=Y
   Returns: SSE stream of agent activity events
   Event types: cache, agent1, agent2, agent3,
                agent4a, agent7, system
+```
 
 ### Health
+```text
 GET /health
   Returns: {status, databases, agents, system}
+```
 
 ### Admin
+```text
 GET  /admin/stats
 GET  /admin/corpus-health
 GET  /admin/pending-approvals
@@ -41,6 +46,7 @@ GET  /admin/latest-benchmark
 GET  /admin/strategy-recommendations
 POST /admin/approve-strategy/{id}
 GET  /admin/repair-history
+```
 
 ## Key Design Decisions
 
@@ -72,6 +78,7 @@ LangGraph-ready for future migration.
 
 ## File Structure
 
+```text
 agents/
   models.py           — All Pydantic inter-agent contracts
   agent1_retrieval.py — QueryClassifier, MetadataPreFilter,
@@ -123,3 +130,4 @@ scripts/
   seed_benchmarks.py  — Seed 50 QA pairs
   backfill_neo4j.py   — Populate Neo4j from corpus
   verify_all_phases.py — Complete system verification
+```
