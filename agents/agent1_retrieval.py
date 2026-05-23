@@ -48,22 +48,46 @@ class QueryClassifier:
         # Configure Gemini using round-robin key management
         client = genai.Client(api_key=get_gemini_key())
         
-        prompt = (
-            f"Analyze this biomedical query and provide a structured classification.\n"
-            f"Query: \"{query}\"\n\n"
-            f"Return a JSON object with exactly these keys:\n"
-            f"- query_type: one of [simple_factual, multi_hop, comparative, temporal, exploratory]\n"
-            f"- main_topics: list of key medical/biological terms (max 5)\n"
-            f"- requires_recent: boolean, True if asking for current/latest/recent info\n"
-            f"- entities: list of specific drug names, genes, diseases mentioned\n\n"
-            f"Definitions:\n"
-            f"- simple_factual: Direct lookup of a single concept.\n"
-            f"- multi_hop: Connects multiple concepts or mechanisms.\n"
-            f"- comparative: Comparing drugs, therapies, or outcomes.\n"
-            f"- temporal: Asking about the latest state-of-the-art or current trends.\n"
-            f"- exploratory: Open-ended search for emerging patterns.\n\n"
-            f"Return ONLY the JSON block."
-        )
+        prompt = f"""You are a query classifier for a
+biomedical research assistant specializing in
+immunotherapy, drug interactions, and genomics.
+
+Analyze this query and return JSON only.
+
+Query: {query}
+
+Return this exact JSON structure:
+{{
+  "is_biomedical": true or false,
+  "rejection_reason": "why rejected if not biomedical, else empty string",
+  "query_type": "simple_factual" or "multi_hop" or "comparative" or "temporal" or "exploratory",
+  "main_topics": ["topic1", "topic2"],
+  "entities": ["drug or gene or disease names"],
+  "requires_recent": true or false
+}}
+
+Rules for is_biomedical:
+  true  — question is about drugs, diseases, genes,
+          clinical trials, pharmacology, genomics,
+          medical treatments, biomarkers, or any
+          biomedical research topic
+  false — question is about cooking, sports, politics,
+          technology, entertainment, general science,
+          math, history, or anything unrelated to
+          biomedical research
+
+Rules for query_type (only if is_biomedical is true):
+  simple_factual — single concept lookup
+  multi_hop      — requires connecting multiple concepts
+  comparative    — comparing two or more things
+  temporal       — asks about current or recent state
+  exploratory    — open ended discovery
+
+Rules for requires_recent:
+  true if query uses words like: current, latest,
+  recent, 2024, 2023, now, today, approved
+
+Return ONLY the JSON object. No explanation."""
 
         try:
             response = client.models.generate_content(
@@ -78,20 +102,39 @@ class QueryClassifier:
             elif "```" in text:
                 text = text.split("```")[1].split("```")[0].strip()
 
-            data = json.loads(text)
+            parsed = json.loads(text)
+            
+            is_biomedical = parsed.get('is_biomedical', True)
+            
+            if not is_biomedical:
+                self.logger.info(f"Query rejected as off-topic: {query[:60]}")
+                return QueryClassification(
+                    query=query,
+                    query_type='simple_factual',
+                    main_topics=[],
+                    requires_recent=False,
+                    entities=[],
+                    domain_rejected=True,
+                    rejection_reason=parsed.get(
+                        'rejection_reason',
+                        'Query not related to biomedical research'
+                    )
+                )
             
             # Validate query_type
             valid_types = ["simple_factual", "multi_hop", "comparative", "temporal", "exploratory"]
-            qtype = data.get("query_type", "simple_factual")
+            qtype = parsed.get("query_type", "simple_factual")
             if qtype not in valid_types:
                 qtype = "simple_factual"
 
             return QueryClassification(
                 query=query,
                 query_type=qtype,
-                main_topics=data.get("main_topics", []),
-                requires_recent=data.get("requires_recent", False),
-                entities=data.get("entities", [])
+                main_topics=parsed.get("main_topics", []),
+                requires_recent=parsed.get("requires_recent", False),
+                entities=parsed.get("entities", []),
+                domain_rejected=False,
+                rejection_reason=''
             )
 
         except Exception as e:

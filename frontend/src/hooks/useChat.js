@@ -45,6 +45,7 @@ export function useChat(sessionId) {
         outputFormat: data.output_format || 'prose',
         querySuggestions: data.query_suggestions || [],
         claimProvenance: data.claim_provenance || [],
+        domainRejected: data.domain_rejected || false,
         timestamp: new Date().toISOString()
       }
 

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 1200px;
+      height: 1200px;
+      background: #0a0e1a;
+      font-family: 'JetBrains Mono', monospace;
+      color: #e8eef8;
+      overflow: hidden;
+      position: relative;
+      padding: 60px 80px;
+    }
+    .header { margin-bottom: 80px; text-align: center; }
+    .title { font-family: system-ui, sans-serif; font-size: 56px; color: #ffffff; font-weight: 800; margin-bottom: 12px; }
+    .subtitle { font-size: 28px; color: #9aaac8; }
+    
+    .diagram-container {
+      position: relative;
+      width: 100%;
+      height: 600px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .hub {
+      width: 240px;
+      height: 240px;
+      background: rgba(168,85,247,0.15);
+      border: 4px solid #a855f7;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 0 40px rgba(168,85,247,0.4);
+      z-index: 10;
+      position: relative;
+    }
+    .hub-title { font-size: 32px; font-weight: 800; color: #a855f7; margin-bottom: 8px; }
+    .hub-text { font-size: 18px; color: #e8eef8; text-align: center; line-height: 1.4; }
+    
+    .inputs {
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 40px;
+    }
+    .input-item {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      width: 320px;
+    }
+    .input-text {
+      font-size: 20px;
+      font-weight: 600;
+      text-align: right;
+      margin-right: 20px;
+    }
+    .input-arrow {
+      height: 3px;
+      width: 80px;
+      position: relative;
+    }
+    .input-arrow::after {
+      content: '▶';
+      position: absolute;
+      right: -10px;
+      top: -12px;
+      font-size: 24px;
+    }
+    
+    .outputs {
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 40px;
+    }
+    .output-item {
+      display: flex;
+      align-items: center;
+      width: 480px;
+    }
+    .output-arrow {
+      height: 3px;
+      width: 80px;
+      position: relative;
+      margin-right: 20px;
+    }
+    .output-arrow::after {
+      content: '▶';
+      position: absolute;
+      right: -10px;
+      top: -12px;
+      font-size: 24px;
+    }
+    .output-content {
+      display: flex;
+      flex-direction: column;
+    }
+    .output-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+    .output-sub { font-size: 16px; color: #9aaac8; }
+
+    /* Colors */
+    .c-orange { color: #ff8c42; } .bg-orange { background: #ff8c42; }
+    .c-green { color: #00e5a0; } .bg-green { background: #00e5a0; }
+    .c-cyan { color: #00d4ff; } .bg-cyan { background: #00d4ff; }
+    .c-blue { color: #4a9eff; } .bg-blue { background: #4a9eff; }
+    .c-yellow { color: #ffd60a; } .bg-yellow { background: #ffd60a; }
+    .c-purple { color: #a855f7; } .bg-purple { background: #a855f7; }
+
+    .bottom-banner {
+      position: absolute;
+      bottom: 120px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,229,160,0.1);
+      border: 2px solid rgba(0,229,160,0.3);
+      padding: 16px 40px;
+      border-radius: 40px;
+      color: #00e5a0;
+      font-size: 24px;
+      font-weight: 700;
+      box-shadow: 0 0 20px rgba(0,229,160,0.1);
+    }
+
+    .bottom-right { position: absolute; bottom: 40px; right: 40px; color: #6b7d9e; font-size: 18px; }
+    .bottom-bar { position: absolute; bottom: 0; left: 0; width: 100%; height: 6px; background: linear-gradient(90deg, #00d4ff, #00e5a0); }
+  </style>
+</head>
+<body>
+  
+  <div class="header">
+    <div class="title">Agent 6 — The Learning Engine</div>
+    <div class="subtitle">System improves with every query</div>
+  </div>
+
+  <div class="diagram-container">
+    
+    <div class="inputs">
+      <div class="input-item">
+        <div class="input-text c-orange">① Every query result</div>
+        <div class="input-arrow bg-orange c-orange"></div>
+      </div>
+      <div class="input-item">
+        <div class="input-text c-green">② User feedback 👍👎</div>
+        <div class="input-arrow bg-green c-green"></div>
+      </div>
+      <div class="input-item">
+        <div class="input-text c-cyan">③ Benchmark runs</div>
+        <div class="input-arrow bg-cyan c-cyan"></div>
+      </div>
+    </div>
+
+    <div class="hub">
+      <div class="hub-title">Agent 6</div>
+      <div class="hub-text">Longitudinal<br>Learning</div>
+    </div>
+
+    <div class="outputs">
+      <div class="output-item">
+        <div class="output-arrow bg-cyan c-cyan"></div>
+        <div class="output-content">
+          <div class="output-title c-cyan">① Calibration curves → Agent 2</div>
+          <div class="output-sub">Confidence improves over time</div>
+        </div>
+      </div>
+      
+      <div class="output-item">
+        <div class="output-arrow bg-blue c-blue"></div>
+        <div class="output-content">
+          <div class="output-title c-blue">② Coverage gap map → Agent 5A</div>
+          <div class="output-sub">Corpus grows toward user needs</div>
+        </div>
+      </div>
+      
+      <div class="output-item">
+        <div class="output-arrow bg-yellow c-yellow"></div>
+        <div class="output-content">
+          <div class="output-title c-yellow">③ Topic velocity → Cache TTL</div>
+          <div class="output-sub">Fast topics: 4hr | Slow: 7 days</div>
+        </div>
+      </div>
+      
+      <div class="output-item">
+        <div class="output-arrow bg-purple c-purple"></div>
+        <div class="output-content">
+          <div class="output-title c-purple">④ Strategy recommendations</div>
+          <div class="output-sub">Admin approves parameter changes</div>
+        </div>
+      </div>
+      
+      <div class="output-item">
+        <div class="output-arrow bg-orange c-orange"></div>
+        <div class="output-content">
+          <div class="output-title c-orange">⑤ Predictions</div>
+          <div class="output-sub">Freshness forecasts, volume trends</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="bottom-banner">
+    86.7% baseline → improves weekly
+  </div>
+
+  <div class="bottom-right">5 / 8</div>
+  <div class="bottom-bar"></div>
+</body>
+</html>

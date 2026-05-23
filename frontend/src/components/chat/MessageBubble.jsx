@@ -228,6 +228,7 @@ export default function MessageBubble({ message, sessionId, onSuggestionSelect }
   }
 
   const isFallback = message.content.includes('unable to generate') || message.confidence === 0
+  const isDomainRejected = message.domainRejected
 
   return (
     <motion.div
@@ -235,14 +236,35 @@ export default function MessageBubble({ message, sessionId, onSuggestionSelect }
       animate={{ opacity: 1, y: 0 }}
       style={{
         alignSelf: 'flex-start',
-        background: 'var(--bg2)',
+        background: isDomainRejected ? 'rgba(255,140,66,0.04)' : 'var(--bg2)',
         border: '1px solid var(--border)',
-        borderLeft: isFallback ? '2px solid var(--yellow)' : undefined,
+        borderLeft: isDomainRejected ? '3px solid var(--orange)' : (isFallback ? '2px solid var(--yellow)' : undefined),
         borderRadius: '10px 10px 10px 2px',
         padding: '16px 20px',
         maxWidth: '85%'
       }}
     >
+      {isDomainRejected && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          marginBottom: '12px',
+          paddingBottom: '10px',
+          borderBottom: '1px solid rgba(255,140,66,0.2)',
+        }}>
+          <span style={{ fontSize: '16px' }}>🔬</span>
+          <span style={{
+            fontSize: '11px',
+            fontWeight: 600,
+            color: 'var(--orange)',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+          }}>
+            Biomedical Questions Only
+          </span>
+        </div>
+      )}
       {message.proactiveContradictionDetected && (
         <div style={{
           background: 'rgba(255,140,66,0.08)',
@@ -347,13 +369,15 @@ export default function MessageBubble({ message, sessionId, onSuggestionSelect }
       )}
 
       <div style={{ display: 'flex', gap: '12px', marginTop: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-        <ConfidenceBar 
-          confidence={message.confidence} 
-          confidenceLower={message.confidenceLower}
-          confidenceUpper={message.confidenceUpper}
-        />
+        {!isDomainRejected && (
+          <ConfidenceBar 
+            confidence={message.confidence} 
+            confidenceLower={message.confidenceLower}
+            confidenceUpper={message.confidenceUpper}
+          />
+        )}
         
-        {message.processingTime && (
+        {!isDomainRejected && message.processingTime && (
           <div style={{ color: 'var(--text3)', fontSize: '11px' }}>
             {(message.processingTime / 1000).toFixed(1)}s
           </div>
@@ -365,7 +389,7 @@ export default function MessageBubble({ message, sessionId, onSuggestionSelect }
           </div>
         )}
         
-        {message.cycleRan && (
+        {!isDomainRejected && message.cycleRan && (
           <div style={{ color: 'var(--orange)', fontSize: '11px', background: 'rgba(255, 140, 66, 0.1)', padding: '2px 8px', borderRadius: '10px' }}>
             🔄 repaired
           </div>
@@ -420,7 +444,7 @@ export default function MessageBubble({ message, sessionId, onSuggestionSelect }
         </div>
       )}
 
-      {message.citations && message.citations.length > 0 && (
+      {!isDomainRejected && message.citations && message.citations.length > 0 && (
         <div style={{ marginTop: '16px', borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
           <div style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--text3)', marginBottom: '8px', fontWeight: 600 }}>
             Sources
@@ -435,15 +459,18 @@ export default function MessageBubble({ message, sessionId, onSuggestionSelect }
         </div>
       )}
 
-      {message.claimProvenance && message.claimProvenance.length > 0 && (
+      {!isDomainRejected && message.claimProvenance && message.claimProvenance.length > 0 && (
         <ClaimProvenancePanel provenance={message.claimProvenance} />
       )}
 
-      {message.querySuggestions && message.querySuggestions.length > 0 && message.hasGaps && (
-        <QuerySuggestions 
-          suggestions={message.querySuggestions} 
-          onSelect={onSuggestionSelect} 
-        />
+      {message.querySuggestions && message.querySuggestions.length > 0 && (
+        (isDomainRejected || message.hasGaps) && (
+          <QuerySuggestions 
+            suggestions={message.querySuggestions} 
+            onSelect={onSuggestionSelect} 
+            label={isDomainRejected ? "Try asking:" : "You might also want to ask:"}
+          />
+        )
       )}
 
       {message.role === 'assistant' && !message.loading && (

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background: #0a0e1a;
+      font-family: 'JetBrains Mono', monospace;
+      color: #e8eef8;
+      padding: 48px;
+    }
+    .header { margin-bottom: 32px; }
+    .title { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; color: #e8eef8; letter-spacing: -0.5px; }
+    .subtitle { font-size: 12px; color: #6b7d9e; letter-spacing: 2px; text-transform: uppercase; margin-top: 6px; }
+    .svg-container { width: 1400px; background: #0a0e1a; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="title">Data Architecture — Four Databases</div>
+    <div class="subtitle">Each with one responsibility</div>
+  </div>
+  
+  <div class="svg-container">
+    <svg width="1400" height="800" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <!-- Gradients -->
+        <linearGradient id="grad-cyan" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#002233"/><stop offset="100%" stop-color="#0a1122"/></linearGradient>
+        <linearGradient id="grad-green" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#003322"/><stop offset="100%" stop-color="#0a1122"/></linearGradient>
+        <linearGradient id="grad-blue" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#112244"/><stop offset="100%" stop-color="#0a1122"/></linearGradient>
+        <linearGradient id="grad-orange" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#331100"/><stop offset="100%" stop-color="#0a1122"/></linearGradient>
+        
+        <filter id="glow-cyan"><feGaussianBlur stdDeviation="3" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="glow-green"><feGaussianBlur stdDeviation="3" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="glow-blue"><feGaussianBlur stdDeviation="3" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="glow-orange"><feGaussianBlur stdDeviation="3" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+
+      <!-- PANEL 1: QDRANT -->
+      <rect x="0" y="50" width="320" height="550" rx="12" fill="url(#grad-cyan)" stroke="#00d4ff" stroke-width="2"/>
+      
+      <path d="M 60,110 Q 160,90 260,110 L 260,150 Q 160,170 60,150 Z" fill="#003344" stroke="#00d4ff" stroke-width="2" filter="url(#glow-cyan)"/>
+      <path d="M 60,110 Q 160,130 260,110" fill="none" stroke="#00d4ff" stroke-width="2"/>
+      
+      <text x="160" y="210" fill="#00d4ff" font-size="20" font-weight="bold" text-anchor="middle">Qdrant Cloud</text>
+      <text x="160" y="230" fill="#9aaac8" font-size="12" text-anchor="middle" text-transform="uppercase">Primary Vector Store</text>
+
+      <rect x="30" y="260" width="260" height="150" fill="none" stroke="#2a3a5c" stroke-width="1"/>
+      <rect x="30" y="260" width="260" height="30" fill="#112233"/>
+      <text x="40" y="280" fill="#00d4ff" font-size="12">failurerag_document</text>
+      <text x="280" y="280" fill="#9aaac8" font-size="10" text-anchor="end">1,500 pts</text>
+      
+      <rect x="30" y="290" width="260" height="30" fill="#112233"/>
+      <text x="40" y="310" fill="#4a9eff" font-size="12">failurerag_section</text>
+      <text x="280" y="310" fill="#9aaac8" font-size="10" text-anchor="end">4,700 pts</text>
+      
+      <rect x="30" y="320" width="260" height="30" fill="#112233"/>
+      <text x="40" y="340" fill="#00d4ff" font-size="12">failurerag_semantic</text>
+      <text x="280" y="340" fill="#9aaac8" font-size="10" text-anchor="end">10,900 pts</text>
+      
+      <rect x="30" y="350" width="260" height="30" fill="#112233"/>
+      <text x="40" y="370" fill="#34d399" font-size="12">failurerag_proposition</text>
+      <text x="280" y="370" fill="#9aaac8" font-size="10" text-anchor="end">5,500 pts</text>
+
+      <text x="160" y="400" fill="#6b7d9e" font-size="10" text-anchor="middle">─── staging ───</text>
+      <text x="40" y="420" fill="#6b7d9e" font-size="12">*_staging × 4</text>
+      <text x="280" y="420" fill="#6b7d9e" font-size="10" text-anchor="end">variable</text>
+
+      <rect x="40" y="450" width="110" height="20" rx="4" fill="#003344" stroke="#00d4ff" stroke-width="1"/>
+      <text x="95" y="463" fill="#00d4ff" font-size="9" text-anchor="middle">dense vector 768d</text>
+
+      <rect x="170" y="450" width="110" height="20" rx="4" fill="#003344" stroke="#00d4ff" stroke-width="1"/>
+      <text x="225" y="463" fill="#00d4ff" font-size="9" text-anchor="middle">sparse BM25</text>
+
+      <rect x="40" y="480" width="110" height="20" rx="4" fill="#003344" stroke="#00d4ff" stroke-width="1"/>
+      <text x="95" y="493" fill="#00d4ff" font-size="9" text-anchor="middle">hybrid search</text>
+
+      <rect x="170" y="480" width="110" height="20" rx="4" fill="#003344" stroke="#00d4ff" stroke-width="1"/>
+      <text x="225" y="493" fill="#00d4ff" font-size="9" text-anchor="middle">metadata payload</text>
+
+      <text x="160" y="550" fill="#e8eef8" font-size="12" font-weight="bold" text-anchor="middle">22,600+ retrievable chunks</text>
+
+
+      <!-- PANEL 2: SUPABASE -->
+      <rect x="350" y="50" width="320" height="550" rx="12" fill="url(#grad-green)" stroke="#00e5a0" stroke-width="2"/>
+      
+      <path d="M 410,110 Q 510,90 610,110 L 610,150 Q 510,170 410,150 Z" fill="#003322" stroke="#00e5a0" stroke-width="2" filter="url(#glow-green)"/>
+      <path d="M 410,110 Q 510,130 610,110" fill="none" stroke="#00e5a0" stroke-width="2"/>
+      
+      <text x="510" y="210" fill="#00e5a0" font-size="20" font-weight="bold" text-anchor="middle">Supabase PostgreSQL</text>
+      <text x="510" y="230" fill="#9aaac8" font-size="12" text-anchor="middle" text-transform="uppercase">Relational + Analytics</text>
+
+      <text x="380" y="260" fill="#6b7d9e" font-size="10" font-weight="bold" text-transform="uppercase">INGESTION</text>
+      <text x="380" y="280" fill="#e8eef8" font-size="12">ingestion_logs · agent_failures</text>
+
+      <text x="380" y="310" fill="#6b7d9e" font-size="10" font-weight="bold" text-transform="uppercase">REPAIR</text>
+      <text x="380" y="330" fill="#e8eef8" font-size="12">repair_history · repair_queue</text>
+      <text x="380" y="350" fill="#e8eef8" font-size="12">strategy_recommendations</text>
+
+      <rect x="370" y="370" width="280" height="60" rx="4" fill="#003322" stroke="#00e5a0" stroke-width="1"/>
+      <text x="380" y="385" fill="#00e5a0" font-size="10" font-weight="bold" text-transform="uppercase">LEARNING</text>
+      <text x="380" y="405" fill="#e8eef8" font-size="12">agent6_patterns · agent6_gaps</text>
+      <text x="380" y="420" fill="#e8eef8" font-size="12">agent6_calibration · agent6_insights</text>
+
+      <text x="380" y="450" fill="#6b7d9e" font-size="10" font-weight="bold" text-transform="uppercase">EVALUATION</text>
+      <text x="380" y="470" fill="#e8eef8" font-size="12">benchmark_questions (50) · results</text>
+
+      <text x="380" y="500" fill="#6b7d9e" font-size="10" font-weight="bold" text-transform="uppercase">USER</text>
+      <text x="380" y="520" fill="#e8eef8" font-size="12">user_feedback · user_profiles</text>
+
+      <text x="510" y="550" fill="#e8eef8" font-size="12" font-weight="bold" text-anchor="middle">13 tables · 86.7% baseline tracked</text>
+
+
+      <!-- PANEL 3: NEO4J -->
+      <rect x="700" y="50" width="320" height="550" rx="12" fill="url(#grad-blue)" stroke="#4a9eff" stroke-width="2"/>
+      
+      <circle cx="860" cy="130" r="30" fill="#112244" stroke="#4a9eff" stroke-width="2" filter="url(#glow-blue)"/>
+      <circle cx="820" cy="110" r="10" fill="#4a9eff"/>
+      <circle cx="900" cy="110" r="10" fill="#4a9eff"/>
+      <circle cx="860" cy="170" r="10" fill="#4a9eff"/>
+      <path d="M 820,110 L 860,130 L 900,110 M 860,130 L 860,170" stroke="#4a9eff" stroke-width="2"/>
+      
+      <text x="860" y="210" fill="#4a9eff" font-size="20" font-weight="bold" text-anchor="middle">Neo4j AuraDB</text>
+      <text x="860" y="230" fill="#9aaac8" font-size="12" text-anchor="middle" text-transform="uppercase">Graph Database</text>
+
+      <rect x="730" y="260" width="260" height="150" fill="#0a1122" stroke="#2a3a5c" stroke-width="1"/>
+      <circle cx="780" cy="300" r="15" fill="#4a9eff"/>
+      <text x="780" y="304" fill="#000" font-size="10" font-weight="bold" text-anchor="middle">P</text>
+      
+      <circle cx="920" cy="300" r="25" fill="#a855f7"/>
+      <text x="920" y="304" fill="#000" font-size="10" font-weight="bold" text-anchor="middle">Cluster</text>
+
+      <circle cx="780" cy="380" r="15" fill="#4a9eff"/>
+      <text x="780" y="384" fill="#000" font-size="10" font-weight="bold" text-anchor="middle">P</text>
+
+      <path d="M 795,300 L 895,300" stroke="#9aaac8" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+      <text x="845" y="295" fill="#9aaac8" font-size="10" text-anchor="middle">BELONGS_TO</text>
+
+      <path d="M 780,315 L 780,365" stroke="#ff4d6d" stroke-width="1.5" marker-end="url(#arr-red)"/>
+      <text x="815" y="345" fill="#ff4d6d" font-size="10" text-anchor="middle">CONTRADICTS</text>
+
+      <rect x="730" y="440" width="260" height="80" fill="#112244" stroke="#4a9eff" stroke-width="1"/>
+      <text x="750" y="460" fill="#e8eef8" font-size="12">• 1,767 paper nodes</text>
+      <text x="750" y="480" fill="#e8eef8" font-size="12">• 3 cluster nodes</text>
+      <text x="750" y="500" fill="#e8eef8" font-size="12">• Contradiction tracking</text>
+
+      <text x="860" y="550" fill="#e8eef8" font-size="12" font-weight="bold" text-anchor="middle">Citation neighborhood expansion</text>
+
+
+      <!-- PANEL 4: REDIS -->
+      <rect x="1050" y="50" width="320" height="550" rx="12" fill="url(#grad-orange)" stroke="#ff8c42" stroke-width="2"/>
+      
+      <rect x="1160" y="100" width="100" height="60" rx="4" fill="#331100" stroke="#ff8c42" stroke-width="2" filter="url(#glow-orange)"/>
+      <line x1="1170" y1="120" x2="1250" y2="120" stroke="#ff8c42" stroke-width="2"/>
+      <line x1="1170" y1="140" x2="1250" y2="140" stroke="#ff8c42" stroke-width="2"/>
+      
+      <text x="1210" y="210" fill="#ff8c42" font-size="20" font-weight="bold" text-anchor="middle">Upstash Redis</text>
+      <text x="1210" y="230" fill="#9aaac8" font-size="12" text-anchor="middle" text-transform="uppercase">Cache · Sessions · Queues</text>
+
+      <text x="1080" y="260" fill="#ff8c42" font-size="12" font-weight="bold">session:{id}</text>
+      <text x="1100" y="280" fill="#e8eef8" font-size="12">"Conversation (2hr TTL)"</text>
+      <text x="1100" y="300" fill="#e8eef8" font-size="12">"Last 6 turns verbatim"</text>
+
+      <text x="1080" y="330" fill="#ff8c42" font-size="12" font-weight="bold">cache:{simhash}</text>
+      <text x="1100" y="350" fill="#e8eef8" font-size="12">"Chunk cache (dynamic TTL)"</text>
+      <text x="1100" y="370" fill="#e8eef8" font-size="12">"4h · 24h · 7d by velocity"</text>
+
+      <text x="1080" y="400" fill="#ff8c42" font-size="12" font-weight="bold">Celery Queues</text>
+      <rect x="1100" y="420" width="180" height="10" fill="#ff4d6d"/>
+      <text x="1290" y="430" fill="#e8eef8" font-size="10">high_priority</text>
+      
+      <rect x="1100" y="440" width="140" height="10" fill="#ffd60a"/>
+      <text x="1250" y="450" fill="#e8eef8" font-size="10">medium_priority</text>
+      
+      <rect x="1100" y="460" width="80" height="10" fill="#00d4ff"/>
+      <text x="1190" y="470" fill="#e8eef8" font-size="10">low_priority</text>
+
+      <text x="1210" y="550" fill="#e8eef8" font-size="12" font-weight="bold" text-anchor="middle">Rate limiting · Session TTL</text>
+
+
+      <!-- BOTTOM MATRIX -->
+      <rect x="350" y="630" width="700" height="140" rx="8" fill="#0f1525" stroke="#2a3a5c" stroke-width="1"/>
+      <text x="700" y="650" fill="#e8eef8" font-size="14" font-weight="bold" text-anchor="middle">AGENT DATABASE MATRIX</text>
+      
+      <text x="500" y="670" fill="#00d4ff" font-size="12" font-weight="bold">Qdrant</text>
+      <text x="600" y="670" fill="#00e5a0" font-size="12" font-weight="bold">Supabase</text>
+      <text x="700" y="670" fill="#4a9eff" font-size="12" font-weight="bold">Neo4j</text>
+      <text x="800" y="670" fill="#ff8c42" font-size="12" font-weight="bold">Redis</text>
+
+      <!-- Row 1 -->
+      <text x="400" y="690" fill="#e8eef8" font-size="12">Agent 1</text>
+      <circle cx="520" cy="685" r="5" fill="#00d4ff"/>
+      <circle cx="620" cy="685" r="5" fill="none" stroke="#00e5a0" stroke-width="1.5"/>
+      <circle cx="715" cy="685" r="5" fill="none" stroke="#4a9eff" stroke-width="1.5"/>
+      <circle cx="815" cy="685" r="5" fill="none" stroke="#ff8c42" stroke-width="1.5"/>
+
+      <!-- Row 2 -->
+      <text x="400" y="710" fill="#e8eef8" font-size="12">Agent 2</text>
+      <circle cx="520" cy="705" r="5" fill="#00d4ff"/>
+      <circle cx="620" cy="705" r="5" fill="#00e5a0"/>
+      <circle cx="715" cy="705" r="5" fill="none" stroke="#4a9eff" stroke-width="1.5"/>
+      <circle cx="815" cy="705" r="5" fill="none" stroke="#ff8c42" stroke-width="1.5"/>
+
+      <!-- Row 3 -->
+      <text x="400" y="730" fill="#e8eef8" font-size="12">Agent 6</text>
+      <circle cx="520" cy="725" r="5" fill="none" stroke="#00d4ff" stroke-width="1.5"/>
+      <circle cx="620" cy="725" r="5" fill="#00e5a0"/>
+      <circle cx="715" cy="725" r="5" fill="none" stroke="#4a9eff" stroke-width="1.5"/>
+      <circle cx="815" cy="725" r="5" fill="#ff8c42"/>
+
+      <!-- Row 4 -->
+      <text x="400" y="750" fill="#e8eef8" font-size="12">Agent 7</text>
+      <circle cx="520" cy="745" r="5" fill="none" stroke="#00d4ff" stroke-width="1.5"/>
+      <circle cx="620" cy="745" r="5" fill="none" stroke="#00e5a0" stroke-width="1.5"/>
+      <circle cx="715" cy="745" r="5" fill="none" stroke="#4a9eff" stroke-width="1.5"/>
+      <circle cx="815" cy="745" r="5" fill="#ff8c42"/>
+
+    </svg>
+  </div>
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background: #0a0e1a;
+      font-family: 'JetBrains Mono', monospace;
+      color: #e8eef8;
+      padding: 48px;
+    }
+    .header { margin-bottom: 32px; }
+    .title { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; color: #e8eef8; letter-spacing: -0.5px; }
+    .subtitle { font-size: 12px; color: #6b7d9e; letter-spacing: 2px; text-transform: uppercase; margin-top: 6px; }
+    .svg-container { width: 1400px; background: #0a0e1a; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="title">Ingestion Pipeline — From Paper to Vector</div>
+    <div class="subtitle">Selective · Validated · Staged</div>
+  </div>
+  
+  <div class="svg-container">
+    <svg width="1400" height="750" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <!-- Arrow markers -->
+        <marker id="arr-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#00e5a0"/></marker>
+        <marker id="arr-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#4a9eff"/></marker>
+        <marker id="arr-cyan" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#00d4ff"/></marker>
+        <marker id="arr-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#ff8c42"/></marker>
+        <marker id="arr-red" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#ff4d6d"/></marker>
+        <marker id="arr-light-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#60a5fa"/></marker>
+        <marker id="arr-teal" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#34d399"/></marker>
+
+        <!-- Glow filters -->
+        <filter id="glow-light-blue"><feGaussianBlur stdDeviation="3" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="glow-teal"><feGaussianBlur stdDeviation="3" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        
+        <!-- Gradients -->
+        <linearGradient id="grad-node" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#112233"/><stop offset="100%" stop-color="#0a1122"/></linearGradient>
+        <linearGradient id="grad-light-blue" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#113355"/><stop offset="100%" stop-color="#001122"/></linearGradient>
+        <linearGradient id="grad-teal" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#004433"/><stop offset="100%" stop-color="#002211"/></linearGradient>
+      </defs>
+
+      <!-- LEFT: DATA SOURCES -->
+      <polygon points="120,50 160,30 200,50 200,90 160,110 120,90" fill="url(#grad-node)" stroke="#00e5a0" stroke-width="2"/>
+      <text x="160" y="75" fill="#00e5a0" font-size="12" font-weight="bold" text-anchor="middle">PubMed API</text>
+      
+      <polygon points="120,130 160,110 200,130 200,170 160,190 120,170" fill="url(#grad-node)" stroke="#4a9eff" stroke-width="2"/>
+      <text x="160" y="155" fill="#4a9eff" font-size="12" font-weight="bold" text-anchor="middle">arXiv</text>
+
+      <polygon points="120,210 160,190 200,210 200,250 160,270 120,250" fill="url(#grad-node)" stroke="#00d4ff" stroke-width="2"/>
+      <text x="160" y="235" fill="#00d4ff" font-size="12" font-weight="bold" text-anchor="middle">bioRxiv</text>
+
+      <polygon points="120,290 160,270 200,290 200,330 160,350 120,330" fill="url(#grad-node)" stroke="#ff8c42" stroke-width="2"/>
+      <text x="160" y="310" fill="#ff8c42" font-size="10" font-weight="bold" text-anchor="middle">Semantic</text>
+      <text x="160" y="325" fill="#ff8c42" font-size="10" font-weight="bold" text-anchor="middle">Scholar</text>
+
+      <path d="M 200,70 C 250,70 250,150 400,150" stroke="#00e5a0" stroke-width="1.5" fill="none" marker-end="url(#arr-green)"/>
+      <path d="M 200,150 C 250,150 250,150 400,150" stroke="#4a9eff" stroke-width="1.5" fill="none" marker-end="url(#arr-blue)"/>
+      <path d="M 200,230 C 250,230 250,150 400,150" stroke="#00d4ff" stroke-width="1.5" fill="none" marker-end="url(#arr-cyan)"/>
+      <path d="M 200,310 C 250,310 250,150 400,150" stroke="#ff8c42" stroke-width="1.5" fill="none" marker-end="url(#arr-orange)"/>
+
+      <!-- CENTER TOP: AGENT 5A -->
+      <rect x="400" y="50" width="300" height="200" rx="10" fill="url(#grad-light-blue)" stroke="#60a5fa" stroke-width="2" filter="url(#glow-light-blue)"/>
+      <text x="550" y="80" fill="#60a5fa" font-size="16" font-weight="bold" text-anchor="middle">AGENT 5A — VERIFICATION</text>
+      
+      <text x="430" y="120" fill="#e8eef8" font-size="12">① Domain Filter — is this biomedical?</text>
+      <text x="410" y="120" fill="#00e5a0" font-size="12" font-weight="bold">✓</text>
+      
+      <text x="430" y="150" fill="#e8eef8" font-size="12">② Corpus Relationship — gap/contradicts?</text>
+      <text x="410" y="150" fill="#00e5a0" font-size="12" font-weight="bold">✓</text>
+
+      <text x="430" y="180" fill="#e8eef8" font-size="12">③ Evidence Quality — RCT/Review/Cohort?</text>
+      <text x="410" y="180" fill="#00e5a0" font-size="12" font-weight="bold">✓</text>
+
+      <text x="430" y="210" fill="#e8eef8" font-size="12">④ Citation Velocity — 50+ citations threshold</text>
+      <text x="410" y="210" fill="#ff4d6d" font-size="12" font-weight="bold">✗</text>
+
+      <!-- Agent 5A Outputs -->
+      <path d="M 700,150 C 730,150 750,80 800,80" stroke="#ff4d6d" stroke-width="2" fill="none" marker-end="url(#arr-red)"/>
+      <circle cx="840" cy="80" r="40" fill="#1a0f0f" stroke="#ff4d6d" stroke-width="2"/>
+      <text x="840" y="85" fill="#ff4d6d" font-size="12" font-weight="bold" text-anchor="middle">DISCARD</text>
+
+      <path d="M 550,250 C 550,280 550,280 550,300" stroke="#60a5fa" stroke-width="2" fill="none" marker-end="url(#arr-light-blue)"/>
+      <text x="560" y="280" fill="#60a5fa" font-size="12" font-weight="bold">PASS</text>
+
+      <rect x="475" y="300" width="150" height="40" rx="5" fill="#112233" stroke="#e8eef8" stroke-width="1.5"/>
+      <text x="550" y="325" fill="#e8eef8" font-size="14" font-weight="bold" text-anchor="middle">PAPER TEXT</text>
+
+      <path d="M 550,340 C 550,360 550,360 550,380" stroke="#e8eef8" stroke-width="2" fill="none"/>
+
+      <!-- CENTER MIDDLE: AGENT 5B -->
+      <rect x="400" y="380" width="300" height="220" rx="10" fill="url(#grad-teal)" stroke="#34d399" stroke-width="2" filter="url(#glow-teal)"/>
+      <text x="550" y="405" fill="#34d399" font-size="16" font-weight="bold" text-anchor="middle">AGENT 5B — CHUNKER</text>
+
+      <rect x="420" y="420" width="260" height="160" rx="5" fill="transparent" stroke="#e8eef8" stroke-width="1" stroke-dasharray="2,2"/>
+      <text x="430" y="440" fill="#e8eef8" font-size="12">L1 — Document Embedding</text>
+      
+      <rect x="440" y="455" width="220" height="110" rx="5" fill="transparent" stroke="#00d4ff" stroke-width="1" stroke-dasharray="2,2"/>
+      <text x="450" y="475" fill="#00d4ff" font-size="12">L2 — Section Chunks</text>
+
+      <rect x="460" y="490" width="180" height="60" rx="5" fill="transparent" stroke="#4a9eff" stroke-width="1" stroke-dasharray="2,2"/>
+      <text x="470" y="510" fill="#4a9eff" font-size="12">L3A — Semantic Chunks</text>
+      
+      <rect x="480" y="525" width="140" height="20" rx="2" fill="#333333" stroke="#00e5a0" stroke-width="1"/>
+      <text x="485" y="538" fill="#00e5a0" font-size="10">L3B — Propositions</text>
+
+      <!-- CENTER RIGHT: EMBEDDING -->
+      <path d="M 700,490 C 730,490 730,300 800,300" stroke="#34d399" stroke-width="2" fill="none" marker-end="url(#arr-teal)"/>
+
+      <rect x="800" y="270" width="220" height="60" rx="8" fill="url(#grad-node)" stroke="#e8eef8" stroke-width="2"/>
+      <text x="910" y="295" fill="#e8eef8" font-size="12" font-weight="bold" text-anchor="middle">BIOMEDICAL EMBEDDER</text>
+      <text x="910" y="315" fill="#9aaac8" font-size="10" text-anchor="middle">S-PubMedBert 768d</text>
+
+      <path d="M 910,330 C 910,350 910,350 910,380" stroke="#e8eef8" stroke-width="2" fill="none"/>
+      <text x="920" y="360" fill="#9aaac8" font-size="10">vectors</text>
+
+      <!-- STAGING -->
+      <path d="M 850,380 Q 910,370 970,380 L 970,440 Q 910,450 850,440 Z" fill="url(#grad-node)" stroke="#ffd60a" stroke-width="2" stroke-dasharray="4,4"/>
+      <path d="M 850,380 Q 910,390 970,380" fill="none" stroke="#ffd60a" stroke-width="2" stroke-dasharray="4,4"/>
+      <text x="910" y="415" fill="#ffd60a" font-size="12" font-weight="bold" text-anchor="middle">STAGING COLLECTIONS</text>
+
+      <rect x="850" y="460" width="120" height="40" rx="5" fill="#222200" stroke="#ffd60a" stroke-width="1.5"/>
+      <text x="910" y="475" fill="#ffd60a" font-size="10" font-weight="bold" text-anchor="middle">VALIDATION</text>
+      <text x="910" y="490" fill="#9aaac8" font-size="9" text-anchor="middle">avg_score > 0.5</text>
+
+      <!-- Pass to Production -->
+      <path d="M 910,500 C 910,530 910,530 910,550" stroke="#00e5a0" stroke-width="2" fill="none" marker-end="url(#arr-green)"/>
+      
+      <!-- Fail/Review -->
+      <path d="M 850,480 C 810,480 810,440 760,440" stroke="#ff4d6d" stroke-width="1.5" fill="none" marker-end="url(#arr-red)"/>
+      <rect x="700" y="420" width="60" height="30" fill="#1a0f0f" stroke="#ff4d6d" stroke-width="1"/>
+      <text x="730" y="440" fill="#ff4d6d" font-size="10" text-anchor="middle">ROLLBACK</text>
+
+      <path d="M 970,480 C 1000,480 1000,440 1050,440" stroke="#ffd60a" stroke-width="1.5" fill="none" marker-end="url(#arr-yellow)"/>
+      <rect x="1050" y="420" width="80" height="40" fill="#222200" stroke="#ffd60a" stroke-width="1"/>
+      <text x="1090" y="435" fill="#ffd60a" font-size="10" text-anchor="middle">ADMIN</text>
+      <text x="1090" y="450" fill="#ffd60a" font-size="10" text-anchor="middle">APPROVAL</text>
+      <text x="1090" y="415" fill="#9aaac8" font-size="8" text-anchor="middle">> 50 papers</text>
+
+      <!-- PRODUCTION -->
+      <path d="M 850,550 Q 910,540 970,550 L 970,610 Q 910,620 850,610 Z" fill="url(#grad-node)" stroke="#00d4ff" stroke-width="2"/>
+      <path d="M 850,550 Q 910,560 970,550" fill="none" stroke="#00d4ff" stroke-width="2"/>
+      <text x="910" y="585" fill="#00d4ff" font-size="12" font-weight="bold" text-anchor="middle">PRODUCTION</text>
+      <text x="910" y="600" fill="#9aaac8" font-size="10" text-anchor="middle">Qdrant Cloud</text>
+
+      <!-- RIGHT: NEO4J -->
+      <path d="M 970,580 C 1030,580 1050,580 1150,580" stroke="#4a9eff" stroke-width="2" fill="none" marker-end="url(#arr-blue)"/>
+      
+      <path d="M 1150,550 Q 1230,540 1310,550 L 1310,610 Q 1230,620 1150,610 Z" fill="url(#grad-node)" stroke="#4a9eff" stroke-width="2"/>
+      <path d="M 1150,550 Q 1230,560 1310,550" fill="none" stroke="#4a9eff" stroke-width="2"/>
+      <text x="1230" y="575" fill="#4a9eff" font-size="12" font-weight="bold" text-anchor="middle">NEO4J</text>
+      <text x="1230" y="590" fill="#9aaac8" font-size="10" text-anchor="middle">Create Paper node</text>
+      <text x="1230" y="605" fill="#9aaac8" font-size="10" text-anchor="middle">BELONGS_TO cluster</text>
+
+      <!-- BOTTOM: SELECTIVE RULES -->
+      <text x="700" y="650" fill="#e8eef8" font-size="14" font-weight="bold" text-anchor="middle">ANY ONE RULE SUFFICIENT FOR INGESTION</text>
+      
+      <rect x="250" y="670" width="160" height="30" rx="15" fill="#1a0f0f" stroke="#ff4d6d" stroke-width="1.5"/>
+      <text x="330" y="689" fill="#ff4d6d" font-size="11" font-weight="bold" text-anchor="middle">① Contradicts existing</text>
+      
+      <rect x="430" y="670" width="160" height="30" rx="15" fill="#0f1a3a" stroke="#4a9eff" stroke-width="1.5"/>
+      <text x="510" y="689" fill="#4a9eff" font-size="11" font-weight="bold" text-anchor="middle">② Fills Agent 6 gap</text>
+      
+      <rect x="610" y="670" width="160" height="30" rx="15" fill="#221100" stroke="#ff8c42" stroke-width="1.5"/>
+      <text x="690" y="689" fill="#ff8c42" font-size="11" font-weight="bold" text-anchor="middle">③ High citation velocity</text>
+      
+      <rect x="790" y="670" width="160" height="30" rx="15" fill="#1a0f1a" stroke="#a855f7" stroke-width="1.5"/>
+      <text x="870" y="689" fill="#a855f7" font-size="11" font-weight="bold" text-anchor="middle">④ Query pattern match</text>
+      
+      <rect x="970" y="670" width="160" height="30" rx="15" fill="#0f2a1a" stroke="#00e5a0" stroke-width="1.5"/>
+      <text x="1050" y="689" fill="#00e5a0" font-size="11" font-weight="bold" text-anchor="middle">⑤ Quality recent paper</text>
+
+    </svg>
+  </div>
+</body>
+</html>

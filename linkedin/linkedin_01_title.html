@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 1200px;
+      height: 1200px;
+      background: #0a0e1a;
+      font-family: 'JetBrains Mono', monospace;
+      color: #e8eef8;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    .top-left {
+      position: absolute;
+      top: 40px;
+      left: 40px;
+      color: #00d4ff;
+      font-size: 18px; /* Slightly larger than 14px for 1200px scale */
+      font-weight: 600;
+    }
+    .center-content {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .title {
+      font-family: system-ui, -apple-system, sans-serif;
+      font-weight: 800;
+      font-size: 96px; /* Scaled up from 64px for 1200px canvas */
+      line-height: 1.1;
+      margin-bottom: 40px;
+    }
+    .title-white { color: #ffffff; }
+    .title-cyan { color: #00d4ff; }
+    .subtitle {
+      font-size: 28px;
+      color: #9aaac8;
+      line-height: 1.6;
+      margin-bottom: 60px;
+    }
+    .divider {
+      width: 200px;
+      height: 2px;
+      background: #2a3a5c;
+      margin-bottom: 60px;
+    }
+    .pills {
+      display: flex;
+      gap: 24px;
+    }
+    .pill {
+      padding: 16px 32px;
+      border-radius: 40px;
+      font-size: 20px;
+      font-weight: 600;
+    }
+    .pill-cyan { border: 2px solid #00d4ff; background: rgba(0,212,255,0.1); color: #00d4ff; }
+    .pill-green { border: 2px solid #00e5a0; background: rgba(0,229,160,0.1); color: #00e5a0; }
+    .pill-purple { border: 2px solid #a855f7; background: rgba(168,85,247,0.1); color: #a855f7; }
+    
+    .bottom-right {
+      position: absolute;
+      bottom: 40px;
+      right: 40px;
+      color: #6b7d9e;
+      font-size: 18px;
+    }
+    .bottom-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 6px;
+      background: linear-gradient(90deg, #00d4ff, #00e5a0);
+    }
+  </style>
+</head>
+<body>
+  <div class="top-left">FailureRAG</div>
+  
+  <div class="center-content">
+    <div class="title">
+      <div class="title-white">Self-Healing</div>
+      <div class="title-cyan">Biomedical RAG</div>
+    </div>
+    
+    <div class="subtitle">
+      <div>Nine agents. Two loops.</div>
+      <div>One system that fixes itself.</div>
+    </div>
+    
+    <div class="divider"></div>
+    
+    <div class="pills">
+      <div class="pill pill-cyan">1,767 papers</div>
+      <div class="pill pill-green">86.7% accuracy</div>
+      <div class="pill pill-purple">9 agents</div>
+    </div>
+  </div>
+  
+  <div class="bottom-right">1 / 8</div>
+  <div class="bottom-bar"></div>
+</body>
+</html>

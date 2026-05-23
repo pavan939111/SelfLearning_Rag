@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background: #0a0e1a;
+      font-family: 'JetBrains Mono', monospace;
+      color: #e8eef8;
+      padding: 48px;
+    }
+    .header { margin-bottom: 32px; }
+    .title { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; color: #e8eef8; letter-spacing: -0.5px; }
+    .subtitle { font-size: 12px; color: #6b7d9e; letter-spacing: 2px; text-transform: uppercase; margin-top: 6px; }
+    .svg-container { width: 1400px; background: #0a0e1a; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="title">Agent 6 — Longitudinal Learning System</div>
+    <div class="subtitle">Every query makes the system smarter</div>
+  </div>
+  
+  <div class="svg-container">
+    <svg width="1400" height="850" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#e879f9"/></marker>
+        <marker id="arr-cyan" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#00d4ff"/></marker>
+        <marker id="arr-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#4a9eff"/></marker>
+        <marker id="arr-yellow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#ffd60a"/></marker>
+        <marker id="arr-purple-spoke" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#a855f7"/></marker>
+        <marker id="arr-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#ff8c42"/></marker>
+        
+        <filter id="glow-fuchsia"><feGaussianBlur stdDeviation="5" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="glow-circle"><feGaussianBlur stdDeviation="2" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+
+        <linearGradient id="grad-ring" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#00d4ff"/>
+          <stop offset="50%" stop-color="#a855f7"/>
+          <stop offset="100%" stop-color="#e879f9"/>
+        </linearGradient>
+        
+        <linearGradient id="grad-fuchsia" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#440044"/><stop offset="100%" stop-color="#220022"/></linearGradient>
+        <linearGradient id="grad-node" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#112233"/><stop offset="100%" stop-color="#0a1122"/></linearGradient>
+
+        <path id="circle-path" d="M 700,130 A 300,300 0 1,1 699.9,130" fill="none" />
+      </defs>
+
+      <!-- BACKGROUND SPIRAL -->
+      <g stroke="#0f1525" stroke-width="1" fill="none">
+        <circle cx="700" cy="430" r="100"/>
+        <circle cx="700" cy="430" r="150"/>
+        <circle cx="700" cy="430" r="200"/>
+        <circle cx="700" cy="430" r="250"/>
+        <circle cx="700" cy="430" r="350"/>
+        <circle cx="700" cy="430" r="400"/>
+      </g>
+
+      <!-- OUTER RING -->
+      <circle cx="700" cy="430" r="300" fill="none" stroke="url(#grad-ring)" stroke-width="3" filter="url(#glow-circle)"/>
+      
+      <!-- Markers on ring -->
+      <!-- 12 o'clock -->
+      <circle cx="700" cy="130" r="6" fill="#00d4ff"/>
+      <text x="700" y="110" fill="#00d4ff" font-size="12" font-weight="bold" text-anchor="middle">Query arrives</text>
+      
+      <!-- 2 o'clock -->
+      <circle cx="959" cy="280" r="6" fill="#a855f7"/>
+      <text x="980" y="270" fill="#a855f7" font-size="12" font-weight="bold">Agent 2 evaluates</text>
+
+      <!-- 4 o'clock -->
+      <circle cx="959" cy="580" r="6" fill="#e879f9"/>
+      <text x="980" y="590" fill="#e879f9" font-size="12" font-weight="bold">Result logged</text>
+
+      <!-- 6 o'clock -->
+      <circle cx="700" cy="730" r="6" fill="#e879f9"/>
+      <text x="700" y="750" fill="#e879f9" font-size="12" font-weight="bold" text-anchor="middle">Agent 6 observes</text>
+
+      <!-- 8 o'clock -->
+      <circle cx="441" cy="580" r="6" fill="#a855f7"/>
+      <text x="420" y="590" fill="#a855f7" font-size="12" font-weight="bold" text-anchor="end">Patterns detected</text>
+
+      <!-- 10 o'clock -->
+      <circle cx="441" cy="280" r="6" fill="#00d4ff"/>
+      <text x="420" y="270" fill="#00d4ff" font-size="12" font-weight="bold" text-anchor="end">System adjusts</text>
+
+      <!-- Clockwise arrows on ring -->
+      <path d="M 850,170 Q 880,190 910,220" fill="none" stroke="#00d4ff" stroke-width="2" marker-end="url(#arr-cyan)"/>
+      <path d="M 980,400 Q 990,430 980,460" fill="none" stroke="#a855f7" stroke-width="2" marker-end="url(#arr-purple-spoke)"/>
+      <path d="M 910,640 Q 880,670 850,690" fill="none" stroke="#e879f9" stroke-width="2" marker-end="url(#arr-purple)"/>
+      <path d="M 550,690 Q 520,670 490,640" fill="none" stroke="#e879f9" stroke-width="2" marker-end="url(#arr-purple)"/>
+      <path d="M 420,460 Q 410,430 420,400" fill="none" stroke="#a855f7" stroke-width="2" marker-end="url(#arr-purple-spoke)"/>
+      <path d="M 490,220 Q 520,190 550,170" fill="none" stroke="#00d4ff" stroke-width="2" marker-end="url(#arr-cyan)"/>
+
+      <!-- CENTER AGENT 6 -->
+      <polygon points="700,350 770,390 770,470 700,510 630,470 630,390" fill="url(#grad-fuchsia)" stroke="#e879f9" stroke-width="3" filter="url(#glow-fuchsia)"/>
+      <text x="700" y="425" fill="#e879f9" font-size="20" font-weight="bold" text-anchor="middle">Agent 6</text>
+      <text x="700" y="445" fill="#e8eef8" font-size="12" text-anchor="middle">Learning Engine</text>
+
+      <!-- 3 INPUT ARROWS INTO CENTER -->
+      <path d="M 700,200 C 700,270 700,270 700,330" stroke="#e8eef8" stroke-width="2" stroke-dasharray="4,4" fill="none" marker-end="url(#arr-cyan)"/>
+      <rect x="640" y="180" width="120" height="24" rx="4" fill="#112233" stroke="#e8eef8" stroke-width="1"/>
+      <text x="700" y="196" fill="#e8eef8" font-size="10" text-anchor="middle">Query results</text>
+
+      <path d="M 500,430 C 560,430 560,430 610,430" stroke="#00e5a0" stroke-width="2" stroke-dasharray="4,4" fill="none" marker-end="url(#arr-green)"/>
+      <rect x="360" y="418" width="140" height="24" rx="4" fill="#002211" stroke="#00e5a0" stroke-width="1"/>
+      <text x="430" y="434" fill="#00e5a0" font-size="10" text-anchor="middle">User feedback 👍👎</text>
+
+      <path d="M 700,660 C 700,590 700,590 700,530" stroke="#ffd60a" stroke-width="2" stroke-dasharray="4,4" fill="none" marker-end="url(#arr-yellow)"/>
+      <rect x="640" y="660" width="120" height="24" rx="4" fill="#222200" stroke="#ffd60a" stroke-width="1"/>
+      <text x="700" y="676" fill="#ffd60a" font-size="10" text-anchor="middle">Benchmark runs</text>
+
+
+      <!-- 5 OUTPUT SPOKES OUT OF CENTER -->
+      <!-- Spoke 1: Calibration (Upper Right) -->
+      <path d="M 780,390 C 850,350 900,320 950,290" stroke="#00d4ff" stroke-width="2" fill="none" marker-end="url(#arr-cyan)"/>
+      <rect x="960" y="240" width="240" height="80" rx="8" fill="url(#grad-node)" stroke="#00d4ff" stroke-width="2"/>
+      <text x="975" y="265" fill="#00d4ff" font-size="12" font-weight="bold">Calibration Curves</text>
+      <text x="975" y="285" fill="#e8eef8" font-size="10">Agent 2 reads dynamically</text>
+      <text x="975" y="300" fill="#e8eef8" font-size="10">expressed vs actual confidence</text>
+      <text x="975" y="315" fill="#e8eef8" font-size="10">User feedback 2× weight</text>
+
+      <!-- Spoke 2: Coverage Gap Map (Right) -->
+      <path d="M 790,430 C 850,430 900,430 950,430" stroke="#4a9eff" stroke-width="2" fill="none" marker-end="url(#arr-blue)"/>
+      <rect x="960" y="390" width="240" height="80" rx="8" fill="url(#grad-node)" stroke="#4a9eff" stroke-width="2"/>
+      <text x="975" y="415" fill="#4a9eff" font-size="12" font-weight="bold">Coverage Gap Map</text>
+      <text x="975" y="435" fill="#e8eef8" font-size="10">query_count per topic</text>
+      <text x="975" y="450" fill="#e8eef8" font-size="10">Agent 5A priority input</text>
+      <text x="975" y="465" fill="#e8eef8" font-size="10">drives selective ingestion</text>
+
+      <!-- Spoke 3: Topic Velocity (Lower Right) -->
+      <path d="M 780,470 C 850,510 900,540 950,570" stroke="#ffd60a" stroke-width="2" fill="none" marker-end="url(#arr-yellow)"/>
+      <rect x="960" y="540" width="240" height="80" rx="8" fill="url(#grad-node)" stroke="#ffd60a" stroke-width="2"/>
+      <text x="975" y="565" fill="#ffd60a" font-size="12" font-weight="bold">Topic Velocity</text>
+      <text x="975" y="585" fill="#e8eef8" font-size="10">immunotherapy → 4hr TTL</text>
+      <text x="975" y="600" fill="#e8eef8" font-size="10">drug_interactions → 24hr</text>
+      <text x="975" y="615" fill="#e8eef8" font-size="10">genomics → 7 days</text>
+
+      <!-- Spoke 4: Strategy Recs (Lower Left) -->
+      <path d="M 620,470 C 550,510 500,540 450,570" stroke="#a855f7" stroke-width="2" fill="none" marker-end="url(#arr-purple-spoke)"/>
+      <rect x="200" y="540" width="240" height="80" rx="8" fill="url(#grad-node)" stroke="#a855f7" stroke-width="2"/>
+      <text x="215" y="565" fill="#a855f7" font-size="12" font-weight="bold">Strategy Recommendations</text>
+      <text x="215" y="585" fill="#e8eef8" font-size="10">parameter changes proposed</text>
+      <text x="215" y="600" fill="#e8eef8" font-size="10">admin approves via dashboard</text>
+      <text x="215" y="615" fill="#e8eef8" font-size="10">config_overrides.json updated</text>
+
+      <!-- Spoke 5: Predictions (Upper Left) -->
+      <path d="M 620,390 C 550,350 500,320 450,290" stroke="#ff8c42" stroke-width="2" fill="none" marker-end="url(#arr-orange)"/>
+      <rect x="200" y="240" width="240" height="80" rx="8" fill="url(#grad-node)" stroke="#ff8c42" stroke-width="2"/>
+      <text x="215" y="265" fill="#ff8c42" font-size="12" font-weight="bold">Predictions</text>
+      <text x="215" y="285" fill="#e8eef8" font-size="10">freshness decline forecast</text>
+      <text x="215" y="300" fill="#e8eef8" font-size="10">query volume growth</text>
+      <text x="215" y="315" fill="#e8eef8" font-size="10">benchmark improvement rate</text>
+
+
+      <!-- BOTTOM METRICS PANEL -->
+      <rect x="200" y="780" width="1000" height="60" rx="8" fill="#0f1525" stroke="#2a3a5c" stroke-width="1"/>
+      
+      <text x="240" y="815" fill="#00d4ff" font-size="12" font-weight="bold">Patterns detected:</text>
+      <text x="360" y="815" fill="#9aaac8" font-size="12">tracked per cluster</text>
+      <line x1="480" y1="790" x2="480" y2="830" stroke="#2a3a5c" stroke-width="1"/>
+
+      <text x="500" y="815" fill="#a855f7" font-size="12" font-weight="bold">Calibration accuracy:</text>
+      <text x="645" y="815" fill="#9aaac8" font-size="12">improving weekly</text>
+      <line x1="750" y1="790" x2="750" y2="830" stroke="#2a3a5c" stroke-width="1"/>
+
+      <text x="770" y="815" fill="#4a9eff" font-size="12" font-weight="bold">Coverage gaps:</text>
+      <text x="870" y="815" fill="#9aaac8" font-size="12">drive corpus growth</text>
+      <line x1="1000" y1="790" x2="1000" y2="830" stroke="#2a3a5c" stroke-width="1"/>
+
+      <text x="1020" y="815" fill="#00e5a0" font-size="12" font-weight="bold">Benchmark:</text>
+      <text x="1100" y="815" fill="#9aaac8" font-size="12">86.7% → improving</text>
+
+    </svg>
+  </div>
+</body>
+</html>

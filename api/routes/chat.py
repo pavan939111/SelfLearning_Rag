@@ -91,6 +91,36 @@ async def chat_endpoint(request: ChatRequest):
         # Step 3.5: Classify the query (always needed for classification query_type & freshness validation)
         state.classification = classifier.classify(state.query)
         
+        if getattr(state.classification, 'domain_rejected', False):
+            processing_time = int((time.time() - start_time) * 1000)
+            return ChatResponse(
+                session_id=request.session_id,
+                query=request.query,
+                answer=classifier.rejection_message(),
+                citations=[],
+                confidence=0.0,
+                confidence_lower=0.0,
+                confidence_upper=0.0,
+                has_gaps=False,
+                gap_acknowledgment="",
+                has_contradiction=False,
+                contradiction_note="",
+                output_format='prose',
+                cache_hit=False,
+                cycle_ran=False,
+                cycle_exit_reason="",
+                processing_time_ms=processing_time,
+                query_type='rejected',
+                chunks_used=0,
+                claim_provenance=[],
+                query_suggestions=[
+                    'How does pembrolizumab work?',
+                    'What are drug interactions with warfarin?',
+                    'What is CRISPR-Cas9 used for?',
+                ],
+                domain_rejected=True,
+            )
+        
         # Step 3.6: Proactive contradiction check via Neo4j
         contradicting_papers_count = 0
         try:

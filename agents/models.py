@@ -10,11 +10,13 @@ class QueryClassification(BaseModel):
     query_type: Literal[
         'simple_factual', 'multi_hop', 
         'comparative', 'temporal', 'exploratory'
-    ]
+    ] = 'simple_factual'
     main_topics: list[str] = []
     requires_recent: bool = False
     entities: list[str] = []
     topic_cluster: str = "default"
+    domain_rejected: bool = False
+    rejection_reason: str = ''
 
 class FilterConfig(BaseModel):
     must_conditions: list[dict] = []

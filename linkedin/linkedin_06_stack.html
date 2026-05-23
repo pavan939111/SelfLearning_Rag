@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 1200px;
+      height: 1200px;
+      background: #0a0e1a;
+      font-family: 'JetBrains Mono', monospace;
+      color: #e8eef8;
+      overflow: hidden;
+      position: relative;
+      padding: 60px 80px;
+    }
+    .header { margin-bottom: 60px; text-align: center; }
+    .title { font-family: system-ui, sans-serif; font-size: 56px; color: #ffffff; font-weight: 800; margin-bottom: 12px; }
+    .subtitle { font-size: 28px; color: #9aaac8; }
+    
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(2, 300px);
+      gap: 40px;
+      margin-top: 40px;
+    }
+    
+    .card {
+      background: #0f1525;
+      border: 2px solid #2a3a5c;
+      border-radius: 16px;
+      padding: 40px 30px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    /* Top Borders */
+    .card-cyan { border-top: 6px solid #00d4ff; }
+    .card-blue { border-top: 6px solid #4a9eff; }
+    .card-purple { border-top: 6px solid #a855f7; }
+    .card-orange { border-top: 6px solid #ff8c42; }
+    .card-green { border-top: 6px solid #00e5a0; }
+    .card-yellow { border-top: 6px solid #ffd60a; }
+    
+    /* Colors */
+    .c-cyan { color: #00d4ff; }
+    .c-blue { color: #4a9eff; }
+    .c-purple { color: #a855f7; }
+    .c-orange { color: #ff8c42; }
+    .c-green { color: #00e5a0; }
+    .c-yellow { color: #ffd60a; }
+
+    .card-icon {
+      font-size: 40px;
+      margin-bottom: 20px;
+    }
+    
+    .card-title {
+      font-size: 20px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 30px;
+    }
+    
+    .card-list {
+      list-style-type: none;
+    }
+    .card-list li {
+      font-size: 18px;
+      color: #9aaac8;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: flex-start;
+      line-height: 1.4;
+    }
+    .card-list li::before {
+      content: '•';
+      margin-right: 12px;
+      color: inherit;
+    }
+    
+    .cost-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      text-align: center;
+    }
+    .cost-value {
+      font-size: 80px;
+      font-weight: 800;
+      font-family: system-ui, sans-serif;
+      line-height: 1;
+      margin-bottom: 16px;
+    }
+    .cost-sub {
+      font-size: 18px;
+      color: #9aaac8;
+      line-height: 1.5;
+    }
+
+    .bottom-right { position: absolute; bottom: 40px; right: 40px; color: #6b7d9e; font-size: 18px; }
+    .bottom-bar { position: absolute; bottom: 0; left: 0; width: 100%; height: 6px; background: linear-gradient(90deg, #00d4ff, #00e5a0); }
+  </style>
+</head>
+<body>
+  
+  <div class="header">
+    <div class="title">Complete Tech Stack</div>
+    <div class="subtitle">Production architecture. Zero cost.</div>
+  </div>
+
+  <div class="grid">
+    <!-- Card 1 -->
+    <div class="card card-cyan">
+      <div class="card-icon">🤖</div>
+      <div class="card-title c-cyan">AI / LLM</div>
+      <ul class="card-list">
+        <li>Gemini 2.0 Flash</li>
+        <li>Gemini 2.0 Flash Thinking</li>
+        <li>S-PubMedBert (768d)</li>
+      </ul>
+    </div>
+    
+    <!-- Card 2 -->
+    <div class="card card-blue">
+      <div class="card-icon">🗄️</div>
+      <div class="card-title c-blue">Vector Store</div>
+      <ul class="card-list">
+        <li>Qdrant Cloud</li>
+        <li>4-level hierarchical index</li>
+        <li>Hybrid dense + sparse</li>
+        <li>22,600+ chunks indexed</li>
+      </ul>
+    </div>
+    
+    <!-- Card 3 -->
+    <div class="card card-purple">
+      <div class="card-icon">🏗️</div>
+      <div class="card-title c-purple">Data Layer</div>
+      <ul class="card-list">
+        <li>Supabase PostgreSQL</li>
+        <li>Neo4j AuraDB</li>
+        <li>Upstash Redis</li>
+        <li>13 Supabase tables</li>
+      </ul>
+    </div>
+    
+    <!-- Card 4 -->
+    <div class="card card-orange">
+      <div class="card-icon">⚙️</div>
+      <div class="card-title c-orange">Backend</div>
+      <ul class="card-list">
+        <li>FastAPI + Uvicorn</li>
+        <li>Celery (3 priority queues)</li>
+        <li>APScheduler (5 jobs)</li>
+        <li>SSE streaming</li>
+      </ul>
+    </div>
+    
+    <!-- Card 5 -->
+    <div class="card card-green">
+      <div class="card-icon">🎨</div>
+      <div class="card-title c-green">Frontend</div>
+      <ul class="card-list">
+        <li>Vite + React</li>
+        <li>Framer Motion</li>
+        <li>Recharts</li>
+        <li>3 pages: Chat, Transparency, Admin</li>
+      </ul>
+    </div>
+    
+    <!-- Card 6 -->
+    <div class="card card-yellow">
+      <div class="card-icon">💰</div>
+      <div class="card-title c-yellow">Infrastructure Cost</div>
+      <div class="cost-center">
+        <div class="cost-value c-yellow">₹0</div>
+        <div class="cost-sub">per month<br><br>All free tier<br>Scales to production</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-right">6 / 8</div>
+  <div class="bottom-bar"></div>
+</body>
+</html>

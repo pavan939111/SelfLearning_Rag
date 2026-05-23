@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background: #0a0e1a;
+      font-family: 'JetBrains Mono', monospace;
+      color: #e8eef8;
+      padding: 48px;
+    }
+    .header {
+      margin-bottom: 32px;
+    }
+    .title {
+      font-family: 'Syne', sans-serif;
+      font-size: 28px;
+      font-weight: 800;
+      color: #e8eef8;
+      letter-spacing: -0.5px;
+    }
+    .subtitle {
+      font-size: 12px;
+      color: #6b7d9e;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-top: 6px;
+    }
+    .svg-container {
+      width: 1400px;
+      background: #0a0e1a;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="title">FailureRAG — Nine Agent Architecture</div>
+    <div class="subtitle">Hot path · Repair cycle · Cold path</div>
+  </div>
+  
+  <div class="svg-container">
+    <svg width="1400" height="900" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <!-- Arrow markers -->
+        <marker id="arr-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#00e5a0"/>
+        </marker>
+        <marker id="arr-cyan" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#00d4ff"/>
+        </marker>
+        <marker id="arr-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#4a9eff"/>
+        </marker>
+        <marker id="arr-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#ff8c42"/>
+        </marker>
+        <marker id="arr-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#a855f7"/>
+        </marker>
+        <marker id="arr-yellow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#ffd60a"/>
+        </marker>
+        
+        <!-- Glow filters -->
+        <filter id="glow-cyan"><feGaussianBlur stdDeviation="3" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="glow-blue"><feGaussianBlur stdDeviation="3" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="glow-green"><feGaussianBlur stdDeviation="3" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="glow-orange"><feGaussianBlur stdDeviation="3" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="glow-yellow"><feGaussianBlur stdDeviation="3" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="glow-purple"><feGaussianBlur stdDeviation="3" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="glow-light-blue"><feGaussianBlur stdDeviation="3" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="glow-teal"><feGaussianBlur stdDeviation="3" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="glow-fuchsia"><feGaussianBlur stdDeviation="3" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        
+        <!-- Gradients -->
+        <linearGradient id="grad-cyan" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#003344"/><stop offset="100%" stop-color="#001122"/></linearGradient>
+        <linearGradient id="grad-blue" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#112244"/><stop offset="100%" stop-color="#000022"/></linearGradient>
+        <linearGradient id="grad-green" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#004422"/><stop offset="100%" stop-color="#002200"/></linearGradient>
+        <linearGradient id="grad-orange" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#442200"/><stop offset="100%" stop-color="#221100"/></linearGradient>
+        <linearGradient id="grad-yellow" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#444400"/><stop offset="100%" stop-color="#222200"/></linearGradient>
+        <linearGradient id="grad-purple" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#330044"/><stop offset="100%" stop-color="#110022"/></linearGradient>
+        <linearGradient id="grad-light-blue" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#113355"/><stop offset="100%" stop-color="#001122"/></linearGradient>
+        <linearGradient id="grad-teal" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#004433"/><stop offset="100%" stop-color="#002211"/></linearGradient>
+        <linearGradient id="grad-fuchsia" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#440044"/><stop offset="100%" stop-color="#220022"/></linearGradient>
+        <linearGradient id="grad-db" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0f1525"/><stop offset="100%" stop-color="#0a0e1a"/></linearGradient>
+      </defs>
+
+      <!-- SWIM LANES -->
+      <line x1="160" y1="300" x2="1150" y2="300" stroke="#2a3a5c" stroke-width="2" stroke-dasharray="5,5"/>
+      <line x1="160" y1="600" x2="1150" y2="600" stroke="#2a3a5c" stroke-width="2" stroke-dasharray="5,5"/>
+
+      <!-- Lane Labels -->
+      <text x="0" y="150" fill="#00d4ff" font-size="14" font-weight="bold" letter-spacing="1">⚡ HOT PATH</text>
+      <text x="0" y="450" fill="#ff8c42" font-size="14" font-weight="bold" letter-spacing="1">🔄 REPAIR CYCLE</text>
+      <text x="0" y="750" fill="#a855f7" font-size="14" font-weight="bold" letter-spacing="1">🌙 COLD PATH</text>
+
+      <!-- LANE 1: HOT PATH -->
+      
+      <!-- User (Circle) -->
+      <circle cx="200" cy="150" r="40" fill="url(#grad-green)" stroke="#00e5a0" stroke-width="2" filter="url(#glow-green)"/>
+      <text x="200" y="155" fill="#00e5a0" font-size="16" font-weight="bold" text-anchor="middle">USER</text>
+
+      <!-- Connection: User -> Redis -->
+      <path d="M 240,150 C 270,150 290,150 320,150" stroke="#00e5a0" stroke-width="2" fill="none" marker-end="url(#arr-green)"/>
+      <text x="280" y="140" fill="#9aaac8" font-size="12" text-anchor="middle">query + session_id</text>
+
+      <!-- Redis Cache (Cylinder) -->
+      <path d="M 320,130 Q 360,120 400,130 L 400,170 Q 360,180 320,170 Z" fill="url(#grad-cyan)" stroke="#00d4ff" stroke-width="2" filter="url(#glow-cyan)"/>
+      <path d="M 320,130 Q 360,140 400,130" fill="none" stroke="#00d4ff" stroke-width="2"/>
+      <text x="360" y="150" fill="#00d4ff" font-size="14" font-weight="bold" text-anchor="middle">REDIS</text>
+      <text x="360" y="165" fill="#9aaac8" font-size="10" text-anchor="middle">CACHE</text>
+
+      <!-- Connection: Redis -> Agent 7 (Hit) -->
+      <path d="M 400,130 C 450,50 850,50 920,110" stroke="#00d4ff" stroke-width="2" fill="none" stroke-dasharray="4,4" marker-end="url(#arr-cyan)"/>
+      <text x="660" y="60" fill="#00d4ff" font-size="12" font-weight="bold" text-anchor="middle">HIT</text>
+
+      <!-- Connection: Redis -> Agent 1 (Miss) -->
+      <path d="M 400,150 C 430,150 450,150 480,150" stroke="#00d4ff" stroke-width="2" fill="none" marker-end="url(#arr-cyan)"/>
+      <text x="440" y="140" fill="#9aaac8" font-size="12" text-anchor="middle">SimHash check (MISS)</text>
+
+      <!-- Agent 1 (Rounded Rect) -->
+      <rect x="480" y="110" width="160" height="80" rx="10" fill="url(#grad-blue)" stroke="#4a9eff" stroke-width="2" filter="url(#glow-blue)"/>
+      <text x="560" y="135" fill="#4a9eff" font-size="16" font-weight="bold" text-anchor="middle">Agent 1</text>
+      <text x="560" y="155" fill="#e8eef8" font-size="12" text-anchor="middle">Retrieval</text>
+      <text x="560" y="175" fill="#9aaac8" font-size="10" text-anchor="middle">Classify → Filter → Search</text>
+
+      <!-- Connection: Agent 1 -> Agent 2 -->
+      <path d="M 640,150 C 670,150 690,150 720,150" stroke="#4a9eff" stroke-width="2" fill="none" marker-end="url(#arr-blue)"/>
+      <text x="680" y="140" fill="#9aaac8" font-size="12" text-anchor="middle">top-5 chunks</text>
+
+      <!-- Agent 2 (Rounded Rect) -->
+      <rect x="720" y="110" width="160" height="80" rx="10" fill="url(#grad-cyan)" stroke="#00d4ff" stroke-width="2" filter="url(#glow-cyan)"/>
+      <text x="800" y="135" fill="#00d4ff" font-size="16" font-weight="bold" text-anchor="middle">Agent 2</text>
+      <text x="800" y="155" fill="#e8eef8" font-size="12" text-anchor="middle">Quality Gate</text>
+      <text x="800" y="175" fill="#9aaac8" font-size="10" text-anchor="middle">5 checks pre-generation</text>
+
+      <!-- Connection: Agent 2 -> Agent 7 (PASS) -->
+      <path d="M 880,150 C 900,150 910,150 930,150" stroke="#00e5a0" stroke-width="2" fill="none" marker-end="url(#arr-green)"/>
+      <text x="905" y="140" fill="#00e5a0" font-size="12" font-weight="bold" text-anchor="middle">PASS</text>
+
+      <!-- Agent 7 (Rounded Rect) -->
+      <rect x="930" y="110" width="160" height="80" rx="10" fill="url(#grad-green)" stroke="#00e5a0" stroke-width="2" filter="url(#glow-green)"/>
+      <text x="1010" y="135" fill="#00e5a0" font-size="16" font-weight="bold" text-anchor="middle">Agent 7</text>
+      <text x="1010" y="155" fill="#e8eef8" font-size="12" text-anchor="middle">Generator</text>
+      <text x="1010" y="175" fill="#9aaac8" font-size="10" text-anchor="middle">Structured output</text>
+
+      <!-- Connection: Agent 7 -> Response -->
+      <path d="M 1090,150 C 1120,150 1130,150 1160,150" stroke="#00e5a0" stroke-width="2" fill="none" marker-end="url(#arr-green)"/>
+
+      <!-- Response (Circle) -->
+      <circle cx="1200" cy="150" r="40" fill="url(#grad-green)" stroke="#00e5a0" stroke-width="2" filter="url(#glow-green)"/>
+      <text x="1200" y="155" fill="#00e5a0" font-size="12" font-weight="bold" text-anchor="middle">RESPONSE</text>
+
+
+      <!-- LANE 2: REPAIR CYCLE -->
+      
+      <!-- Connection: Agent 2 -> Agent 3 (FAIL) -->
+      <path d="M 800,190 C 800,320 560,320 560,410" stroke="#ff8c42" stroke-width="2" fill="none" marker-end="url(#arr-orange)"/>
+      <text x="680" y="270" fill="#ff8c42" font-size="12" font-weight="bold" text-anchor="middle">FAIL</text>
+
+      <!-- Agent 3 (Rounded Rect) -->
+      <rect x="480" y="410" width="160" height="80" rx="10" fill="url(#grad-yellow)" stroke="#ffd60a" stroke-width="2" filter="url(#glow-yellow)"/>
+      <text x="560" y="435" fill="#ffd60a" font-size="16" font-weight="bold" text-anchor="middle">Agent 3</text>
+      <text x="560" y="455" fill="#e8eef8" font-size="12" text-anchor="middle">Root Cause</text>
+      <text x="560" y="475" fill="#9aaac8" font-size="10" text-anchor="middle">5 diagnostic tests</text>
+
+      <!-- Connection: Agent 3 -> Decision -->
+      <path d="M 640,450 C 660,450 670,450 690,450" stroke="#ffd60a" stroke-width="2" fill="none" marker-end="url(#arr-yellow)"/>
+
+      <!-- Decision (Diamond) -->
+      <polygon points="730,410 770,450 730,490 690,450" fill="url(#grad-cyan)" stroke="#9aaac8" stroke-width="2"/>
+      <text x="730" y="455" fill="#e8eef8" font-size="12" text-anchor="middle">Class?</text>
+
+      <!-- Connection: Decision -> Agent 4A (Class C) -->
+      <path d="M 770,450 C 790,450 800,450 820,450" stroke="#ff8c42" stroke-width="2" fill="none" marker-end="url(#arr-orange)"/>
+      <text x="795" y="440" fill="#ff8c42" font-size="12" font-weight="bold" text-anchor="middle">C</text>
+
+      <!-- Agent 4A (Rounded Rect) -->
+      <rect x="820" y="410" width="160" height="80" rx="10" fill="url(#grad-orange)" stroke="#ff8c42" stroke-width="2" filter="url(#glow-orange)"/>
+      <text x="900" y="435" fill="#ff8c42" font-size="16" font-weight="bold" text-anchor="middle">Agent 4A</text>
+      <text x="900" y="455" fill="#e8eef8" font-size="12" text-anchor="middle">Gap Formulator</text>
+      <text x="900" y="475" fill="#9aaac8" font-size="10" text-anchor="middle">Sub-queries → Merge</text>
+
+      <!-- Connection: Decision -> Exit (Class A/B) -->
+      <path d="M 730,490 C 730,520 280,550 280,710" stroke="#ff8c42" stroke-width="2" stroke-dasharray="4,4" fill="none" marker-end="url(#arr-orange)"/>
+      <text x="745" y="520" fill="#ff8c42" font-size="12" font-weight="bold" text-anchor="middle">A/B</text>
+      <text x="500" y="550" fill="#ff8c42" font-size="12" text-anchor="middle">async · user not blocked</text>
+
+      <!-- Connection: Agent 4A -> Agent 1 (Re-retrieve) -->
+      <path d="M 900,410 C 900,250 560,250 560,190" stroke="#ff8c42" stroke-width="2" fill="none" marker-end="url(#arr-orange)"/>
+      <text x="730" y="270" fill="#ff8c42" font-size="12" text-anchor="middle">re-retrieve + merge</text>
+
+      <!-- Connection: Agent 4A -> Agent 2 (Re-evaluate) -->
+      <path d="M 980,450 C 1030,450 1030,250 880,180" stroke="#00d4ff" stroke-width="2" fill="none" marker-end="url(#arr-cyan)"/>
+      <text x="1040" y="320" fill="#00d4ff" font-size="12" text-anchor="middle">re-evaluate merged chunks</text>
+
+
+      <!-- LANE 3: COLD PATH -->
+
+      <!-- Agent 4B (Rounded Rect) -->
+      <rect x="200" y="710" width="160" height="80" rx="10" fill="url(#grad-purple)" stroke="#a855f7" stroke-width="2" filter="url(#glow-purple)"/>
+      <text x="280" y="735" fill="#a855f7" font-size="16" font-weight="bold" text-anchor="middle">Agent 4B</text>
+      <text x="280" y="755" fill="#e8eef8" font-size="12" text-anchor="middle">Corpus Repair</text>
+      <text x="280" y="775" fill="#9aaac8" font-size="10" text-anchor="middle">Rechunk → Validate</text>
+
+      <!-- Connection: 4B -> 5A -->
+      <path d="M 360,750 C 390,750 400,750 430,750" stroke="#a855f7" stroke-width="2" fill="none" marker-end="url(#arr-purple)"/>
+
+      <!-- Agent 5A (Rounded Rect) -->
+      <rect x="430" y="710" width="160" height="80" rx="10" fill="url(#grad-light-blue)" stroke="#60a5fa" stroke-width="2" filter="url(#glow-light-blue)"/>
+      <text x="510" y="735" fill="#60a5fa" font-size="16" font-weight="bold" text-anchor="middle">Agent 5A</text>
+      <text x="510" y="755" fill="#e8eef8" font-size="12" text-anchor="middle">Verifier</text>
+      <text x="510" y="775" fill="#9aaac8" font-size="10" text-anchor="middle">4 checks · Velocity</text>
+
+      <!-- Connection: 5A -> 5B -->
+      <path d="M 590,750 C 620,750 630,750 660,750" stroke="#60a5fa" stroke-width="2" fill="none" marker-end="url(#arr-cyan)"/>
+      <text x="625" y="740" fill="#60a5fa" font-size="10" text-anchor="middle">verified papers</text>
+
+      <!-- Agent 5B (Rounded Rect) -->
+      <rect x="660" y="710" width="160" height="80" rx="10" fill="url(#grad-teal)" stroke="#34d399" stroke-width="2" filter="url(#glow-teal)"/>
+      <text x="740" y="735" fill="#34d399" font-size="16" font-weight="bold" text-anchor="middle">Agent 5B</text>
+      <text x="740" y="755" fill="#e8eef8" font-size="12" text-anchor="middle">Ingestion</text>
+      <text x="740" y="775" fill="#9aaac8" font-size="10" text-anchor="middle">4-level chunker</text>
+
+      <!-- Connection: 5B -> 6 -->
+      <path d="M 820,750 C 850,750 860,750 890,750" stroke="#34d399" stroke-width="2" fill="none" marker-end="url(#arr-green)"/>
+
+      <!-- Agent 6 (Rounded Rect) -->
+      <rect x="890" y="710" width="160" height="80" rx="10" fill="url(#grad-fuchsia)" stroke="#e879f9" stroke-width="2" filter="url(#glow-fuchsia)"/>
+      <text x="970" y="735" fill="#e879f9" font-size="16" font-weight="bold" text-anchor="middle">Agent 6</text>
+      <text x="970" y="755" fill="#e8eef8" font-size="12" text-anchor="middle">Learning</text>
+      <text x="970" y="775" fill="#9aaac8" font-size="10" text-anchor="middle">Calibration · Gaps</text>
+
+      <!-- FEEDBACK ARROWS -->
+      <!-- 6 -> 2 -->
+      <path d="M 970,710 C 970,500 800,500 800,190" stroke="#e879f9" stroke-width="2" stroke-dasharray="4,4" fill="none" marker-end="url(#arr-purple)"/>
+      <text x="890" y="320" fill="#e879f9" font-size="12" text-anchor="middle">calibration curves</text>
+      
+      <!-- 6 -> Redis -->
+      <path d="M 1050,750 C 1300,750 1300,50 360,50 C 360,50 360,110 360,110" stroke="#e879f9" stroke-width="2" stroke-dasharray="4,4" fill="none" marker-end="url(#arr-purple)"/>
+      <text x="1200" y="400" fill="#e879f9" font-size="12" text-anchor="middle">dynamic TTL</text>
+
+
+      <!-- DATABASE COLUMN (Right side) -->
+      
+      <!-- Qdrant -->
+      <path d="M 1250,300 Q 1290,290 1330,300 L 1330,340 Q 1290,350 1250,340 Z" fill="url(#grad-db)" stroke="#00d4ff" stroke-dasharray="4,4" stroke-width="2"/>
+      <path d="M 1250,300 Q 1290,310 1330,300" fill="none" stroke="#00d4ff" stroke-dasharray="4,4" stroke-width="2"/>
+      <text x="1290" y="325" fill="#00d4ff" font-size="12" font-weight="bold" text-anchor="middle">Qdrant</text>
+      
+      <!-- Supabase -->
+      <path d="M 1250,400 Q 1290,390 1330,400 L 1330,440 Q 1290,450 1250,440 Z" fill="url(#grad-db)" stroke="#00e5a0" stroke-dasharray="4,4" stroke-width="2"/>
+      <path d="M 1250,400 Q 1290,410 1330,400" fill="none" stroke="#00e5a0" stroke-dasharray="4,4" stroke-width="2"/>
+      <text x="1290" y="425" fill="#00e5a0" font-size="12" font-weight="bold" text-anchor="middle">Supabase</text>
+      
+      <!-- Neo4j -->
+      <path d="M 1250,500 Q 1290,490 1330,500 L 1330,540 Q 1290,550 1250,540 Z" fill="url(#grad-db)" stroke="#4a9eff" stroke-dasharray="4,4" stroke-width="2"/>
+      <path d="M 1250,500 Q 1290,510 1330,500" fill="none" stroke="#4a9eff" stroke-dasharray="4,4" stroke-width="2"/>
+      <text x="1290" y="525" fill="#4a9eff" font-size="12" font-weight="bold" text-anchor="middle">Neo4j</text>
+      
+      <!-- Redis -->
+      <path d="M 1250,600 Q 1290,590 1330,600 L 1330,640 Q 1290,650 1250,640 Z" fill="url(#grad-db)" stroke="#ff8c42" stroke-dasharray="4,4" stroke-width="2"/>
+      <path d="M 1250,600 Q 1290,610 1330,600" fill="none" stroke="#ff8c42" stroke-dasharray="4,4" stroke-width="2"/>
+      <text x="1290" y="625" fill="#ff8c42" font-size="12" font-weight="bold" text-anchor="middle">Redis</text>
+      
+      <!-- DB connections -->
+      <path d="M 640,110 C 640,320 1250,320 1250,320" stroke="#00d4ff" stroke-dasharray="2,4" stroke-width="1.5" fill="none"/>
+      <path d="M 820,710 C 820,420 1250,420 1250,420" stroke="#00e5a0" stroke-dasharray="2,4" stroke-width="1.5" fill="none"/>
+
+    </svg>
+  </div>
+</body>
+</html>

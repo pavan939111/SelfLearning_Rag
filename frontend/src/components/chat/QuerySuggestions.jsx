@@ -1,6 +1,6 @@
 import React from 'react';
 
-const QuerySuggestions = ({ suggestions, onSelect }) => {
+const QuerySuggestions = ({ suggestions, onSelect, label = "You might also want to ask:" }) => {
   if (!suggestions || suggestions.length === 0) {
     return null;
   }
@@ -18,7 +18,7 @@ const QuerySuggestions = ({ suggestions, onSelect }) => {
         letterSpacing: '1px',
         marginBottom: '8px'
       }}>
-        You might also want to ask:
+        {label}
       </div>
       <div style={{
         display: 'flex',

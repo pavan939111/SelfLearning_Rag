@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 1200px;
+      height: 1200px;
+      background: #0a0e1a;
+      font-family: 'JetBrains Mono', monospace;
+      color: #e8eef8;
+      overflow: hidden;
+      position: relative;
+      padding: 60px 80px;
+    }
+    .header { margin-bottom: 50px; }
+    .title { font-family: system-ui, sans-serif; font-size: 56px; color: #ffffff; font-weight: 800; margin-bottom: 12px; }
+    .subtitle { font-size: 28px; color: #ff8c42; font-weight: 600; }
+    
+    .flow-container {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      padding-left: 40px;
+    }
+    
+    .stage {
+      display: flex;
+      align-items: center;
+      margin-bottom: 40px;
+      position: relative;
+    }
+    
+    .box {
+      background: #0f1525;
+      padding: 24px 32px;
+      border-radius: 12px;
+      width: 500px;
+      position: relative;
+      z-index: 2;
+    }
+    .box-cyan { border: 2px solid #00d4ff; box-shadow: 0 0 20px rgba(0,212,255,0.1); }
+    .box-yellow { border: 2px solid #ffd60a; box-shadow: 0 0 20px rgba(255,214,10,0.1); }
+    .box-orange { border: 2px solid #ff8c42; box-shadow: 0 0 20px rgba(255,140,66,0.1); }
+    
+    .box-title { font-size: 24px; font-weight: 700; margin-bottom: 16px; }
+    .title-cyan { color: #00d4ff; }
+    .title-yellow { color: #ffd60a; }
+    .title-orange { color: #ff8c42; }
+    
+    .list-item { font-size: 18px; color: #e8eef8; margin-bottom: 10px; display: flex; align-items: center; }
+    .list-icon { margin-right: 12px; color: #9aaac8; }
+    
+    .annotation {
+      margin-left: 60px;
+      font-size: 20px;
+      color: #9aaac8;
+      max-width: 300px;
+      line-height: 1.5;
+      border-left: 3px solid #2a3a5c;
+      padding-left: 20px;
+    }
+    
+    .arrow-down {
+      position: absolute;
+      left: 250px; /* Center of the box */
+      top: 100%;
+      height: 40px;
+      width: 2px;
+      background: #2a3a5c;
+      z-index: 1;
+    }
+    .arrow-down::after {
+      content: '▼';
+      position: absolute;
+      bottom: -15px;
+      left: -8px;
+      color: #2a3a5c;
+      font-size: 18px;
+    }
+    .arrow-label {
+      position: absolute;
+      left: 20px;
+      top: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .label-fail { color: #ff4d6d; }
+    .label-class-c { color: #4a9eff; }
+    .label-merge { color: #00e5a0; }
+
+    .split-arrow {
+      position: absolute;
+      left: 500px;
+      top: 50%;
+      width: 60px;
+      height: 2px;
+      background: #2a3a5c;
+    }
+    .split-arrow::after {
+      content: '▶';
+      position: absolute;
+      right: -15px;
+      top: -10px;
+      color: #2a3a5c;
+      font-size: 18px;
+    }
+
+    .small-box {
+      position: absolute;
+      left: 580px;
+      top: 20%;
+      background: #1a1525;
+      border: 2px solid #ff4d6d;
+      padding: 16px 20px;
+      border-radius: 8px;
+      font-size: 16px;
+      color: #ff4d6d;
+      font-weight: 600;
+    }
+
+    .bottom-right { position: absolute; bottom: 40px; right: 40px; color: #6b7d9e; font-size: 18px; }
+    .bottom-bar { position: absolute; bottom: 0; left: 0; width: 100%; height: 6px; background: linear-gradient(90deg, #00d4ff, #00e5a0); }
+  </style>
+</head>
+<body>
+  
+  <div class="header">
+    <div class="title">The Repair Cycle</div>
+    <div class="subtitle">A2 → A3 → A4A — Core Intelligence Loop</div>
+  </div>
+
+  <div class="flow-container">
+    
+    <!-- Stage 1 -->
+    <div class="stage">
+      <div class="box box-cyan">
+        <div class="box-title title-cyan">Agent 2 — Quality Gate</div>
+        <div class="list-item"><span class="list-icon">①</span> Retrieval Relevance</div>
+        <div class="list-item" style="color: #ff4d6d; font-weight: 600;"><span class="list-icon">②</span> Completeness Grounding ← FAIL triggers cycle</div>
+        <div class="list-item"><span class="list-icon">③</span> Freshness</div>
+        <div class="list-item"><span class="list-icon">④</span> Calibration</div>
+        <div class="list-item"><span class="list-icon">⑤</span> Contradiction Check</div>
+      </div>
+      <div class="annotation">
+        All checks run BEFORE any generation
+      </div>
+      <div class="arrow-down">
+        <div class="arrow-label label-fail">FAIL</div>
+      </div>
+    </div>
+
+    <!-- Stage 2 -->
+    <div class="stage">
+      <div class="box box-yellow">
+        <div class="box-title title-yellow">Agent 3 — Root Cause Classifier</div>
+        <div class="list-item" style="color: #9aaac8; margin-bottom: 20px;">5 Diagnostic Tests</div>
+        <div class="list-item"><span style="color: #ff4d6d; font-weight: 700; width: 30px;">→</span> Existence test</div>
+        <div class="list-item"><span style="color: #ff4d6d; font-weight: 700; width: 30px;">→</span> Chunking boundary test</div>
+        <div class="list-item"><span style="color: #ff4d6d; font-weight: 700; width: 30px;">→</span> Embedding space test</div>
+        <div class="list-item"><span style="color: #ff4d6d; font-weight: 700; width: 30px;">→</span> Query processing test</div>
+        <div class="list-item"><span style="color: #ff4d6d; font-weight: 700; width: 30px;">→</span> Metadata filter test</div>
+      </div>
+      
+      <div class="split-arrow">
+        <div style="position: absolute; top: -25px; left: 10px; color: #9aaac8; font-size: 14px;">Class A/B</div>
+      </div>
+      <div class="small-box">
+        Queue Agent 4B<br>Exit immediately
+      </div>
+
+      <div class="arrow-down" style="height: 50px;">
+        <div class="arrow-label label-class-c" style="left: 20px; top: 15px;">Class C — Query Problem</div>
+      </div>
+    </div>
+
+    <!-- Stage 3 -->
+    <div class="stage" style="margin-top: 10px;">
+      <div class="box box-orange">
+        <div class="box-title title-orange">Agent 4A — Gap Formulator</div>
+        <div class="list-item"><span class="list-icon">•</span> Gap analysis</div>
+        <div class="list-item"><span class="list-icon">•</span> Coverage mapping</div>
+        <div class="list-item"><span class="list-icon">•</span> Targeted sub-queries</div>
+        <div class="list-item"><span class="list-icon">•</span> Strategy selection</div>
+      </div>
+      <div class="annotation">
+        Max 2 iterations<br><br>User never blocks
+      </div>
+      <div class="arrow-down">
+        <div class="arrow-label label-merge">Re-retrieve + MERGE</div>
+      </div>
+    </div>
+
+    <!-- Stage 4 -->
+    <div class="stage">
+      <div class="box box-cyan">
+        <div class="box-title title-cyan">Agent 2 — Re-evaluate merged chunks</div>
+        <div style="display: flex; gap: 40px; margin-top: 20px;">
+          <div style="color: #00e5a0; font-weight: 700; font-size: 18px;">PASS → Agent 7 generates</div>
+          <div style="color: #ffd60a; font-weight: 700; font-size: 18px;">FAIL (2nd) → Agent 7 with honest flag</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="bottom-right">4 / 8</div>
+  <div class="bottom-bar"></div>
+</body>
+</html>

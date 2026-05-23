@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background: #0a0e1a;
+      font-family: 'JetBrains Mono', monospace;
+      color: #e8eef8;
+      padding: 48px;
+    }
+    .header { margin-bottom: 32px; }
+    .title { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; color: #e8eef8; letter-spacing: -0.5px; }
+    .subtitle { font-size: 12px; color: #6b7d9e; letter-spacing: 2px; text-transform: uppercase; margin-top: 6px; }
+    .svg-container { width: 1400px; background: #0a0e1a; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="title">Agent 1 — Agentic Retrieval System</div>
+    <div class="subtitle">5 strategies · Hybrid search · RRF · MMR</div>
+  </div>
+  
+  <div class="svg-container">
+    <svg width="1400" height="800" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <!-- Arrow markers -->
+        <marker id="arr-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#4a9eff"/></marker>
+        <marker id="arr-cyan" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#00d4ff"/></marker>
+        <marker id="arr-yellow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#ffd60a"/></marker>
+        <marker id="arr-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#ff8c42"/></marker>
+        <marker id="arr-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#a855f7"/></marker>
+        <marker id="arr-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#00e5a0"/></marker>
+        
+        <!-- Glow filters -->
+        <filter id="glow-blue"><feGaussianBlur stdDeviation="3" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="glow-cyan"><feGaussianBlur stdDeviation="3" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="glow-yellow"><feGaussianBlur stdDeviation="3" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="glow-orange"><feGaussianBlur stdDeviation="3" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="glow-purple"><feGaussianBlur stdDeviation="3" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        
+        <!-- Gradients -->
+        <linearGradient id="grad-node" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#112233"/><stop offset="100%" stop-color="#0a1122"/></linearGradient>
+      </defs>
+
+      <!-- LEFT COLUMN -->
+      <circle cx="200" cy="80" r="40" fill="url(#grad-node)" stroke="#00e5a0" stroke-width="2"/>
+      <text x="200" y="85" fill="#00e5a0" font-size="12" font-weight="bold" text-anchor="middle">QUERY</text>
+      
+      <path d="M 200,120 C 200,150 200,160 200,180" stroke="#00e5a0" stroke-width="2" fill="none" marker-end="url(#arr-green)"/>
+      
+      <rect x="120" y="180" width="160" height="80" rx="10" fill="url(#grad-node)" stroke="#4a9eff" stroke-width="2" filter="url(#glow-blue)"/>
+      <text x="200" y="215" fill="#4a9eff" font-size="14" font-weight="bold" text-anchor="middle">CLASSIFIER</text>
+      <text x="200" y="235" fill="#9aaac8" font-size="10" text-anchor="middle">Gemini Flash</text>
+
+      <rect x="120" y="450" width="160" height="80" rx="10" fill="url(#grad-node)" stroke="#9aaac8" stroke-width="2"/>
+      <text x="200" y="480" fill="#e8eef8" font-size="12" font-weight="bold" text-anchor="middle">METADATA FILTER</text>
+      <text x="200" y="500" fill="#9aaac8" font-size="10" text-anchor="middle">Year · Cluster · Contradiction</text>
+      
+      <path d="M 200,260 C 200,350 200,350 200,450" stroke="#4a9eff" stroke-width="2" fill="none" marker-end="url(#arr-blue)"/>
+      
+      <!-- BRANCHES TO CENTER -->
+      <path d="M 280,200 C 350,200 400,100 500,100" stroke="#4a9eff" stroke-width="2" fill="none" marker-end="url(#arr-blue)"/>
+      <text x="360" y="140" fill="#4a9eff" font-size="10" text-anchor="middle">simple_factual</text>
+      
+      <path d="M 280,210 C 350,210 400,200 500,200" stroke="#00d4ff" stroke-width="2" fill="none" marker-end="url(#arr-cyan)"/>
+      <text x="360" y="200" fill="#00d4ff" font-size="10" text-anchor="middle">multi_hop</text>
+      
+      <path d="M 280,220 C 350,220 400,300 500,300" stroke="#ffd60a" stroke-width="2" fill="none" marker-end="url(#arr-yellow)"/>
+      <text x="360" y="270" fill="#ffd60a" font-size="10" text-anchor="middle">comparative</text>
+      
+      <path d="M 280,230 C 350,230 400,400 500,400" stroke="#ff8c42" stroke-width="2" fill="none" marker-end="url(#arr-orange)"/>
+      <text x="360" y="340" fill="#ff8c42" font-size="10" text-anchor="middle">temporal</text>
+      
+      <path d="M 280,240 C 350,240 400,500 500,500" stroke="#a855f7" stroke-width="2" fill="none" marker-end="url(#arr-purple)"/>
+      <text x="360" y="400" fill="#a855f7" font-size="10" text-anchor="middle">exploratory</text>
+
+      <!-- CENTER COLUMN: STRATEGIES -->
+      <rect x="500" y="70" width="180" height="60" rx="8" fill="url(#grad-node)" stroke="#4a9eff" stroke-width="2" filter="url(#glow-blue)"/>
+      <text x="590" y="95" fill="#4a9eff" font-size="12" font-weight="bold" text-anchor="middle">Single Shot Hybrid</text>
+      <text x="590" y="115" fill="#9aaac8" font-size="10" text-anchor="middle">Searches Semantic L3A</text>
+      
+      <rect x="500" y="170" width="180" height="60" rx="8" fill="url(#grad-node)" stroke="#00d4ff" stroke-width="2" filter="url(#glow-cyan)"/>
+      <text x="590" y="195" fill="#00d4ff" font-size="12" font-weight="bold" text-anchor="middle">Iterative Decomposed</text>
+      <text x="590" y="215" fill="#9aaac8" font-size="10" text-anchor="middle">Searches Proposition L3B</text>
+
+      <rect x="500" y="270" width="180" height="60" rx="8" fill="url(#grad-node)" stroke="#ffd60a" stroke-width="2" filter="url(#glow-yellow)"/>
+      <text x="590" y="295" fill="#ffd60a" font-size="12" font-weight="bold" text-anchor="middle">Parallel Comparative</text>
+      <text x="590" y="315" fill="#9aaac8" font-size="10" text-anchor="middle">Searches Section L2</text>
+      
+      <rect x="500" y="370" width="180" height="60" rx="8" fill="url(#grad-node)" stroke="#ff8c42" stroke-width="2" filter="url(#glow-orange)"/>
+      <text x="590" y="395" fill="#ff8c42" font-size="12" font-weight="bold" text-anchor="middle">Freshness Priority</text>
+      <text x="590" y="415" fill="#9aaac8" font-size="10" text-anchor="middle">Searches Document L1</text>
+      
+      <rect x="500" y="470" width="180" height="60" rx="8" fill="url(#grad-node)" stroke="#a855f7" stroke-width="2" filter="url(#glow-purple)"/>
+      <text x="590" y="495" fill="#a855f7" font-size="12" font-weight="bold" text-anchor="middle">Broad Then Deep</text>
+      <text x="590" y="515" fill="#9aaac8" font-size="10" text-anchor="middle">Searches All Levels</text>
+
+      <!-- Merge downwards to search types -->
+      <path d="M 680,100 C 720,100 750,250 800,280" stroke="#4a9eff" stroke-width="1.5" fill="none"/>
+      <path d="M 680,200 C 720,200 750,260 800,280" stroke="#00d4ff" stroke-width="1.5" fill="none"/>
+      <path d="M 680,300 C 720,300 750,290 800,280" stroke="#ffd60a" stroke-width="1.5" fill="none"/>
+      <path d="M 680,400 C 720,400 750,300 800,280" stroke="#ff8c42" stroke-width="1.5" fill="none"/>
+      <path d="M 680,500 C 720,500 750,310 800,280" stroke="#a855f7" stroke-width="1.5" fill="none"/>
+
+      <!-- DENSE & SPARSE SEARCH -->
+      <rect x="800" y="240" width="140" height="80" rx="6" fill="url(#grad-node)" stroke="#4a9eff" stroke-width="2"/>
+      <text x="870" y="265" fill="#e8eef8" font-size="12" font-weight="bold" text-anchor="middle">DENSE SEARCH</text>
+      <text x="870" y="285" fill="#9aaac8" font-size="10" text-anchor="middle">S-PubMedBert 768d</text>
+      <text x="870" y="305" fill="#9aaac8" font-size="10" text-anchor="middle">Qdrant semantic</text>
+      
+      <rect x="960" y="240" width="140" height="80" rx="6" fill="url(#grad-node)" stroke="#00d4ff" stroke-width="2"/>
+      <text x="1030" y="265" fill="#e8eef8" font-size="12" font-weight="bold" text-anchor="middle">SPARSE SEARCH</text>
+      <text x="1030" y="285" fill="#9aaac8" font-size="10" text-anchor="middle">BM25 keyword</text>
+      <text x="1030" y="305" fill="#9aaac8" font-size="10" text-anchor="middle">Qdrant sparse</text>
+
+      <!-- FUSION & RERANK -->
+      <path d="M 870,320 L 870,360 L 1030,360 L 1030,320" stroke="#9aaac8" stroke-width="2" fill="none"/>
+      <path d="M 950,360 C 950,380 950,380 950,400" stroke="#9aaac8" stroke-width="2" fill="none" marker-end="url(#arr-cyan)"/>
+      
+      <rect x="870" y="400" width="160" height="60" rx="6" fill="url(#grad-node)" stroke="#e8eef8" stroke-width="2"/>
+      <text x="950" y="425" fill="#e8eef8" font-size="12" font-weight="bold" text-anchor="middle">RRF FUSION</text>
+      <text x="950" y="445" fill="#9aaac8" font-size="10" text-anchor="middle">Combines scores</text>
+      
+      <path d="M 950,460 C 950,480 950,480 950,500" stroke="#9aaac8" stroke-width="2" fill="none" marker-end="url(#arr-cyan)"/>
+      
+      <rect x="870" y="500" width="160" height="60" rx="6" fill="url(#grad-node)" stroke="#e8eef8" stroke-width="2"/>
+      <text x="950" y="525" fill="#e8eef8" font-size="12" font-weight="bold" text-anchor="middle">MMR RERANKING</text>
+      <text x="950" y="545" fill="#9aaac8" font-size="10" text-anchor="middle">Diversity + relevance</text>
+      
+      <path d="M 950,560 C 950,580 950,580 950,600" stroke="#9aaac8" stroke-width="2" fill="none" marker-end="url(#arr-cyan)"/>
+      
+      <rect x="870" y="600" width="160" height="50" rx="25" fill="url(#grad-node)" stroke="#00e5a0" stroke-width="2" filter="url(#glow-green)"/>
+      <text x="950" y="628" fill="#00e5a0" font-size="14" font-weight="bold" text-anchor="middle">TOP-5 CHUNKS</text>
+
+      <!-- RIGHT COLUMN: CORPUS LEVELS -->
+      <path d="M 1250,90 Q 1300,80 1350,90 L 1350,130 Q 1300,140 1250,130 Z" fill="url(#grad-node)" stroke="#00d4ff" stroke-width="2" stroke-dasharray="4,4"/>
+      <path d="M 1250,90 Q 1300,100 1350,90" fill="none" stroke="#00d4ff" stroke-width="2" stroke-dasharray="4,4"/>
+      <text x="1300" y="115" fill="#00d4ff" font-size="12" font-weight="bold" text-anchor="middle">Qdrant Cloud</text>
+      
+      <text x="1150" y="180" fill="#e8eef8" font-size="12">L1: Document</text>
+      <rect x="1150" y="190" width="200" height="15" fill="#ff8c42"/>
+      <text x="1360" y="202" fill="#9aaac8" font-size="10">1,500 points</text>
+      
+      <text x="1150" y="240" fill="#e8eef8" font-size="12">L2: Section</text>
+      <rect x="1150" y="250" width="150" height="15" fill="#ffd60a"/>
+      <rect x="1300" y="250" width="50" height="15" fill="#333333"/>
+      <text x="1360" y="262" fill="#9aaac8" font-size="10">4,700 points</text>
+      
+      <text x="1150" y="300" fill="#e8eef8" font-size="12">L3A: Semantic</text>
+      <rect x="1150" y="310" width="80" height="15" fill="#4a9eff"/>
+      <rect x="1230" y="310" width="120" height="15" fill="#333333"/>
+      <text x="1360" y="322" fill="#9aaac8" font-size="10">10,900 points</text>
+      
+      <text x="1150" y="360" fill="#e8eef8" font-size="12">L3B: Proposition</text>
+      <rect x="1150" y="370" width="40" height="15" fill="#00d4ff"/>
+      <rect x="1190" y="370" width="160" height="15" fill="#333333"/>
+      <text x="1360" y="382" fill="#9aaac8" font-size="10">5,500 points</text>
+      
+      <path d="M 1250,140 C 1250,160 1250,160 1250,170" stroke="#00d4ff" stroke-width="1.5" fill="none"/>
+
+      <!-- BOTTOM: SYNONYM EXPANSION -->
+      <rect x="120" y="580" width="300" height="100" rx="8" fill="url(#grad-node)" stroke="#e8eef8" stroke-width="2"/>
+      <text x="270" y="605" fill="#e8eef8" font-size="12" font-weight="bold" text-anchor="middle">Query Expansion</text>
+      <text x="140" y="630" fill="#9aaac8" font-size="10">"pembrolizumab" → ["keytruda", "anti-PD-1"]</text>
+      <text x="140" y="650" fill="#9aaac8" font-size="10">"NSCLC" → ["non-small cell lung cancer"]</text>
+      
+      <path d="M 420,630 C 500,630 600,630 750,280" stroke="#e8eef8" stroke-width="1.5" stroke-dasharray="4,4" fill="none"/>
+
+      <!-- BOTTOM RIGHT: GRAPH EXPANSION -->
+      <rect x="1150" y="500" width="200" height="100" rx="8" fill="url(#grad-node)" stroke="#4a9eff" stroke-width="2"/>
+      <text x="1250" y="525" fill="#4a9eff" font-size="12" font-weight="bold" text-anchor="middle">Neo4j GRAPH EXPANSION</text>
+      <text x="1250" y="550" fill="#9aaac8" font-size="10" text-anchor="middle">"Citation neighbors"</text>
+      <text x="1250" y="565" fill="#9aaac8" font-size="10" text-anchor="middle">"Contradiction neighbors"</text>
+      <text x="1250" y="580" fill="#9aaac8" font-size="10" text-anchor="middle">Score penalty: 0.85×</text>
+      
+      <path d="M 1150,550 C 1100,550 1100,620 1030,620" stroke="#4a9eff" stroke-width="2" fill="none" marker-end="url(#arr-blue)"/>
+      <text x="1080" y="615" fill="#4a9eff" font-size="10" text-anchor="middle">augment</text>
+
+    </svg>
+  </div>
+</body>
+</html>

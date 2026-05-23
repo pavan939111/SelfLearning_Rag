@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 1200px;
+      height: 1200px;
+      background: #0a0e1a;
+      font-family: 'JetBrains Mono', monospace;
+      color: #e8eef8;
+      overflow: hidden;
+      position: relative;
+      padding: 60px 80px;
+      display: flex;
+      flex-direction: column;
+    }
+    .header { margin-bottom: 50px; }
+    .title { font-family: system-ui, sans-serif; font-size: 56px; color: #ffffff; font-weight: 800; margin-bottom: 12px; }
+    .subtitle { font-size: 28px; color: #9aaac8; }
+    
+    .metrics-row {
+      display: flex;
+      gap: 30px;
+      margin-bottom: 60px;
+    }
+    .metric-card {
+      flex: 1;
+      background: #0f1525;
+      border: 1px solid #2a3a5c;
+      border-radius: 16px;
+      padding: 40px 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+    }
+    
+    .c-green { color: #00e5a0; }
+    .c-cyan { color: #00d4ff; }
+    .c-yellow { color: #ffd60a; }
+    .c-grey { color: #9aaac8; }
+    
+    .metric-value {
+      font-family: system-ui, sans-serif;
+      font-size: 64px;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 20px;
+    }
+    .metric-label { font-size: 20px; font-weight: 700; color: #e8eef8; margin-bottom: 10px; }
+    .metric-sub { font-size: 16px; color: #6b7d9e; }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 60px;
+    }
+    th, td {
+      padding: 24px;
+      text-align: left;
+      border: 1px solid #2a3a5c;
+      font-size: 20px;
+    }
+    th {
+      background: #0f1525;
+      color: #00d4ff;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    tr:nth-child(even) { background: rgba(15,21,37,0.5); }
+    tr:nth-child(odd) { background: transparent; }
+    td:first-child { color: #e8eef8; font-weight: 600; }
+    td:nth-child(2) { color: #ff8c42; font-weight: 700; width: 150px; text-align: center; }
+    td:last-child { color: #9aaac8; }
+    
+    .progress-section {
+      background: rgba(0,229,160,0.05);
+      border-left: 6px solid #00e5a0;
+      padding: 30px 40px;
+      border-radius: 0 12px 12px 0;
+    }
+    .progress-text {
+      font-size: 24px;
+      color: #ffffff;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+    .progress-text span { color: #00e5a0; font-weight: 700; }
+    
+    .progress-bar-container {
+      width: 100%;
+      height: 12px;
+      background: #1a2235;
+      border-radius: 6px;
+      position: relative;
+    }
+    .progress-bar-fill {
+      width: 86.7%;
+      height: 100%;
+      background: linear-gradient(90deg, #00d4ff, #00e5a0);
+      border-radius: 6px;
+      position: relative;
+    }
+    .progress-dot {
+      position: absolute;
+      right: -8px;
+      top: -6px;
+      width: 24px;
+      height: 24px;
+      background: #00e5a0;
+      border-radius: 50%;
+      border: 4px solid #0a0e1a;
+      box-shadow: 0 0 15px #00e5a0;
+    }
+    .progress-label {
+      position: absolute;
+      right: -20px;
+      top: 30px;
+      color: #00e5a0;
+      font-weight: 700;
+      font-size: 18px;
+    }
+    .progress-arrow {
+      position: absolute;
+      right: -150px;
+      top: -10px;
+      color: #9aaac8;
+      font-size: 18px;
+      font-style: italic;
+    }
+
+    .bottom-right { position: absolute; bottom: 40px; right: 40px; color: #6b7d9e; font-size: 18px; }
+    .bottom-bar { position: absolute; bottom: 0; left: 0; width: 100%; height: 6px; background: linear-gradient(90deg, #00d4ff, #00e5a0); }
+  </style>
+</head>
+<body>
+  
+  <div class="header">
+    <div class="title">Evaluation Results</div>
+    <div class="subtitle">50 QA pairs across 5 question types</div>
+  </div>
+
+  <div class="metrics-row">
+    <div class="metric-card" style="box-shadow: 0 0 20px rgba(0,229,160,0.1);">
+      <div class="metric-value c-green">86.7%</div>
+      <div class="metric-label">Pass Rate</div>
+      <div class="metric-sub">50 QA benchmark</div>
+    </div>
+    <div class="metric-card" style="box-shadow: 0 0 20px rgba(0,212,255,0.1);">
+      <div class="metric-value c-cyan">0.67</div>
+      <div class="metric-label">Avg Confidence</div>
+      <div class="metric-sub">Calibrated score</div>
+    </div>
+    <div class="metric-card" style="box-shadow: 0 0 20px rgba(255,214,10,0.1);">
+      <div class="metric-value c-yellow">3.4×</div>
+      <div class="metric-label">Cache Speedup</div>
+      <div class="metric-sub">On repeat queries</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-value c-grey">12.5s</div>
+      <div class="metric-label">Avg Response</div>
+      <div class="metric-sub">Including repair</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Question Type</th>
+        <th>Count</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>factual_recall</td>
+        <td>10</td>
+        <td>Specific fact lookup</td>
+      </tr>
+      <tr>
+        <td>multi_hop</td>
+        <td>10</td>
+        <td>Connected concepts</td>
+      </tr>
+      <tr>
+        <td>comparative</td>
+        <td>10</td>
+        <td>Side-by-side analysis</td>
+      </tr>
+      <tr>
+        <td>temporal</td>
+        <td>10</td>
+        <td>Current knowledge</td>
+      </tr>
+      <tr>
+        <td>adversarial</td>
+        <td>10</td>
+        <td>Known failure modes</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="progress-section">
+    <div class="progress-text">
+      Weekly automated benchmark tracks improvement.<br>
+      <span>86.7% baseline</span> → designed to improve weekly.<br>
+      <span style="color: #9aaac8; font-weight: normal; font-size: 18px;">Agent 6 learning drives the trend.</span>
+    </div>
+    <div class="progress-bar-container">
+      <div class="progress-bar-fill">
+        <div class="progress-dot"></div>
+        <div class="progress-label">86.7%</div>
+        <div class="progress-arrow">→ improving</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-right">7 / 8</div>
+  <div class="bottom-bar"></div>
+</body>
+</html>

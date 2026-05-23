@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 1200px;
+      height: 1200px;
+      background: radial-gradient(circle at center, #111827 0%, #0a0e1a 100%);
+      font-family: 'JetBrains Mono', monospace;
+      color: #e8eef8;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 80px;
+    }
+    
+    /* Subtle hex background */
+    .bg-pattern {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-image: 
+        radial-gradient(#1e293b 1px, transparent 1px),
+        radial-gradient(#1e293b 1px, transparent 1px);
+      background-size: 40px 40px;
+      background-position: 0 0, 20px 20px;
+      opacity: 0.3;
+      z-index: 0;
+    }
+    
+    .content-wrapper {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .top-logo {
+      text-align: center;
+      margin-bottom: 80px;
+    }
+    .logo-text {
+      font-family: system-ui, sans-serif;
+      font-size: 48px;
+      font-weight: 800;
+      color: #00d4ff;
+      margin-bottom: 8px;
+    }
+    .logo-sub {
+      font-size: 20px;
+      color: #9aaac8;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .main-title {
+      font-family: system-ui, sans-serif;
+      font-size: 96px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 16px;
+    }
+    .main-sub {
+      font-size: 28px;
+      color: #9aaac8;
+      text-align: center;
+      line-height: 1.5;
+      margin-bottom: 60px;
+    }
+
+    .github-box {
+      background: rgba(0,212,255,0.05);
+      border: 2px solid rgba(0,212,255,0.3);
+      border-radius: 16px;
+      padding: 30px 60px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 60px;
+      box-shadow: 0 0 30px rgba(0,212,255,0.15);
+    }
+    .github-icon { font-size: 40px; }
+    .github-link {
+      font-size: 28px;
+      font-weight: 700;
+      color: #00d4ff;
+    }
+
+    .divider {
+      width: 100px;
+      height: 4px;
+      background: #2a3a5c;
+      margin-bottom: 60px;
+      border-radius: 2px;
+    }
+
+    .whats-inside {
+      width: 100%;
+      max-width: 800px;
+      margin-bottom: auto;
+    }
+    .inside-title {
+      font-size: 24px;
+      color: #ffffff;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+    .grid-2x2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+    }
+    .grid-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 20px;
+      color: #e8eef8;
+      background: rgba(15,21,37,0.5);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid #2a3a5c;
+    }
+    .check { color: #00e5a0; font-weight: 700; font-size: 24px; }
+
+    .connect-box {
+      background: rgba(168,85,247,0.08);
+      border: 2px solid rgba(168,85,247,0.3);
+      border-radius: 16px;
+      padding: 30px 40px;
+      text-align: center;
+      width: 100%;
+      max-width: 800px;
+      margin-bottom: 40px;
+      box-shadow: 0 0 20px rgba(168,85,247,0.1);
+    }
+    .connect-text {
+      color: #a855f7;
+      font-size: 24px;
+      font-weight: 600;
+      line-height: 1.6;
+    }
+
+    .bottom-right { position: absolute; bottom: 40px; right: 40px; color: #6b7d9e; font-size: 18px; z-index: 2; }
+    .bottom-bar { position: absolute; bottom: 0; left: 0; width: 100%; height: 6px; background: linear-gradient(90deg, #00d4ff, #00e5a0); z-index: 2; }
+  </style>
+</head>
+<body>
+  <div class="bg-pattern"></div>
+  
+  <div class="content-wrapper">
+    <div class="top-logo">
+      <div class="logo-text">FailureRAG</div>
+      <div class="logo-sub">Self-Healing Biomedical RAG</div>
+    </div>
+    
+    <div class="main-title">Open Source</div>
+    <div class="main-sub">
+      Full implementation on GitHub<br>
+      26 development phases documented
+    </div>
+    
+    <div class="github-box">
+      <div class="github-icon">🔗</div>
+      <div class="github-link">github.com/pavan939111/SelfLearning_Rag</div>
+    </div>
+    
+    <div class="divider"></div>
+    
+    <div class="whats-inside">
+      <div class="inside-title">What's inside:</div>
+      <div class="grid-2x2">
+        <div class="grid-item">
+          <span class="check">✓</span> Complete agent implementations
+        </div>
+        <div class="grid-item">
+          <span class="check">✓</span> Pydantic inter-agent contracts
+        </div>
+        <div class="grid-item">
+          <span class="check">✓</span> React frontend + transparency UI
+        </div>
+        <div class="grid-item">
+          <span class="check">✓</span> Verification scripts for 26 phases
+        </div>
+      </div>
+    </div>
+    
+    <div class="connect-box">
+      <div class="connect-text">
+        Building production RAG systems?<br>
+        Let's connect and discuss architecture.
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-right">8 / 8</div>
+  <div class="bottom-bar"></div>
+</body>
+</html>
