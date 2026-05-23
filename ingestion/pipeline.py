@@ -19,6 +19,7 @@ class IngestionStats(BaseModel):
     total_chunks: dict = {}
     total_points_inserted: dict = {}
     duration_seconds: float = 0.0
+    start_time: float = 0.0
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -134,7 +135,9 @@ class IngestionPipeline:
             checkpoint_file: str = "ingestion_checkpoint.json",
             log_every: int = 5) -> IngestionStats:
         """Runs the full ingestion pipeline."""
+        import time
         stats = IngestionStats()
+        stats.start_time = time.time()
         
         # Ensure logs directory exists
         os.makedirs("logs", exist_ok=True)

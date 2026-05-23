@@ -1,180 +1,229 @@
-# Self-Learning and Self-Healing RAG
+---
+# FailureRAG
 
-> **Self-healing, self-learning conversational RAG system
-> over biomedical research literature**
+> **Self-healing, self-learning conversational RAG 
+> system over biomedical research literature**
 
-A nine-agent autonomous system that detects its own 
-retrieval failures, diagnoses root causes, repairs itself
-in real time, and gets smarter with every query.
+A nine-agent autonomous system that detects its own
+retrieval failures, diagnoses root causes, repairs
+itself in real time, and gets measurably smarter
+with every query.
 
 ---
 
-## Demo
-
-**86.7% benchmark pass rate** on 50 biomedical QA pairs
-out of the box — before any learning has occurred.
-
----
-
-## What Makes This Different
-
-Most RAG systems fail silently. Self-Learning and Self-Healing RAG fails loudly,
-diagnoses why, and fixes itself.
-
-| Problem | Self-Learning and Self-Healing RAG Solution |
-|---------|-------------------|
-| Stale knowledge | Agent 2 detects freshness failure → Agent 4A fetches live from PubMed |
-| Bad retrieval | Agent 2 detects relevance failure → Agent 3 diagnoses → Agent 4A reformulates |
-| Corpus gaps | Agent 6 tracks coverage gaps → Agent 5A prioritizes targeted ingestion |
-| Confidence miscalibration | Agent 6 maintains calibration curves → Agent 2 adjusts scores |
-| Contradicting sources | Agent 2 detects cross-chunk contradiction → Agent 7 surfaces explicitly |
-
----
-
-## Architecture
-
-### Nine Agents
-
-| Agent | Role | Path |
-|-------|------|------|
-| Agent 1 | Agentic Retrieval — query classification, metadata pre-filter, hybrid search, RRF, MMR | Hot path |
-| Agent 2 | Pre-Generation Quality Gate — 5 checks before any generation | Hot path |
-| Agent 3 | Root Cause Classifier — 5 diagnostic tests, 3 failure classes | Repair cycle |
-| Agent 4A | Gap Analysis + Retrieval Formulator — targeted sub-queries for missing pieces | Repair cycle |
-| Agent 4B | Background Corpus Repair — re-chunking, re-embedding via Celery | Cold path |
-| Agent 5A | Relevance Verification — 4-check gate before corpus entry | Cold path |
-| Agent 5B | Selective Ingestion — hierarchical chunking + staging validation | Cold path |
-| Agent 6 | Longitudinal Learning — patterns, calibration, coverage gaps | Cold path |
-| Agent 7 | Conversational Response Generator — inline citations, conversation history | Hot path |
-
-### The Repair Cycle
+## System Architecture
 
 ```
-Agent 2 fails
-     ↓
-Agent 3 diagnoses root cause
-     ↓
-Agent 4A formulates targeted sub-queries
-     ↓
+                    USER QUERY
+                        │
+              ┌─────────▼─────────┐
+              │   Redis Cache     │
+              │   SimHash Check   │
+              └────┬──────┬───────┘
+                HIT│      │MISS
+                   │      │
+              ┌────▼──┐  ┌▼───────────────────┐
+              │Agent 2│  │     Agent 1         │
+              │Freshn.│  │  Query Classify     │
+              │+Comp. │  │  Metadata Pre-Filter│
+              │Check  │  │  Hybrid Retrieval   │
+              └────┬──┘  │  RRF + MMR          │
+                   │     └────────┬────────────┘
+                   │              │
+                   └──────┬───────┘
+                          │
+              ┌───────────▼───────────────┐
+              │        Agent 2            │
+              │  Pre-Generation Quality   │
+              │  Gate — 5 Checks          │
+              │  ① Retrieval Relevance    │
+              │  ② Completeness Grounding │
+              │  ③ Freshness              │
+              │  ④ Calibration            │
+              │  ⑤ Cross-Chunk Contrast   │
+              └──────┬────────────┬───────┘
+                  PASS│            │FAIL
+                      │    ┌───────▼──────────────┐
+                      │    │   A2→A3→A4A CYCLE    │
+                      │    │                      │
+                      │    │  Agent 3 diagnoses   │
+                      │    │  Agent 4A formulates │
+                      │    │  Agent 1 re-retrieves│
+                      │    │  Chunks MERGED       │
+                      │    │  Agent 2 re-evaluates│
+                      │    │  Max 2 iterations    │
+                      │    └───────────┬──────────┘
+                      │                │
+              ┌────────▼────────────────▼────────┐
+              │           Agent 7                │
+              │  Conversational Generator        │
+              │  Structured Output               │
+              │  Inline Citations                │
+              │  Claim Provenance                │
+              └──────────────┬───────────────────┘
+                             │
+                          RESPONSE
+                             │
+              ┌──────────────▼───────────────────┐
+              │     POST-RESPONSE (async)        │
+              │  Cache chunks • Agent 6 learn    │
+              │  Supabase log • Queue 4B if A/B  │
+              └──────────────────────────────────┘
+```
+
+---
+
+## Nine Agents
+
+| # | Agent | Role | Path |
+|---|-------|------|------|
+| 1 | Retrieval | Query classify → pre-filter → hybrid search → RRF → MMR | Hot |
+| 2 | Quality Gate | 5 pre-generation checks on retrieved chunks | Hot |
+| 3 | Root Cause | 5 diagnostic tests → Class A/B/C | Repair Cycle |
+| 4A | Formulator | Gap analysis → targeted sub-queries → merge chunks | Repair Cycle |
+| 4B | BG Repair | Re-chunking, re-embedding via Celery | Cold |
+| 5A | Verification | 4-check gate + citation velocity before corpus entry | Cold |
+| 5B | Ingestion | Hierarchical chunking + staging validation | Cold |
+| 6 | Learning | Patterns, calibration, gaps, predictions, feedback | Cold |
+| 7 | Generator | Structured output + claim provenance + citations | Hot |
+
+---
+
+## The Repair Cycle
+
+```
+Agent 2 FAIL
+     │
+     ▼
+Agent 3 ──── Class A/B ──→ EXIT → Queue 4B async
+     │                            Agent 7 with flag
+     │ Class C
+     ▼
+Agent 4A
+  • Gap analysis
+  • Coverage mapping  
+  • Targeted sub-query formulation
+  • Strategy selection
+     │
+     ▼
 Agent 1 re-retrieves missing pieces
-     ↓
-New chunks MERGED with original chunks
-     ↓
+     │
+     ▼
+MERGE + DEDUPLICATE new with original chunks
+     │
+     ▼
 Agent 2 re-evaluates merged set
-     ↓
-PASS → Agent 7 generates    FAIL (max 2x) → honest flag
+     │
+  PASS → Agent 7
+  FAIL (2nd time) → Agent 7 with honest flag
 ```
-
-### Tech Stack
-
-**AI / ML**
-- Gemini 2.0 Flash — classification, generation, reasoning
-- Gemini 2.0 Flash Thinking — root cause diagnosis
-- pritamdeka/S-PubMedBert-MS-MARCO — biomedical embeddings
-
-**Databases (all free tier)**
-- Qdrant Cloud — 4-level hierarchical vector index
-- Supabase PostgreSQL — failure logs, calibration, benchmarks
-- Neo4j AuraDB — citation and contradiction knowledge graph
-- Upstash Redis — semantic cache, Celery queues, conversation memory
-
-**Backend**
-- FastAPI — async REST API with SSE streaming
-- Celery — background repair workers
-- APScheduler — weekly benchmarks, daily insights
-
-**Frontend**
-- Vite + React — dark theme UI
-- Three pages: Chat, Transparency (live agent feed), Admin
 
 ---
 
-## The Self-Healing Loop
+## Self-Learning Loops
 
 ```
-User query → Agent 1 retrieves → Agent 2 evaluates
-                                        ↓
-                              FAIL: cycle runs
-                              Agent 3 + 4A repair
-                                        ↓
-                              PASS: Agent 7 generates
-                                        ↓
-                              Agent 6 logs pattern
-                                        ↓
-                              Corpus grows smarter
-                                        ↓
-                              Same failure less likely
+Every query feeds Agent 6:
+
+Query result → Pattern detection
+            → Calibration curves (→ Agent 2)
+            → Coverage gap map (→ Agent 5A priority)
+            → Topic velocity (→ Cache TTL)
+
+User feedback → Recalibrate confidence
+             → Detect missed failures
+             → Generate insights
+
+Weekly benchmark → Track improvement over time
 ```
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| LLM | Gemini 2.0 Flash |
+| Embedding | pritamdeka/S-PubMedBert-MS-MARCO (768d) |
+| Vector DB | Qdrant Cloud — 4-level hierarchical index |
+| Relational | Supabase PostgreSQL — logs, calibration, benchmarks |
+| Graph | Neo4j AuraDB — citation + contradiction graph |
+| Cache | Upstash Redis — semantic cache + Celery queues |
+| Backend | FastAPI + Celery + APScheduler |
+| Frontend | Vite + React — Chat, Transparency, Admin |
+| **Cost** | **₹0 — all free tier** |
+
+---
+
+## Four-Level Hierarchical Index
+
+```
+Paper
+  └── L1: Document embedding (title + abstract)
+        └── L2: Section chunks (IMRAD-aware)
+              └── L3A: Semantic chunks (sentence boundaries)
+                    └── L3B: Propositions (Gemini-extracted claims)
+
+Current corpus: 1,767 papers
+  Documents:    ~1,500 points
+  Sections:     ~4,700 points
+  Semantic:    ~10,900 points
+  Propositions: ~5,500 points
+```
+
+---
+
+## Evaluation Baseline
+
+50 biomedical QA pairs across 5 question types:
+
+| Metric | Baseline |
+|--------|---------|
+| Overall pass rate | **86.7%** |
+| Average confidence | 0.67 |
+| Average response time | 12.5s |
+| Cache speedup | 3.4× |
+
+Weekly automated benchmark tracks improvement over time.
 
 ---
 
 ## Quick Start
 
-### Prerequisites
-- Python 3.13
-- Node.js 18+
-- Free accounts on:
-  Qdrant Cloud, Supabase, Neo4j AuraDB,
-  Upstash Redis, Google AI Studio
-
-### Setup
-
-1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/selflearning_rag.git
-cd selflearning_rag
-```
+# 1. Clone
+git clone https://github.com/pavan939111/SelfLearning_Rag.git
+cd SelfLearning_Rag
 
-2. Create keys.txt with your API keys
-```
-QDRANT_URL=your_qdrant_url
-QDRANT_API_KEY=your_key
-SUPABASE_URL=your_supabase_url
-SUPABASE_KEY=your_key
-GEMINI_API_KEY=your_gemini_key
-NEO4J_URI=neo4j+s://your_instance.databases.neo4j.io
-NEO4J_USERNAME=neo4j
-NEO4J_PASSWORD=your_password
-REDIS_URL=rediss://your_upstash_endpoint:6379
-REDIS_PASSWORD=your_password
-```
-
-3. Install Python dependencies
-```bash
+# 2. Install
 pip install -r requirements.txt
-```
 
-4. Test database connections
-```bash
+# 3. Configure (copy and fill in your keys)
+cp keys.txt.example keys.txt
+
+# 4. Verify connections
 python test_connections.py
-```
 
-5. Seed the corpus (takes 1-2 hours)
-```bash
+# 5. Seed corpus (1-2 hours)
 python run_ingestion.py
-```
 
-6. Start the backend
-```bash
+# 6. Start backend
 uvicorn api.main:app --port 8000
+
+# 7. Start frontend
+cd frontend && npm install && npm run dev
 ```
 
-7. Start the frontend
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-8. Open http://localhost:5173
+Open http://localhost:5173
 
 ---
 
 ## Project Structure
 
 ```
-selflearning_rag/
+failurerag/
 ├── agents/                 # Nine agent implementations
+│   ├── models.py          # All Pydantic inter-agent contracts
 │   ├── agent1_retrieval.py
 │   ├── agent2_evaluator.py
 │   ├── agent3_classifier.py
@@ -187,104 +236,59 @@ selflearning_rag/
 │   ├── conversation_memory.py
 │   ├── live_fetcher.py
 │   ├── live_fetch_ingester.py
-│   └── repair_cycle.py
+│   ├── repair_cycle.py
+│   └── stream_monitor.py
 ├── api/                    # FastAPI application
-│   ├── main.py
-│   ├── routes/
-│   │   ├── chat.py        # Chat + SSE streaming
-│   │   ├── health.py
-│   │   └── admin.py
-│   └── models/
-│       ├── requests.py
-│       └── responses.py
-├── database/               # Database clients
-│   ├── qdrant_client.py
-│   ├── supabase_client.py
-│   ├── neo4j_client.py
-│   └── redis_client.py
-├── ingestion/              # Data pipeline
-│   ├── fetcher.py         # PubMed fetcher
-│   ├── chunker.py         # 4-level hierarchical chunker
-│   ├── embedder.py        # S-PubMedBert embedder
-│   └── pipeline.py        # Orchestrator
-├── workers/                # Celery background workers
-│   ├── celery_app.py
-│   └── repair_tasks.py
-├── scripts/                # Utility scripts
-│   ├── backfill_neo4j.py
-│   ├── build_contradiction_graph.py
-│   ├── run_benchmark.py
-│   ├── run_first_benchmark.py
-│   ├── seed_benchmarks.py
-│   └── verify_complete_system.py
-├── frontend/               # Vite + React UI
-│   ├── src/
-│   │   ├── pages/         # Chat, Transparency, Admin
-│   │   ├── components/    # All UI components
-│   │   ├── hooks/         # React hooks
-│   │   └── api/           # API client layer
-│   └── package.json
-├── utils/
-│   └── logger.py
-├── config.py
+│   ├── main.py            # App + APScheduler
+│   └── routes/
+│       ├── chat.py        # POST /chat + SSE stream
+│       ├── health.py
+│       └── admin.py
+├── database/              # Database clients
+├── ingestion/             # Data pipeline
+├── workers/               # Celery background workers
+├── scripts/               # Utility scripts
+├── tests/                 # Test suite
+│   ├── unit/
+│   ├── integration/
+│   └── system/
+├── frontend/              # Vite + React UI
+│   └── src/
+│       ├── pages/         # Chat, Transparency, Admin
+│       ├── components/
+│       ├── hooks/
+│       └── api/
+├── README.md
+├── ARCHITECTURE.md
+├── SETUP.md
+├── CHANGELOG.md
 ├── requirements.txt
-├── run_ingestion.py
-├── start_worker.py
-├── test_connections.py
-└── README.md
+├── supabase_schema.sql
+└── keys.txt.example
 ```
 
 ---
 
-## Evaluation
+## Key Design Decisions
 
-Baseline benchmark (50 biomedical QA pairs):
-- Pass rate: 86.7%
-- Avg confidence: 0.67
-- Avg response time: 12.5s
+**Pre-generation evaluation** — Agent 2 evaluates chunks
+BEFORE generation. Zero wasted LLM calls. Every answer
+is grounded by construction.
 
-Run the benchmark yourself:
-```bash
-uvicorn api.main:app --port 8000
-python scripts/run_first_benchmark.py
-```
+**Merge-not-replace** — Agent 4A targets missing pieces.
+New chunks merge with original good chunks. Agent 7
+gets the most complete picture possible.
 
----
-
-## Design Decisions
-
-**Why pre-generation evaluation?**
-Agent 2 evaluates retrieved chunks BEFORE generation.
-No wasted LLM calls on bad evidence.
-Generation is guaranteed to be grounded.
-
-**Why merge chunks not replace?**
-When Agent 4A finds missing pieces via live fetch or
-sub-queries — new chunks are merged with original chunks.
-Original good chunks are preserved.
-Agent 7 gets the most complete picture possible.
-
-**Why cache chunks not answers?**
-Generated answers must adapt to conversation context.
-What we cache is the expensive part — retrieval.
+**Cache chunks not answers** — Answers adapt to
+conversation context. Retrieval is the expensive part.
 Agent 7 always generates fresh from cached chunks.
 
-**Why Celery for repairs?**
-Background repairs must never block the user response.
-Celery with three priority queues ensures the hot path
-(Agent 1 → Agent 2 → Agent 7) never waits for
-corpus repairs.
+**Pydantic inter-agent contracts** — Type safety at
+every agent boundary. ValidationError caught at the
+source. LangGraph-ready for future migration.
 
 ---
 
 ## License
 
-MIT
-
----
-
-## Author
-
-Built as a portfolio project demonstrating production-grade
-agentic AI engineering — multi-agent orchestration,
-self-healing systems, RAG evaluation, and observability.
+MIT — Pavan Kumar Kunukuntla — 2026
