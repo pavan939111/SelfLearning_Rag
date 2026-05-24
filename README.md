@@ -1,4 +1,4 @@
-# FailureRAG
+# Self-Learning and Self-Healing RAG
 
 A biomedical research assistant that diagnoses and fixes its own mistakes before giving you an answer.
 
@@ -6,7 +6,7 @@ A biomedical research assistant that diagnoses and fixes its own mistakes before
 
 ## Why This Exists
 
-Standard AI assistants and Retrieval-Augmented Generation (RAG) systems suffer from a fatal flaw: they fail silently. If they retrieve the wrong information or don't find enough data, they will confidently hallucinate an answer anyway. FailureRAG solves this by aggressively rejecting its own evidence. When it fails to find the perfect answer, it pauses, diagnoses the root cause of the failure, reformulates its search strategy, and tries again—guaranteeing you only receive verified, highly accurate medical information.
+Standard AI assistants and Retrieval-Augmented Generation (RAG) systems suffer from a fatal flaw: they fail silently. If they retrieve the wrong information or don't find enough data, they will confidently hallucinate an answer anyway. Self-Learning and Self-Healing RAG solves this by aggressively rejecting its own evidence. When it fails to find the perfect answer, it pauses, diagnoses the root cause of the failure, reformulates its search strategy, and tries again—guaranteeing you only receive verified, highly accurate medical information.
 
 ---
 

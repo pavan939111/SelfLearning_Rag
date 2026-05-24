@@ -1,4 +1,4 @@
-# FailureRAG — Agent Reference
+# Self-Learning and Self-Healing RAG — Agent Reference
 
 ---
 
@@ -46,7 +46,7 @@ flowchart TD
 ## Agent 1 — Retrieval
 
 **What it does**
-Agent 1 is the primary search engine of FailureRAG. It takes the user's query and performs a highly optimized hybrid search (dense + sparse) across the vector database, followed by graph expansion to pull in related citation context.
+Agent 1 is the primary search engine of Self-Learning and Self-Healing RAG. It takes the user's query and performs a highly optimized hybrid search (dense + sparse) across the vector database, followed by graph expansion to pull in related citation context.
 
 **Receives**
 - Query string + session ID
@@ -121,7 +121,7 @@ flowchart TD
 ```
 
 **Key design decision**
-Pre-generation evaluation. Standard RAG generates an answer and then evaluates it. FailureRAG evaluates the source chunks. If the sources are garbage, we don't waste token generation time (or risk LLM hallucination) trying to summarize them.
+Pre-generation evaluation. Standard RAG generates an answer and then evaluates it. Self-Learning and Self-Healing RAG evaluates the source chunks. If the sources are garbage, we don't waste token generation time (or risk LLM hallucination) trying to summarize them.
 
 **Calibration detail**
 Agent 2 dynamically reads historical confidence curves calculated by Agent 6 from Supabase. If the system has historically performed poorly on "drug interaction" queries, Agent 2 artificially lowers its confidence score for that query to remain honest with the user.

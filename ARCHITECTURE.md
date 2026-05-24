@@ -1,17 +1,17 @@
-# FailureRAG — Architecture
+# Self-Learning and Self-Healing RAG — Architecture
 
 ---
 
 ## Design Philosophy
 
 **1. Pre-generation not post-generation evaluation**
-Most RAG systems generate an answer first, and then ask a secondary LLM "does this answer look right?" FailureRAG evaluates the *raw evidence* before a single word of the final answer is generated. If the evidence is bad, it never reaches the generator, preventing hallucination at the source.
+Most RAG systems generate an answer first, and then ask a secondary LLM "does this answer look right?" Self-Learning and Self-Healing RAG evaluates the *raw evidence* before a single word of the final answer is generated. If the evidence is bad, it never reaches the generator, preventing hallucination at the source.
 
 **2. Merge not replace in repair**
 When Agent 1 fails to find enough data, Agent 4A reformulates the query and searches again. Instead of throwing away the first attempt, it merges the new findings with the original findings and deduplicates them. This ensures the system only gains knowledge during a repair cycle, never losing partial matches.
 
 **3. Cache chunks not answers**
-Caching generated text is dangerous in medical RAG because answers lose context and cannot be re-verified. FailureRAG caches the underlying semantic chunks instead. This allows Agent 2 to still perform freshness checks on cached data, ensuring the system remains lightning fast without sacrificing accuracy.
+Caching generated text is dangerous in medical RAG because answers lose context and cannot be re-verified. Self-Learning and Self-Healing RAG caches the underlying semantic chunks instead. This allows Agent 2 to still perform freshness checks on cached data, ensuring the system remains lightning fast without sacrificing accuracy.
 
 ---
 
