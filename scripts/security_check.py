@@ -43,4 +43,4 @@ if issues:
     print('SECRETS FOUND:')
     for i in issues: print(f'  {i}')
 else:
-    print('No hardcoded secrets found — clean')
+    print('No hardcoded secrets found - clean')

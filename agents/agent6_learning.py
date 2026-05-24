@@ -754,7 +754,7 @@ class Agent6Learning:
             return new_recs
 
         try:
-            # RECOMMENDATION 1 — Increase top_k for multi-hop
+            # RECOMMENDATION 1 - Increase top_k for multi-hop
             patterns_res = self.supabase.client.table("agent6_patterns").select("*").in_("failure_type", ["multi_hop_completeness", "missed_repair"]).execute()
             if patterns_res.data:
                 for p in patterns_res.data:
@@ -766,7 +766,7 @@ class Agent6Learning:
                             parameter="retrieval_top_k_multi_hop",
                             current_value="5",
                             recommended_value="8",
-                            reason=f"Multi-hop completeness failures {count} times — more chunks needed",
+                            reason=f"Multi-hop completeness failures {count} times - more chunks needed",
                             evidence=json.dumps({"pattern": p.get("pattern_id"), "count": count}),
                             priority="high",
                             created_at=datetime.now().isoformat(),
@@ -783,7 +783,7 @@ class Agent6Learning:
                     actual = cal.get("actual_pass_rate", 0.0)
                     size = cal.get("sample_size", 0)
 
-                    # RECOMMENDATION 2 — Tighten pre-filter for temporal
+                    # RECOMMENDATION 2 - Tighten pre-filter for temporal
                     if cluster == "temporal" or (actual < 0.5 and size >= 5):
                         rec = StrategyRecommendation(
                             recommendation_id=f"rec_temporal_filter_{cluster}",
@@ -798,7 +798,7 @@ class Agent6Learning:
                         )
                         new_recs.append(rec)
 
-                    # RECOMMENDATION 3 — Lower confidence threshold
+                    # RECOMMENDATION 3 - Lower confidence threshold
                     if size >= 5 and (expressed - actual) > 0.15:
                         rec = StrategyRecommendation(
                             recommendation_id=f"rec_confidence_{cluster}",
@@ -813,7 +813,7 @@ class Agent6Learning:
                         )
                         new_recs.append(rec)
 
-                    # RECOMMENDATION 4 — Increase cache TTL for stable topics
+                    # RECOMMENDATION 4 - Increase cache TTL for stable topics
                     if cluster == "genomics" and actual > 0.9 and size >= 10:
                         rec = StrategyRecommendation(
                             recommendation_id=f"rec_ttl_{cluster}",
@@ -911,8 +911,8 @@ class Agent6Learning:
                             predictions.append({
                                 "type": "calibration_improving",
                                 "cluster": cal.get("topic_cluster", ""),
-                                "message": f"Confidence calibration improving for {cal.get('topic_cluster')} — within {diff:.0%} of actual",
-                                "action": "No action needed — learning working",
+                                "message": f"Confidence calibration improving for {cal.get('topic_cluster')} - within {diff:.0%} of actual",
+                                "action": "No action needed - learning working",
                                 "urgency": "info"
                             })
                             break

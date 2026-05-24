@@ -10,10 +10,10 @@ from ingestion.fetcher import PaperRecord
 from config import get_config
 
 class ChunkLevel(Enum):
-    DOCUMENT    = "document"      # Level 1 — whole paper
-    SECTION     = "section"       # Level 2 — IMRAD section
-    SEMANTIC    = "semantic"      # Level 3A — semantic chunk
-    PROPOSITION = "proposition"   # Level 3B — single claim
+    DOCUMENT    = "document"      # Level 1 - whole paper
+    SECTION     = "section"       # Level 2 - IMRAD section
+    SEMANTIC    = "semantic"      # Level 3A - semantic chunk
+    PROPOSITION = "proposition"   # Level 3B - single claim
 
 @dataclass
 class Chunk:
@@ -132,7 +132,7 @@ class HierarchicalChunker:
         matches = list(re.finditer(combined, abstract, re.IGNORECASE))
 
         if len(matches) >= 2:
-            # Structured abstract — split at each header
+            # Structured abstract - split at each header
             for i, match in enumerate(matches):
                 start = match.start()
                 end = matches[i + 1].start() if i + 1 < len(matches) else len(abstract)
@@ -150,7 +150,7 @@ class HierarchicalChunker:
 
                 sections_found.append((section_type, section_text))
         else:
-            # Unstructured abstract — split by length
+            # Unstructured abstract - split by length
             if len(abstract) > 500:
                 mid = len(abstract) // 2
                 # Find nearest sentence boundary to midpoint
@@ -196,7 +196,7 @@ class HierarchicalChunker:
                 chunk_index=idx,
             ))
 
-        # Safety — always return at least one chunk
+        # Safety - always return at least one chunk
         if not chunks:
             chunk_id = make_chunk_id(
                 paper.paper_id, ChunkLevel.SECTION, 0
@@ -227,7 +227,7 @@ class HierarchicalChunker:
 
         text = section_chunk.text.strip()
 
-        # Short sections — return as single semantic chunk
+        # Short sections - return as single semantic chunk
         if len(text) <= 200:
             chunk_id = make_chunk_id(
                 paper.paper_id,
@@ -273,7 +273,7 @@ class HierarchicalChunker:
         if current.strip():
             raw_chunks.append(current.strip())
 
-        # Safety — if grouping produced nothing use whole text
+        # Safety - if grouping produced nothing use whole text
         if not raw_chunks:
             raw_chunks = [text]
 
@@ -351,7 +351,7 @@ class HierarchicalChunker:
 
         try:
             response = client.models.generate_content(
-                model="gemini-2.0-flash",
+                model="gemini-flash-latest",
                 contents=prompt
             )
             raw = response.text.strip()
@@ -373,7 +373,7 @@ class HierarchicalChunker:
         except json.JSONDecodeError:
             self.logger.warning(
                 f"JSON parse failed for chunk {semantic_chunk.chunk_id}"
-                f" — using full text as fallback"
+                f" - using full text as fallback"
             )
             propositions = []
 
@@ -384,14 +384,14 @@ class HierarchicalChunker:
             )
             propositions = []
 
-        # Fallback — use whole semantic chunk text as one proposition
+        # Fallback - use whole semantic chunk text as one proposition
         if not propositions:
             propositions = [semantic_chunk.text]
 
         # Cap at 10 propositions per semantic chunk
         propositions = propositions[:10]
 
-        # Rate limiting — Gemini Flash
+        # Rate limiting - Gemini Flash
         time.sleep(0.5)
 
         # Build Chunk objects
@@ -431,22 +431,22 @@ class HierarchicalChunker:
     def chunk_paper(self,
                     paper: PaperRecord) -> dict[str, list[Chunk]]:
 
-        # Level 1 — document
+        # Level 1 - document
         doc_chunk = self.create_document_chunk(paper)
 
-        # Level 2 — sections
+        # Level 2 - sections
         section_chunks = self.create_section_chunks(
             paper, doc_chunk.chunk_id
         )
 
-        # Level 3A — semantic
+        # Level 3A - semantic
         semantic_chunks = []
         for sec in section_chunks:
             semantic_chunks.extend(
                 self.create_semantic_chunks(sec, paper)
             )
 
-        # Level 3B — propositions
+        # Level 3B - propositions
         proposition_chunks = []
         for sem in semantic_chunks:
             proposition_chunks.extend(

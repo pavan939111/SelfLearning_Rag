@@ -11,7 +11,7 @@ from agents.models import VerificationResult
 class Agent5AVerifier:
     """
     Agent 5A: Standalone Quality-Gate Verifier.
-    Verifies any paper before it enters the FailurerRAG corpus —
+    Verifies any paper before it enters the FailurerRAG corpus -
     whether from batch ingestion, live fetch, or manual addition.
     """
     def __init__(self, embedder=None, qdrant=None, logger=None, model=None):
@@ -99,13 +99,13 @@ class Agent5AVerifier:
                 topic_cluster = paper.get("topic_cluster", "") or ""
                 evidence_level = paper.get("evidence_level", "other") or "other"
 
-            # RULE 1 — Contradiction detection:
+            # RULE 1 - Contradiction detection:
             pot = check4_result.get("potential_contradiction", False) if isinstance(check4_result, dict) else False
             conf = check4_result.get("confidence", 0.0) if isinstance(check4_result, dict) else 0.0
             if pot and conf > 0.7:
                 return (True, "contradiction_detected")
 
-            # RULE 3 — Citation Velocity:
+            # RULE 3 - Citation Velocity:
             paper_id = getattr(paper, "paper_id", "") or paper.get("paper_id", "") if isinstance(paper, dict) else ""
             total_citations = self._get_citation_velocity(paper_id)
             if isinstance(check4_result, dict):
@@ -121,7 +121,7 @@ class Agent5AVerifier:
                 if year >= 2022:
                     return (True, "recent_paper_fallback")
 
-            # RULE 5 — Fallback for recent papers:
+            # RULE 5 - Fallback for recent papers:
             if year >= 2023:
                 return (True, "recent_paper")
 
@@ -133,7 +133,7 @@ class Agent5AVerifier:
             from database.supabase_client import SupabaseManager
             supabase = SupabaseManager()
             if supabase and supabase.client:
-                # RULE 2 — Coverage gap match:
+                # RULE 2 - Coverage gap match:
                 res_gaps = supabase.client.table("agent6_gaps").select("topic").gte("query_count", 3).execute()
                 if res_gaps and res_gaps.data:
                     for row in res_gaps.data:
@@ -142,7 +142,7 @@ class Agent5AVerifier:
                             if gap_topic in abstract_lower or any(word in abstract_keywords for word in gap_topic.split()):
                                 return (True, "fills_coverage_gap")
 
-                # RULE 4 — Query pattern match:
+                # RULE 4 - Query pattern match:
                 res_patterns = supabase.client.table("agent6_patterns").select("topic_cluster", "failure_type").gte("occurrence_count", 5).execute()
                 if res_patterns and res_patterns.data:
                     for row in res_patterns.data:
@@ -195,7 +195,7 @@ class Agent5AVerifier:
                 paper_id = "unknown"
 
             # -----------------------------------------------------------------
-            # CHECK 1 — Domain Filter
+            # CHECK 1 - Domain Filter
             # -----------------------------------------------------------------
             try:
                 # Embed the abstract
@@ -220,7 +220,7 @@ class Agent5AVerifier:
                 self.logger.warning(f"Domain Filter: Qdrant query failed: {q_err}. Gracefully passing to prevent infrastructure lockup.")
 
             # -----------------------------------------------------------------
-            # CHECK 2 — Corpus Relationship
+            # CHECK 2 - Corpus Relationship
             # -----------------------------------------------------------------
             detected_cluster = self._detect_cluster(abstract + " " + title)
             pass_a = detected_cluster in ["immunotherapy", "drug_interactions", "genomics"]
@@ -261,7 +261,7 @@ class Agent5AVerifier:
                 )
 
             # -----------------------------------------------------------------
-            # CHECK 3 — Evidence Quality
+            # CHECK 3 - Evidence Quality
             # -----------------------------------------------------------------
             text_lower = abstract.lower()
             if "systematic review" in text_lower or "meta-analysis" in text_lower:
@@ -276,7 +276,7 @@ class Agent5AVerifier:
                 evidence_level = "other"
 
             # -----------------------------------------------------------------
-            # CHECK 4 — Contradiction Check
+            # CHECK 4 - Contradiction Check
             # -----------------------------------------------------------------
             contradiction_suspected = False
             pot_from_gemini = False
@@ -293,7 +293,7 @@ class Agent5AVerifier:
                         "}"
                     )
                     response = self.client.models.generate_content(
-                        model="gemini-2.0-flash",
+                        model="gemini-flash-latest",
                         contents=prompt
                     )
                     text = response.text.strip()

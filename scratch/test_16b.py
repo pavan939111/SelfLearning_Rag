@@ -4,7 +4,7 @@ url = 'http://localhost:8000/chat'
 
 session_id = 'test-followup-001'
 
-# Turn 1 — establish context
+# Turn 1 - establish context
 print('Sending Turn 1...')
 r1 = httpx.post(url, json={
     'session_id': session_id,
@@ -12,7 +12,7 @@ r1 = httpx.post(url, json={
 }, timeout=120)
 print(f'Turn 1 status: {r1.status_code}')
 
-# Turn 2 — follow-up
+# Turn 2 - follow-up
 print('Sending Turn 2...')
 r2 = httpx.post(url, json={
     'session_id': session_id,

@@ -63,7 +63,7 @@ async def _observe_async(session_id, query, classification, agent2_result, cycle
 @router.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
     """
-    Main endpoint for chatting with FailureRAG.
+    Main endpoint for chatting with Self-Learning and Self-Healing RAG.
     Executes the complete Retrieval -> Quality Gate -> Repair -> Generation pipeline.
     """
     start_time = time.time()
@@ -144,7 +144,7 @@ async def chat_endpoint(request: ChatRequest):
         except Exception as e:
             logger.warning(f"Proactive contradiction check failed: {e}")
         
-        # STEP 1 — Before Agent 1: Cache lookup
+        # STEP 1 - Before Agent 1: Cache lookup
         query_embedding = None
         try:
             query_embedding = embedder.embed_text(state.query)
@@ -154,7 +154,7 @@ async def chat_endpoint(request: ChatRequest):
         except Exception as cache_err:
             logger.warning(f"Cache lookup failed: {cache_err}")
         
-        # STEP 2 — If cache hit
+        # STEP 2 - If cache hit
         if state.retrieval_results:
             logger.info("Semantic cache HIT! Evaluating cached chunks...")
             try:
@@ -183,7 +183,7 @@ async def chat_endpoint(request: ChatRequest):
             except Exception as eval_cache_err:
                 logger.warning(f"Error evaluating cached chunks: {eval_cache_err}. Proceeding to full retrieval.")
                 
-        # STEP 3 — If cache miss (or stale cache)
+        # STEP 3 - If cache miss (or stale cache)
         if state.agent2_result is None or not state.cache_hit:
             logger.info("Cache MISS or stale. Executing full retrieval and validation flow...")
             
@@ -443,7 +443,7 @@ async def chat_stream(session_id: str, query: str):
         try:
             start = time.time()
             
-            # Step 1 — Classification
+            # Step 1 - Classification
             classification = classifier.classify(query)
             if hasattr(classification, 'thought_traces'):
                 for t in classification.thought_traces:
@@ -452,17 +452,17 @@ async def chat_stream(session_id: str, query: str):
             yield f"data: {json.dumps({'type': 'event', 'agent': 'agent1', 'step': 'classify', 'status': 'complete', 'detail': f'Query type: {classification.query_type}', 'duration_ms': int((time.time()-start)*1000)})}\n\n"
             await asyncio.sleep(0.1)
             
-            # Step 2 — Cache check
+            # Step 2 - Cache check
             query_embedding = embedder.embed_text(query)
             cached = cache.get(query_embedding)
             if cached:
-                yield f"data: {json.dumps({'type': 'event', 'agent': 'cache', 'step': 'hit', 'status': 'complete', 'detail': f'Cache hit — skipping retrieval', 'duration_ms': int((time.time()-start)*1000)})}\n\n"
+                yield f"data: {json.dumps({'type': 'event', 'agent': 'cache', 'step': 'hit', 'status': 'complete', 'detail': f'Cache hit - skipping retrieval', 'duration_ms': int((time.time()-start)*1000)})}\n\n"
                 retrieval_results = cached
                 cache_hit = True
             else:
-                yield f"data: {json.dumps({'type': 'event', 'agent': 'cache', 'step': 'miss', 'status': 'info', 'detail': 'Cache miss — running full retrieval', 'duration_ms': int((time.time()-start)*1000)})}\n\n"
+                yield f"data: {json.dumps({'type': 'event', 'agent': 'cache', 'step': 'miss', 'status': 'info', 'detail': 'Cache miss - running full retrieval', 'duration_ms': int((time.time()-start)*1000)})}\n\n"
                 
-                # Step 3 — Retrieval
+                # Step 3 - Retrieval
                 t = time.time()
                 filter_config = pre_filter.build_filter(classification)
                 retrieval_results = retriever.retrieve(query, classification, filter_config, top_k=5, session_id=session_id)
@@ -478,11 +478,11 @@ async def chat_stream(session_id: str, query: str):
                         if tr.step in ['pre_filter', 'retrieve']:
                             yield f"data: {json.dumps({'type': 'thought', 'agent': tr.agent, 'step': tr.step, 'obs': tr.obs, 'thk': tr.thk, 'act': tr.act, 'out': tr.out, 'confidence': tr.confidence, 'duration_ms': tr.duration_ms})}\n\n"
                             
-                yield f"data: {json.dumps({'type': 'event', 'agent': 'agent1', 'step': 'retrieve', 'status': 'complete', 'detail': f'Retrieved {len(retrieval_results)} chunks — avg score {sum(r.score for r in retrieval_results)/max(len(retrieval_results),1):.3f}', 'duration_ms': int((time.time()-t)*1000)})}\n\n"
+                yield f"data: {json.dumps({'type': 'event', 'agent': 'agent1', 'step': 'retrieve', 'status': 'complete', 'detail': f'Retrieved {len(retrieval_results)} chunks - avg score {sum(r.score for r in retrieval_results)/max(len(retrieval_results),1):.3f}', 'duration_ms': int((time.time()-t)*1000)})}\n\n"
                 cache_hit = False
                 await asyncio.sleep(0.1)
             
-            # Step 4 — Agent 2
+            # Step 4 - Agent 2
             t = time.time()
             agent2_result = evaluator.evaluate(query, classification, retrieval_results)
             
@@ -492,10 +492,10 @@ async def chat_stream(session_id: str, query: str):
                     
             status = 'pass' if agent2_result.all_passed else 'fail'
             failed = agent2_result.failed_check if not agent2_result.all_passed else 'none'
-            yield f"data: {json.dumps({'type': 'event', 'agent': 'agent2', 'step': 'evaluate', 'status': status, 'detail': f'Quality gate: {status.upper()} — {failed}', 'checks': [{'name': c.check_name, 'passed': c.passed, 'score': round(c.score,2)} for c in agent2_result.checks], 'duration_ms': int((time.time()-t)*1000)})}\n\n"
+            yield f"data: {json.dumps({'type': 'event', 'agent': 'agent2', 'step': 'evaluate', 'status': status, 'detail': f'Quality gate: {status.upper()} - {failed}', 'checks': [{'name': c.check_name, 'passed': c.passed, 'score': round(c.score,2)} for c in agent2_result.checks], 'duration_ms': int((time.time()-t)*1000)})}\n\n"
             await asyncio.sleep(0.1)
             
-            # Step 5 — Repair cycle if needed
+            # Step 5 - Repair cycle if needed
             cycle_result = None
             if not agent2_result.all_passed:
                 t = time.time()
@@ -523,7 +523,7 @@ async def chat_stream(session_id: str, query: str):
                     topic = retrieval_results[0].topic_cluster if retrieval_results else 'immunotherapy'
                     cache.set(query_embedding, retrieval_results, topic)
             
-            # Step 6 — Generation
+            # Step 6 - Generation
             t = time.time()
             yield f"data: {json.dumps({'type': 'event', 'agent': 'agent7', 'step': 'generate', 'status': 'running', 'detail': 'Generating conversational response...', 'duration_ms': 0})}\n\n"
             
@@ -542,7 +542,7 @@ async def chat_stream(session_id: str, query: str):
                 for tr in response.thought_traces:
                     yield f"data: {json.dumps({'type': 'thought', 'agent': tr.agent, 'step': tr.step, 'obs': tr.obs, 'thk': tr.thk, 'act': tr.act, 'out': tr.out, 'confidence': tr.confidence, 'duration_ms': tr.duration_ms})}\n\n"
 
-            yield f"data: {json.dumps({'type': 'event', 'agent': 'agent7', 'step': 'generate', 'status': 'complete', 'detail': f'Response ready — {len(response.citations)} citations', 'duration_ms': int((time.time()-t)*1000)})}\n\n"
+            yield f"data: {json.dumps({'type': 'event', 'agent': 'agent7', 'step': 'generate', 'status': 'complete', 'detail': f'Response ready - {len(response.citations)} citations', 'duration_ms': int((time.time()-t)*1000)})}\n\n"
             
             # Final answer
             yield f"data: {json.dumps({'type': 'event', 'agent': 'system', 'step': 'answer', 'status': 'done', 'answer': response.answer, 'citations': response.citations, 'confidence': response.confidence, 'has_gaps': response.has_gaps, 'gap_acknowledgment': response.gap_acknowledgment, 'has_contradiction': response.has_contradiction, 'contradiction_note': response.contradiction_note, 'cycle_ran': cycle_result is not None, 'cache_hit': cache_hit, 'processing_time_ms': int((time.time()-start)*1000), 'output_format': response.output_format, 'claim_provenance': [vars(p) for p in response.claim_provenance] if response.claim_provenance else [], 'proactive_contradiction_detected': False})}\n\n"

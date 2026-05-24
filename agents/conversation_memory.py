@@ -63,7 +63,7 @@ class ConversationMemory:
                 f"{dialogue}"
             )
             response = client.models.generate_content(
-                model="gemini-2.0-flash",
+                model="gemini-flash-latest",
                 contents=prompt
             )
             return response.text.strip()
@@ -295,7 +295,7 @@ Rewritten self-contained question:
 
             client = genai.Client(api_key=get_gemini_key())
             response = client.models.generate_content(
-                model="gemini-2.0-flash",
+                model="gemini-flash-latest",
                 contents=prompt
             )
             rewritten = response.text.strip()

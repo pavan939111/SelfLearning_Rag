@@ -185,12 +185,12 @@ class Agent4AFormulator:
             
             # Check for knowledge_drift at start
             if diagnosis and getattr(diagnosis, "root_cause", "") == "knowledge_drift":
-                self.logger.info("knowledge_drift detected — triggering live fetch")
+                self.logger.info("knowledge_drift detected - triggering live fetch")
                 live_result = self._handle_knowledge_drift(query, classification, retrieval_results)
                 res = FormulationResult(
                     original_query=query,
                     sub_queries=[],
-                    gaps_identified=["knowledge_drift — corpus stale"],
+                    gaps_identified=["knowledge_drift - corpus stale"],
                     strategy_explanation="Live fetch from PubMed API",
                     live_fetch_result=live_result,
                     used_live_fetch=True
@@ -257,7 +257,7 @@ class Agent4AFormulator:
                             f"Reply with ONLY the search query string."
                         )
                         response = client.models.generate_content(
-                            model="gemini-2.0-flash",
+                            model="gemini-flash-latest",
                             contents=prompt
                         )
                         sub_text = response.text.strip().strip('"\'')

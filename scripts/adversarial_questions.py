@@ -15,7 +15,7 @@ ADVERSARIAL_QUESTIONS = [
     "question": "What was approved by FDA for NSCLC last month?",
     "question_type": "temporal",
     "difficulty": "adversarial",
-    "note": "Tests live fetch — corpus cannot answer"
+    "note": "Tests live fetch - corpus cannot answer"
   },
   {
     "question": "What is the mechanism of acquired resistance to pembrolizumab?",
@@ -33,7 +33,7 @@ ADVERSARIAL_QUESTIONS = [
     "question": "What is the difference between SNP and indel?",
     "question_type": "comparative",
     "difficulty": "easy",
-    "note": "Baseline — should always pass"
+    "note": "Baseline - should always pass"
   },
   {
     "question": "Is CRISPR base editing approved for clinical use in 2024?",
@@ -57,6 +57,6 @@ ADVERSARIAL_QUESTIONS = [
     "question": "Compare overall survival benefit of pembrolizumab vs nivolumab vs atezolizumab in NSCLC",
     "question_type": "comparative",
     "difficulty": "adversarial",
-    "note": "Three-way comparison — tests parallel retrieval"
+    "note": "Three-way comparison - tests parallel retrieval"
   }
 ]

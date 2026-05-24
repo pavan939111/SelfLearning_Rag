@@ -11,7 +11,7 @@ def test_agent5a_verifier():
     verifier = Agent5AVerifier()
     
     # -------------------------------------------------------------------------
-    # TEST 1 — Topic cluster detection & Evidence mapping
+    # TEST 1 - Topic cluster detection & Evidence mapping
     # -------------------------------------------------------------------------
     print_section("TEST 1: Topic Cluster & Evidence Quality Mapping")
     
@@ -53,7 +53,7 @@ def test_agent5a_verifier():
     assert res2.ingestion_instructions.get("topic_cluster") == "drug_interactions", "Topic cluster must be 'drug_interactions'"
 
     # -------------------------------------------------------------------------
-    # TEST 2 — Corpus Relationship checks
+    # TEST 2 - Corpus Relationship checks
     # -------------------------------------------------------------------------
     print_section("TEST 2: Corpus Relationship & Rejections")
     
@@ -91,7 +91,7 @@ def test_agent5a_verifier():
     assert res_new_irrelevant.passed, "Newer irrelevant paper should pass because of year >= 2022 (freshness condition)"
 
     # -------------------------------------------------------------------------
-    # TEST 3 — Evidence Quality Mapping Check
+    # TEST 3 - Evidence Quality Mapping Check
     # -------------------------------------------------------------------------
     print_section("TEST 3: Cohort & Case Report mappings")
     
@@ -118,7 +118,7 @@ def test_agent5a_verifier():
     assert res_case.ingestion_instructions.get("evidence_level") == "case_report", "Evidence mapping for case report must be 'case_report'"
 
     # -------------------------------------------------------------------------
-    # TEST 4 — Contradiction Check (Gemini verification)
+    # TEST 4 - Contradiction Check (Gemini verification)
     # -------------------------------------------------------------------------
     print_section("TEST 4: Contradiction Check & Ingestion Instructions")
     
@@ -139,7 +139,7 @@ def test_agent5a_verifier():
     assert "priority" in res_con.ingestion_instructions, "Ingestion instructions must have priority key"
 
     # -------------------------------------------------------------------------
-    # TEST 5 — PaperRecord Object Verification
+    # TEST 5 - PaperRecord Object Verification
     # -------------------------------------------------------------------------
     print_section("TEST 5: PaperRecord Object Compatibility")
     

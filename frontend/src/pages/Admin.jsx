@@ -42,7 +42,7 @@ export default function Admin() {
             fontSize: '12px',
             marginTop: '4px',
           }}>
-            FailureRAG System Health and Operations
+            Self-Learning and Self-Healing RAG System Health and Operations
           </p>
         </div>
         <div style={{display:'flex', gap:'10px', alignItems:'center'}}>

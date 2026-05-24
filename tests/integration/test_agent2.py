@@ -56,9 +56,9 @@ def run_tests():
     print(f"  Average confidence: {total_conf/4:.2f}")
     
     if passed_count == 4:
-        print("\nPHASE 7 COMPLETE — Agent 2 Quality Gate Ready")
+        print("\nPHASE 7 COMPLETE - Agent 2 Quality Gate Ready")
     else:
-        print("\nPHASE 7 ISSUES — Check failed queries above")
+        print("\nPHASE 7 ISSUES - Check failed queries above")
 
 if __name__ == "__main__":
     run_tests()

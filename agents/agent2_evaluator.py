@@ -71,7 +71,7 @@ class Agent2Evaluator:
                     f"Is this text directly relevant to answering the query? Reply only YES or NO."
                 )
                 response = client.models.generate_content(
-                    model="gemini-2.0-flash",
+                    model="gemini-flash-latest",
                     contents=prompt
                 )
                 answer = response.text.strip().upper()
@@ -121,7 +121,7 @@ class Agent2Evaluator:
         try:
             client = genai.Client(api_key=get_gemini_key())
             response = client.models.generate_content(
-                model="gemini-2.0-flash",
+                model="gemini-flash-latest",
                 contents=prompt
             )
             text = response.text.strip()
@@ -251,7 +251,7 @@ class Agent2Evaluator:
             
         # Step 4: Fallback
         else:
-            self.logger.info(f"No Agent 6 calibration yet for {main_cluster} — using corpus count fallback")
+            self.logger.info(f"No Agent 6 calibration yet for {main_cluster} - using corpus count fallback")
             try:
                 from database.supabase_client import SupabaseManager
                 sb = SupabaseManager()
@@ -348,7 +348,7 @@ class Agent2Evaluator:
         try:
             client = genai.Client(api_key=get_gemini_key())
             response = client.models.generate_content(
-                model="gemini-2.0-flash",
+                model="gemini-flash-latest",
                 contents=prompt
             )
             text = response.text.strip()
@@ -469,8 +469,8 @@ class Agent2Evaluator:
                         step='verdict',
                         obs=f"Checks stopped early. Failed at {res.failed_check}",
                         thk="Blocking check failed. Evidence is insufficient. Entering repair cycle.",
-                        act="Trigger repair cycle → Agent 3",
-                        out="Agent 2 verdict: FAIL → Repair cycle",
+                        act="Trigger repair cycle -> Agent 3",
+                        out="Agent 2 verdict: FAIL -> Repair cycle",
                         confidence=res.calibrated_confidence
                     )
                     res.thought_traces = tl.get_traces()
@@ -514,8 +514,8 @@ class Agent2Evaluator:
                         step='verdict',
                         obs=f"Checks stopped early. Failed at {res.failed_check}",
                         thk="Blocking check failed. Evidence is insufficient. Entering repair cycle.",
-                        act="Trigger repair cycle → Agent 3",
-                        out="Agent 2 verdict: FAIL → Repair cycle",
+                        act="Trigger repair cycle -> Agent 3",
+                        out="Agent 2 verdict: FAIL -> Repair cycle",
                         confidence=res.calibrated_confidence
                     )
                     res.thought_traces = tl.get_traces()
@@ -537,10 +537,10 @@ class Agent2Evaluator:
                         f"Query requires_recent: {req_recent}. "
                         f"Chunk years: {sorted(set(getattr(r, 'year', 0) for r in clean_results), reverse=True)[:4]}",
                     thk=f"{'Temporal query needs fresh evidence' if req_recent else 'Non-temporal query, freshness less critical'}. "
-                        f"{'Chunks are sufficiently fresh' if avg_freshness > 0.6 else 'Many chunks are stale — live fetch may help'}. ",
+                        f"{'Chunks are sufficiently fresh' if avg_freshness > 0.6 else 'Many chunks are stale - live fetch may help'}. ",
                     act=f"{'Set live_fetch_needed=True' if not freshness_check.passed else 'No live fetch needed'}. "
                         f"Flag stale chunks for Agent 7",
-                    out=f"Freshness: {'PASS' if freshness_check.passed else 'FAIL — live fetch triggered'}. "
+                    out=f"Freshness: {'PASS' if freshness_check.passed else 'FAIL - live fetch triggered'}. "
                         f"Avg freshness: {avg_freshness:.2f}",
                     confidence=avg_freshness
                 )
@@ -557,7 +557,7 @@ class Agent2Evaluator:
                     step='check_calibration',
                     obs=f"Reading Agent 6 calibration for cluster '{tc}'. "
                         f"Sample size available in Supabase",
-                    thk=f"{'Using Agent 6 calibration curves — data driven' if 'Agent 6' in calibration_check.reason else 'No calibration data yet — using corpus count fallback'}. "
+                    thk=f"{'Using Agent 6 calibration curves - data driven' if 'Agent 6' in calibration_check.reason else 'No calibration data yet - using corpus count fallback'}. "
                         f"Expressed confidence should match actual pass rate. "
                         f"User feedback weighted 2x vs agent signal",
                     act=f"Set calibrated_confidence = {calibration_check.score:.2f}. "
@@ -581,11 +581,11 @@ class Agent2Evaluator:
                     obs=f"Scanning {len(clean_results)} chunks for "
                         f"conflicting claims. "
                         f"Checking cross-chunk consistency",
-                    thk=f"{'Multiple chunks from same cluster — contradiction possible' if len(clean_results) >= 3 else 'Too few chunks to detect contradiction'}. "
+                    thk=f"{'Multiple chunks from same cluster - contradiction possible' if len(clean_results) >= 3 else 'Too few chunks to detect contradiction'}. "
                         f"Contradictions should be surfaced to user not hidden",
                     act=f"Compare chunk pairs with Gemini Flash. "
                         f"Flag contradictions for Agent 7",
-                    out=f"Contradiction: {'DETECTED — flagged for Agent 7' if found_contra else 'None found'}. "
+                    out=f"Contradiction: {'DETECTED - flagged for Agent 7' if found_contra else 'None found'}. "
                         f"Score: {contradiction_check.score:.2f}",
                     confidence=contradiction_check.score
                 )
@@ -610,11 +610,11 @@ class Agent2Evaluator:
                     step='verdict',
                     obs=f"All checks complete. "
                         f"Results: {[c.check_name+':'+('P' if c.passed else 'F') for c in res.checks]}",
-                    thk=f"{'All checks passed — evidence is sufficient' if res.all_passed else f'Failed on {res.failed_check} — repair needed'}. "
+                    thk=f"{'All checks passed - evidence is sufficient' if res.all_passed else f'Failed on {res.failed_check} - repair needed'}. "
                         f"Calibrated confidence: {res.calibrated_confidence:.2f}. "
                         f"{'Proceeding to Agent 7' if res.all_passed else 'Entering repair cycle'}",
-                    act=f"{'Allow generation' if res.all_passed else 'Trigger repair cycle → Agent 3'}",
-                    out=f"Agent 2 verdict: {'PASS → Agent 7' if res.all_passed else 'FAIL → Repair cycle'}. "
+                    act=f"{'Allow generation' if res.all_passed else 'Trigger repair cycle -> Agent 3'}",
+                    out=f"Agent 2 verdict: {'PASS -> Agent 7' if res.all_passed else 'FAIL -> Repair cycle'}. "
                         f"Confidence: {res.calibrated_confidence:.2f}",
                     confidence=res.calibrated_confidence
                 )

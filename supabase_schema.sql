@@ -167,3 +167,22 @@ ADD COLUMN IF NOT EXISTS expected_citations integer,
 ADD COLUMN IF NOT EXISTS min_confidence float,
 ADD COLUMN IF NOT EXISTS requires_recent bool default false,
 ADD COLUMN IF NOT EXISTS known_answer_keywords text;
+
+-- ReAct Thought Traces
+CREATE TABLE IF NOT EXISTS public.thought_traces (
+  trace_id text primary key,
+  session_id text,
+  agent text,
+  step text,
+  obs text,
+  thk text,
+  act text,
+  out text,
+  confidence float,
+  duration_ms integer,
+  metadata jsonb,
+  created_at timestamptz default now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_thought_traces_session
+ON public.thought_traces(session_id);

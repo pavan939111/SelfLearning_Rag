@@ -3,7 +3,7 @@ from workers.celery_app import celery_app
 
 def main():
     print("=" * 60)
-    print(" Starting FailureRAG Celery Worker Node")
+    print(" Starting Self-Learning and Self-Healing RAG Celery Worker Node")
     print("=" * 60)
     print(" Listening on Queues: high_priority, medium_priority, low_priority")
     print(" Worker Concurrency: 2 (Optimized for Free-Tier APIs)")

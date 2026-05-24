@@ -137,7 +137,7 @@ def test_corpus_health():
         return False
 
 def main():
-    print("Starting FailureRAG API tests...\n")
+    print("Starting Self-Learning and Self-Healing RAG API tests...\n")
     
     results = {
         "Health": test_health(),
@@ -151,7 +151,7 @@ def main():
     
     print("\n" + "="*50)
     if not failed:
-        print("PHASE 10 COMPLETE - FailureRAG API Ready")
+        print("PHASE 10 COMPLETE - Self-Learning and Self-Healing RAG API Ready")
     else:
         print(f"PHASE 10 ISSUES - Failed tests: {', '.join(failed)}")
     print("="*50 + "\n")

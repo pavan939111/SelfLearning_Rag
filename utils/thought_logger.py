@@ -60,7 +60,7 @@ class ThoughtLogger:
         """
         Saves all traces to Supabase asynchronously.
         Call after pipeline completes.
-        Never crash — traces are non-critical.
+        Never crash - traces are non-critical.
         """
         try:
             rows = [

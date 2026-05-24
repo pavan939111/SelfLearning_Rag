@@ -90,7 +90,7 @@ Point out:
 ## Key Points to Emphasize
 
 **On self-healing:**
-"Standard RAG generates an answer whether or not the evidence is good. FailureRAG checks the evidence first. If it is bad it finds out why and tries to fix it before answering."
+"Standard RAG generates an answer whether or not the evidence is good. Self-Learning and Self-Healing RAG checks the evidence first. If it is bad it finds out why and tries to fix it before answering."
 
 **On self-learning:**
 "Agent 6 watches every query. After enough queries on the same topic it detects patterns, recalibrates confidence scores, and directs the corpus to grow toward what users actually ask about."
@@ -107,7 +107,7 @@ Point out:
 
 **"How is this different from standard RAG?"**
 Standard RAG: retrieve → generate → hope.
-FailureRAG: retrieve → verify → repair if needed → generate from verified evidence only.
+Self-Learning and Self-Healing RAG: retrieve → verify → repair if needed → generate from verified evidence only.
 
 **"What happens when Gemini quota runs out?"**
 The system falls back gracefully. Users get a low-confidence response with a note. The cache still serves repeat queries instantly. Nothing crashes.

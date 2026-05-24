@@ -1,4 +1,4 @@
-# FailureRAG — Architecture
+# Self-Learning and Self-Healing RAG — Architecture
 
 Technical reference for engineers who want to understand exactly how the system works.
 

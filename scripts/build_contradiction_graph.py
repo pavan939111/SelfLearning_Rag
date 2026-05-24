@@ -32,7 +32,7 @@ def check_contradiction(text1: str, text2: str) -> tuple[bool, float]:
         )
         
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-flash-latest",
             contents=prompt
         )
         text = response.text.strip()

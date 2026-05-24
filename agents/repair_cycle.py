@@ -167,7 +167,7 @@ class RepairCycle:
                         )
                     else:
                         self.logger.warning(
-                            "Live fetch failed — continuing with original chunks"
+                            "Live fetch failed - continuing with original chunks"
                         )
                     
                     # Continue to next iteration of cycle

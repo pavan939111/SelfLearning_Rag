@@ -73,21 +73,21 @@ Return this exact JSON structure:
 }}
 
 Rules for is_biomedical:
-  true  — question is about drugs, diseases, genes,
+  true  - question is about drugs, diseases, genes,
           clinical trials, pharmacology, genomics,
           medical treatments, biomarkers, or any
           biomedical research topic
-  false — question is about cooking, sports, politics,
+  false - question is about cooking, sports, politics,
           technology, entertainment, general science,
           math, history, or anything unrelated to
           biomedical research
 
 Rules for query_type (only if is_biomedical is true):
-  simple_factual — single concept lookup
-  multi_hop      — requires connecting multiple concepts
-  comparative    — comparing two or more things
-  temporal       — asks about current or recent state
-  exploratory    — open ended discovery
+  simple_factual - single concept lookup
+  multi_hop      - requires connecting multiple concepts
+  comparative    - comparing two or more things
+  temporal       - asks about current or recent state
+  exploratory    - open ended discovery
 
 Rules for requires_recent:
   true if query uses words like: current, latest,
@@ -97,7 +97,7 @@ Return ONLY the JSON object. No explanation."""
 
         try:
             response = client.models.generate_content(
-                model="gemini-2.0-flash",
+                model="gemini-flash-latest",
                 contents=prompt
             )
             text = response.text.strip()
@@ -516,7 +516,7 @@ class HybridRetriever:
             if is_temporal and (num_filtered_before_relax < 3 or len(results_to_return) < 3):
                 self.logger.info(
                     "Temporal query: insufficient corpus coverage"
-                    " — signaling immediate live fetch needed"
+                    " - signaling immediate live fetch needed"
                 )
                 
                 # Append LIVE_FETCH_SIGNAL sentinel dict to trigger immediate live fetch
@@ -541,7 +541,7 @@ class HybridRetriever:
                     obs=f"Searched {len(results_to_return)} chunks returned. "
                         f"Avg score: {avg_score:.3f}. "
                         f"Fresh chunks: {fresh_count}/{len(results_to_return)}",
-                    thk=f"{'Good coverage' if avg_score > 0.7 else 'Low similarity scores — sparse coverage'}. "
+                    thk=f"{'Good coverage' if avg_score > 0.7 else 'Low similarity scores - sparse coverage'}. "
                         f"{'Sufficient fresh evidence' if fresh_count >= 3 else 'Limited fresh chunks for temporal query'}. "
                         f"Strategy: {classification.query_type}",
                     act=f"Return top {len(results_to_return)} chunks after RRF+MMR. "
@@ -665,7 +665,7 @@ class Agent1Retrieval:
                 f"Return ONLY the rewritten query text."
             )
             response = client.models.generate_content(
-                model="gemini-2.0-flash",
+                model="gemini-flash-latest",
                 contents=prompt
             )
             return response.text.strip()

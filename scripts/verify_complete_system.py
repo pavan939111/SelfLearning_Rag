@@ -58,7 +58,7 @@ except Exception as e:
     print(f"Error initializing models: {e}")
 
 def check_1_db():
-    print_header("CHECK 1 — DATABASE CONNECTIONS")
+    print_header("CHECK 1 - DATABASE CONNECTIONS")
     results = {}
     try:
         q_ok = qdrant.test_connection()
@@ -91,7 +91,7 @@ def check_1_db():
     return (results['Qdrant'] and results['Supabase'] and results['Redis'])
 
 def check_2_corpus():
-    print_header("CHECK 2 — CORPUS STATE")
+    print_header("CHECK 2 - CORPUS STATE")
     passed = True
     try:
         doc_info = qdrant.client.get_collection(qdrant.COLLECTIONS["document"]) if qdrant.client else None
@@ -133,7 +133,7 @@ def check_2_corpus():
     return passed
 
 def check_3_ingestion():
-    print_header("CHECK 3 — INGESTION PIPELINE")
+    print_header("CHECK 3 - INGESTION PIPELINE")
     passed = True
     try:
         print("  a) PubMed Fetcher:")
@@ -186,7 +186,7 @@ def check_3_ingestion():
     return passed
 
 def check_4_agent1():
-    print_header("CHECK 4 — AGENT 1 RETRIEVAL")
+    print_header("CHECK 4 - AGENT 1 RETRIEVAL")
     passed = True
     try:
         print("  a) QueryClassifier:")
@@ -221,7 +221,7 @@ def check_4_agent1():
     return passed
 
 def check_5_agent2():
-    print_header("CHECK 5 — AGENT 2 QUALITY GATE")
+    print_header("CHECK 5 - AGENT 2 QUALITY GATE")
     passed = True
     try:
         print("  Query 1: 'pembrolizumab mechanism lung cancer'")
@@ -250,7 +250,7 @@ def check_5_agent2():
     return passed
 
 def check_6_repair_cycle():
-    print_header("CHECK 6 — A2->A3->A4A REPAIR CYCLE")
+    print_header("CHECK 6 - A2->A3->A4A REPAIR CYCLE")
     passed = True
     try:
         q = "long term survival pembrolizumab chemotherapy"
@@ -274,7 +274,7 @@ def check_6_repair_cycle():
     return passed
 
 def check_7_live_fetch():
-    print_header("CHECK 7 — LIVE FETCH LOOP")
+    print_header("CHECK 7 - LIVE FETCH LOOP")
     passed = True
     try:
         print("  a) LiveFetcher standalone:")
@@ -311,7 +311,7 @@ def check_7_live_fetch():
     return passed
 
 def check_8_agent7():
-    print_header("CHECK 8 — AGENT 7 GENERATION")
+    print_header("CHECK 8 - AGENT 7 GENERATION")
     passed = True
     try:
         print("  a) Single turn generation:")
@@ -338,7 +338,7 @@ def check_8_agent7():
     return passed
 
 def check_9_cache():
-    print_header("CHECK 9 — CACHE SYSTEM")
+    print_header("CHECK 9 - CACHE SYSTEM")
     passed = True
     try:
         print("  a) Cache miss:")
@@ -364,7 +364,7 @@ def check_9_cache():
     return passed
 
 def check_10_agent6():
-    print_header("CHECK 10 — AGENT 6 LONGITUDINAL LEARNING")
+    print_header("CHECK 10 - AGENT 6 LONGITUDINAL LEARNING")
     passed = True
     try:
         a6 = Agent6Learning()
@@ -383,7 +383,7 @@ def check_10_agent6():
     return passed
 
 def check_11_agent4b():
-    print_header("CHECK 11 — AGENT 4B BACKGROUND REPAIR")
+    print_header("CHECK 11 - AGENT 4B BACKGROUND REPAIR")
     passed = True
     try:
         print("  a) Celery app:")
@@ -406,7 +406,7 @@ def check_11_agent4b():
     return passed
 
 def check_12_admin():
-    print_header("CHECK 12 — ADMIN APPROVAL WORKFLOW")
+    print_header("CHECK 12 - ADMIN APPROVAL WORKFLOW")
     passed = True
     try:
         s = SupabaseManager()
@@ -428,7 +428,7 @@ def check_12_admin():
     return passed
 
 def check_13_feedback():
-    print_header("CHECK 13 — USER FEEDBACK SYSTEM")
+    print_header("CHECK 13 - USER FEEDBACK SYSTEM")
     passed = True
     try:
         from agents.agent6_learning import Agent6Learning
@@ -452,7 +452,7 @@ def check_13_feedback():
     return passed
 
 def check_14_agent6_dynamic():
-    print_header("CHECK 14 — AGENT 6 DYNAMIC CALIBRATION")
+    print_header("CHECK 14 - AGENT 6 DYNAMIC CALIBRATION")
     passed = True
     try:
         from agents.agent2_evaluator import Agent2Evaluator
@@ -473,7 +473,7 @@ def check_14_agent6_dynamic():
     return passed
 
 def check_15_strategy():
-    print_header("CHECK 15 — STRATEGY RECOMMENDATIONS")
+    print_header("CHECK 15 - STRATEGY RECOMMENDATIONS")
     passed = True
     try:
         from agents.agent6_learning import Agent6Learning
@@ -487,7 +487,7 @@ def check_15_strategy():
     return passed
 
 def check_16_config():
-    print_header("CHECK 16 — CONFIG OVERRIDE SYSTEM")
+    print_header("CHECK 16 - CONFIG OVERRIDE SYSTEM")
     passed = True
     try:
         from utils.config_overrides import apply_override, get_override
@@ -506,7 +506,7 @@ def check_16_config():
     return passed
 
 def check_17_agent4b_staging():
-    print_header("CHECK 17 — AGENT 4B STAGING")
+    print_header("CHECK 17 - AGENT 4B STAGING")
     passed = True
     try:
         from agents.agent4b_repair import Agent4BRepair

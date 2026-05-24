@@ -1,8 +1,8 @@
-# FailureRAG
+# Self-Learning and Self-Healing RAG
 
 **A biomedical research assistant that fixes its own mistakes.**
 
-Most AI assistants fail silently — they give you a confident wrong answer and you never know it was wrong. FailureRAG is different. When it cannot find good evidence, it diagnoses why, repairs itself, and tries again before giving you any answer.
+Most AI assistants fail silently — they give you a confident wrong answer and you never know it was wrong. Self-Learning and Self-Healing RAG is different. When it cannot find good evidence, it diagnoses why, repairs itself, and tries again before giving you any answer.
 
 Built on 1,767 PubMed papers across immunotherapy, drug interactions, and genomics.
 
@@ -30,6 +30,43 @@ graph LR
 ```
 
 The system never gives you an answer it has not verified first.
+
+---
+
+## System Architecture
+
+Two parallel loops run at all times:
+
+**Hot path** — synchronous, handles your query in real time (target: under 15 seconds)
+
+**Cold path** — asynchronous Celery workers, keeps the corpus healthy in the background
+
+```mermaid
+flowchart LR
+    subgraph HOT ["⚡ Hot Path — your query"]
+        H1[Agent 1\nRetrieval] --> H2[Agent 2\nQuality Gate]
+        H2 -->|pass| H7[Agent 7\nGenerator]
+        H2 -->|fail| H3[Agent 3\nDiagnosis]
+        H3 --> H4A[Agent 4A\nFormulator]
+        H4A --> H1
+    end
+
+    subgraph COLD ["🌙 Cold Path — background workers"]
+        C4B[Agent 4B\nCorpus Repair]
+        C5A[Agent 5A\nVerification]
+        C5B[Agent 5B\nIngestion]
+        C6[Agent 6\nLearning]
+    end
+
+    H2 -->|Class A/B failure| C4B
+    H7 --> C6
+    C6 -.->|calibration| H2
+    C6 -.->|TTL settings| CACHE[(Redis Cache)]
+    CACHE -.->|cache hit| H2
+
+    style HOT fill:#0a1a2a,stroke:#00d4ff
+    style COLD fill:#1a0a2a,stroke:#a855f7
+```
 
 ---
 
@@ -383,7 +420,7 @@ All on free tier. Zero monthly cost.
 ## Project Structure
 
 ```
-failurerag/
+selflearning_rag/
 ├── agents/          # The nine agents
 │   ├── models.py    # Shared data contracts (Pydantic)
 │   ├── agent1_retrieval.py

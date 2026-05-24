@@ -8,7 +8,7 @@ from agents.models import RetrievalResult
 
 class CacheManager:
     """
-    Semantic Cache Manager for FailureRAG.
+    Semantic Cache Manager for Self-Learning and Self-Healing RAG.
     Caches retrieved chunks using a SimHash of the query embedding.
     Never crashes, catching and logging all Redis-related errors.
     """

@@ -13,7 +13,7 @@ from ingestion.fetcher import PaperRecord
 class LiveFetchIngester:
     """
     Handles downstream background ingestion of papers retrieved dynamically from PubMed.
-    Normalizes PubMed articles into FailureRAG's 3-level vector hierarchy (excluding propositions)
+    Normalizes PubMed articles into Self-Learning and Self-Healing RAG's 3-level vector hierarchy (excluding propositions)
     and indexes them permanently.
     """
     def __init__(self):
@@ -109,7 +109,7 @@ class LiveFetchIngester:
             # Count total chunks across document, sections, semantic levels
             total_chunks = 0
             
-            # Skip propositions as requested: "Skip proposition level — too slow for background ingestion"
+            # Skip propositions as requested: "Skip proposition level - too slow for background ingestion"
             for level in ["document", "section", "semantic"]:
                 key = "sections" if level == "section" else level
                 chunks = result.get(key, [])

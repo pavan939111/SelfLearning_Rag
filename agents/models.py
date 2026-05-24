@@ -23,7 +23,7 @@ class ThoughtTrace(BaseModel):
     )
     metadata: dict = {}
 
-# ── AGENT 1 — RETRIEVAL ──────────────────────────
+# ── AGENT 1 - RETRIEVAL ──────────────────────────
 
 class QueryClassification(BaseModel):
     query: str
@@ -67,7 +67,7 @@ class SufficiencyResult(BaseModel):
     reason: str = ""
     suggestion: str = ""
 
-# ── AGENT 2 — QUALITY GATE ───────────────────────
+# ── AGENT 2 - QUALITY GATE ───────────────────────
 
 class EvaluationResult(BaseModel):
     check_name: str
@@ -92,7 +92,7 @@ class Agent2Result(BaseModel):
     retrieval_results: list[RetrievalResult] = []
     thought_traces: list[ThoughtTrace] = []
 
-# ── AGENT 3 — ROOT CAUSE ─────────────────────────
+# ── AGENT 3 - ROOT CAUSE ─────────────────────────
 
 class DiagnosisResult(BaseModel):
     failure_class: Literal['A', 'B', 'C']
@@ -102,7 +102,7 @@ class DiagnosisResult(BaseModel):
     route_to: Literal['4A', '4B', 'escalate']
     thought_traces: list[ThoughtTrace] = []
 
-# ── AGENT 4A — FORMULATOR ────────────────────────
+# ── AGENT 4A - FORMULATOR ────────────────────────
 
 class SubQuery(BaseModel):
     query_text: str
@@ -140,7 +140,7 @@ class CycleResult(BaseModel):
     agent4b_action: str = ""
     thought_traces: list[ThoughtTrace] = []
 
-# ── AGENT 5A — VERIFICATION ──────────────────────
+# ── AGENT 5A - VERIFICATION ──────────────────────
 
 class VerificationResult(BaseModel):
     paper_id: str
@@ -150,7 +150,7 @@ class VerificationResult(BaseModel):
     priority: Literal['high', 'medium', 'low'] = 'low'
     ingestion_instructions: dict = {}
 
-# ── AGENT 6 — LEARNING ───────────────────────────
+# ── AGENT 6 - LEARNING ───────────────────────────
 
 class FailurePattern(BaseModel):
     pattern_id: str
@@ -212,7 +212,7 @@ class StrategyRecommendation(BaseModel):
         'pending', 'approved', 'rejected'
     ] = 'pending'
 
-# ── AGENT 7 — GENERATOR ──────────────────────────
+# ── AGENT 7 - GENERATOR ──────────────────────────
 
 class ClaimProvenance(BaseModel):
     claim: str

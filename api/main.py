@@ -204,21 +204,21 @@ async def lifespan(app: FastAPI):
         )
         scheduler.start()
         
-        logger.info("FailureRAG API started")
+        logger.info("Self-Learning and Self-Healing RAG API started")
     except Exception as e:
         logger.error(f"Error during API startup: {e}")
         
     yield
     
     # Shutdown
-    logger.info("FailureRAG API shutting down. Closing connections cleanly...")
+    logger.info("Self-Learning and Self-Healing RAG API shutting down. Closing connections cleanly...")
     try:
         scheduler.shutdown()
         Neo4jManager().close()
     except Exception:
         pass
 
-app = FastAPI(title="FailureRAG API", lifespan=lifespan)
+app = FastAPI(title="Self-Learning and Self-Healing RAG API", lifespan=lifespan)
 
 # CORS
 app.add_middleware(

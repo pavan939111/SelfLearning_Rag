@@ -153,7 +153,7 @@ def run_tests():
             print(f"[WARNING] Failed to clear existing remote entries: {clear_err}")
 
     # =========================================================================
-    # TEST 1 — Observation accumulation
+    # TEST 1 - Observation accumulation
     # =========================================================================
     print_header("TEST 1: Observation Accumulation")
     
@@ -246,7 +246,7 @@ def run_tests():
     print("Test 1 PASSED")
 
     # =========================================================================
-    # TEST 2 — Pattern detection
+    # TEST 2 - Pattern detection
     # =========================================================================
     print_header("TEST 2: Pattern Detection")
     patterns = agent6.get_failure_patterns()
@@ -259,7 +259,7 @@ def run_tests():
     print("Test 2 PASSED")
 
     # =========================================================================
-    # TEST 3 — Coverage gap detection
+    # TEST 3 - Coverage gap detection
     # =========================================================================
     print_header("TEST 3: Coverage Gap Detection")
     gaps = agent6.get_coverage_gaps(min_query_count=1)
@@ -271,7 +271,7 @@ def run_tests():
     print("Test 3 PASSED")
 
     # =========================================================================
-    # TEST 4 — Calibration data
+    # TEST 4 - Calibration data
     # =========================================================================
     print_header("TEST 4: Calibration Data")
     for cluster in ["immunotherapy", "drug_interactions", "genomics"]:
@@ -282,7 +282,7 @@ def run_tests():
     print("Test 4 PASSED")
 
     # =========================================================================
-    # TEST 5 — Topic velocity
+    # TEST 5 - Topic velocity
     # =========================================================================
     print_header("TEST 5: Topic Velocity")
     cache = CacheManager()
@@ -296,7 +296,7 @@ def run_tests():
     print("Test 5 PASSED")
 
     # =========================================================================
-    # TEST 6 — Insight generation
+    # TEST 6 - Insight generation
     # =========================================================================
     print_header("TEST 6: Strategic Insight Generation")
     insights = agent6.generate_insights()
@@ -308,7 +308,7 @@ def run_tests():
     print("Test 6 PASSED")
 
     # =========================================================================
-    # TEST 7 — Admin endpoint uses Agent 6
+    # TEST 7 - Admin endpoint uses Agent 6
     # =========================================================================
     print_header("TEST 7: Admin Endpoint Stats integration")
     
@@ -346,7 +346,7 @@ def run_tests():
     for test_name, status in results_tracker.items():
         print(f"  {test_name.ljust(22)}: {status}")
         
-    print("\nPHASE 13 COMPLETE — Agent 6 Longitudinal Learning Ready")
+    print("\nPHASE 13 COMPLETE - Agent 6 Longitudinal Learning Ready")
 
 if __name__ == "__main__":
     run_tests()

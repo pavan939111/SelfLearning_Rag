@@ -49,7 +49,7 @@ class Agent7Generator:
         entities = getattr(classification, 'entities', [])
         query_type = getattr(classification, 'query_type', '')
         
-        # Table — comparative queries with 2+ entities
+        # Table - comparative queries with 2+ entities
         if query_type == 'comparative':
             if len(entities) >= 2:
                 return 'table'
@@ -61,7 +61,7 @@ class Agent7Generator:
             if any(w in query_lower for w in compare_words):
                 return 'table'
         
-        # List — explicit list requests
+        # List - explicit list requests
         list_words = [
             'list', 'what are the', 'enumerate',
             'give me all', 'name the', 'types of',
@@ -72,7 +72,7 @@ class Agent7Generator:
         if any(w in query_lower for w in list_words):
             return 'list'
         
-        # Summary — overview requests
+        # Summary - overview requests
         summary_words = [
             'summarize', 'summary', 'overview',
             'brief', 'outline', 'describe overall',
@@ -126,7 +126,7 @@ Rules:
 Format your response as a structured summary.
 
 Use this exact structure:
-**KEY FINDING:** [One sentence — the most important finding]
+**KEY FINDING:** [One sentence - the most important finding]
 
 **EVIDENCE:** 
 - [Supporting point 1 with citation]
@@ -136,7 +136,7 @@ Use this exact structure:
 **LIMITATIONS:**
 [What is not well-covered or uncertain]
 
-**CONFIDENCE:** [High/Medium/Low — based on evidence quality]
+**CONFIDENCE:** [High/Medium/Low - based on evidence quality]
 """
         else:  # prose
             return """
@@ -182,7 +182,7 @@ Return JSON array only:
 ]"""
             client = genai.Client(api_key=get_gemini_key())
             res = client.models.generate_content(
-                model="gemini-2.0-flash",
+                model="gemini-flash-latest",
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     temperature=0.1
@@ -240,7 +240,7 @@ No explanation."""
 
             client = genai.Client(api_key=get_gemini_key())
             res = client.models.generate_content(
-                model="gemini-2.0-flash",
+                model="gemini-flash-latest",
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     temperature=0.3
@@ -398,7 +398,7 @@ Answer:"""
             # Step 4: Generate with Gemini Flash
             client = genai.Client(api_key=get_gemini_key())
             response = client.models.generate_content(
-                model="gemini-2.0-flash",
+                model="gemini-flash-latest",
                 contents=full_prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=system_instruction

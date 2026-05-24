@@ -26,7 +26,7 @@ class PaperRecord:
     ingestion_date: str    # ISO format 2024-01-15
     freshness_score: float # always 1.0 for new papers
     contradiction_flag: bool  # always False for new papers
-    has_full_text: bool    # False for now — abstract only
+    has_full_text: bool    # False for now - abstract only
 
     def to_dict(self) -> dict:
         """Returns all fields as flat dictionary."""

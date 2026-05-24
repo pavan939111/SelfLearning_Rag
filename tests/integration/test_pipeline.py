@@ -76,9 +76,9 @@ def test_pipeline():
     # 4. Final Verdict
     print("\n" + "="*50)
     if all_passed:
-        print("PIPELINE READY — safe to run full ingestion")
+        print("PIPELINE READY - safe to run full ingestion")
     else:
-        print("PIPELINE FAILED — fix issues before full run")
+        print("PIPELINE FAILED - fix issues before full run")
     print("="*50 + "\n")
 
 if __name__ == "__main__":

@@ -41,7 +41,7 @@ try:
     key1 = cache._generate_cache_key(emb)
     key2 = cache._generate_cache_key(emb)
     assert key1 == key2, 'Keys not consistent'
-    print(f'CHECK 18 Fix: CacheManager OK — key={key1}')
+    print(f'CHECK 18 Fix: CacheManager OK - key={key1}')
 except Exception as e:
     print(f'CHECK 18 Still failing: {e}')
 

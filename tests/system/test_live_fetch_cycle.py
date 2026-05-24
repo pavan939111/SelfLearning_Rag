@@ -39,7 +39,7 @@ def main():
     temporal_classification = None
 
     # ==================================================
-    # TEST 1 — Agent 4A live fetch path
+    # TEST 1 - Agent 4A live fetch path
     # ==================================================
     print("\n--- TEST 1: Agent 4A Live PubMed Fetch Path ---")
     query_temp = "current immunotherapy treatment 2024 NSCLC"
@@ -118,7 +118,7 @@ def main():
         print(f"Test 1 failed with exception:\n{traceback.format_exc()}")
 
     # ==================================================
-    # TEST 2 — Full repair cycle with live fetch
+    # TEST 2 - Full repair cycle with live fetch
     # ==================================================
     print("\n--- TEST 2: Full Repair Cycle with Live Fetch ---")
     try:
@@ -197,7 +197,7 @@ def main():
         print(f"Test 2 failed with exception:\n{traceback.format_exc()}")
 
     # ==================================================
-    # TEST 3 — Agent 7 generates from fresh chunks
+    # TEST 3 - Agent 7 generates from fresh chunks
     # ==================================================
     print("\n--- TEST 3: Agent 7 Generation from Fresh Chunks ---")
     try:
@@ -225,7 +225,7 @@ def main():
         print(f"Test 3 failed with exception:\n{traceback.format_exc()}")
 
     # ==================================================
-    # TEST 4 — Non-temporal query unchanged
+    # TEST 4 - Non-temporal query unchanged
     # ==================================================
     print("\n--- TEST 4: Non-Temporal Query Path (Normal Retrieval) ---")
     query_normal = "what is pembrolizumab mechanism of action"
@@ -279,11 +279,11 @@ def main():
 
     all_passed = test1_success and test2_success and test3_success and test4_success
     if all_passed:
-        print("PHASE 11.5 COMPLETE — Live Fetch Loop Fully Closed")
+        print("PHASE 11.5 COMPLETE - Live Fetch Loop Fully Closed")
         sys.exit(0)
     else:
         failures = [k for k, v in results_summary.items() if v == "FAILED"]
-        print(f"PHASE 11.5 ISSUES — {', '.join(failures)}")
+        print(f"PHASE 11.5 ISSUES - {', '.join(failures)}")
         sys.exit(1)
 
 if __name__ == "__main__":

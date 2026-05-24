@@ -1,4 +1,4 @@
-# FailureRAG — Setup Guide
+# Self-Learning and Self-Healing RAG — Setup Guide
 
 ## What You Need
 
