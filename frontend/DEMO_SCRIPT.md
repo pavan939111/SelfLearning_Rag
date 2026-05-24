@@ -1,144 +1,116 @@
-# FailureRAG Demo Script
+# Demo Script — 7 Minutes
 
-## Setup (5 minutes before demo)
+## Setup (5 minutes before)
 
-1. Start backend:
-   uvicorn api.main:app --port 8000
+1. Start backend: `uvicorn api.main:app --port 8000`
+2. Start frontend: `cd frontend && npm run dev`
+3. Test Gemini quota works:
+```bash
+python -c "
+from google import genai
+from config import get_config
+c = get_config()
+client = genai.Client(api_key=c.gemini_api_key)
+r = client.models.generate_content(model='gemini-2.0-flash', contents='test')
+print('Quota OK')
+"
+```
+4. Open three tabs:
+   - http://localhost:5173/chat
+   - http://localhost:5173/transparency
+   - http://localhost:5173/admin
 
-2. Start frontend:
-   cd frontend && npm run dev
+---
 
-3. Open three browser tabs:
-   Tab 1: http://localhost:5173/chat
-   Tab 2: http://localhost:5173/transparency
-   Tab 3: http://localhost:5173/admin
+## Demo Flow
 
-4. Test Gemini quota:
-   python -c "
-   from google import genai
-   from config import get_config
-   c = get_config()
-   client = genai.Client(api_key=c.gemini_api_key)
-   r = client.models.generate_content(
-       model='gemini-2.0-flash', contents='test'
-   )
-   print('Quota OK:', r.text[:20])
-   "
+### Part 1 — Chat (2 minutes)
 
-## Demo Flow (7 minutes)
+**Query 1 — Simple question:**
+> "How does pembrolizumab work in treating lung cancer?"
 
-### Part 1 — Chat Interface (2 minutes)
+Point out:
+- Answer has inline citations like (Chen 2023)
+- Confidence bar shows color (green = high, yellow = medium)
+- Processing time in metadata
 
-Navigate to Tab 1 (/chat)
+**Query 2 — Same query again:**
+> (type exactly the same question)
 
-Query 1 — Simple factual:
-  "How does pembrolizumab work in treating lung cancer?"
-  
-  Show: Answer with inline citations (Author Year)
-  Point out: Confidence bar color
-  Point out: Processing time in metadata bar
-  Explain: "System evaluated 5 chunks before generating"
+Point out:
+- ⚡ cached badge — much faster
+- "The cache stores retrieved evidence, not the answer — Agent 7 always generates fresh so conversation context always works"
 
-Query 2 — Same query again:
-  Type same question and send
-  
-  Show: ⚡ cached badge — much faster response
-  Explain: "Semantic hash cache — 3.4x speedup"
-  Explain: "Cache stores chunks not answers —
-            Agent 7 always generates fresh"
+**Query 3 — Off-topic (shows domain validation):**
+> "What is the best recipe for pasta?"
+
+Point out:
+- System rejects with helpful message
+- Suggests relevant biomedical questions
+- "One Gemini call does both domain check and classification — no wasted API calls"
 
 ### Part 2 — Transparency Mode (3 minutes)
 
-Navigate to Tab 2 (/transparency)
+Go to /transparency tab.
 
-Query — Temporal (triggers repair cycle):
-  "What is the current standard treatment
-   for NSCLC in 2024?"
+**Query — Temporal (triggers repair cycle):**
+> "What is the current FDA approved treatment for NSCLC in 2024?"
 
-Watch center panel as cards appear:
-  [Cache] Miss — full retrieval
-  [Agent 1] Query classified: temporal
-  [Agent 2] Freshness check FAIL
-            "Only 1 of 5 chunks recent enough"
-  [Agent 3] Diagnosing... knowledge_drift
-  [Agent 4A] Live fetch from PubMed
-             "Found 3 recent papers (2024)"
-  [Agent 2] Re-evaluating merged chunks
-            All 5 checks PASS
-  [Agent 7] Generating with fresh citations
+Watch the center feed as cards appear:
 
-Point out:
-  - Right panel shows 1,767 documents indexed
-  - Agent 6 coverage gaps listed
-  - System healed itself in real time
+1. Cache check → miss
+2. Agent 1 → retrieval with score
+3. Agent 2 → freshness check FAIL (stale data for 2024 query)
+4. Agent 3 → diagnoses knowledge_drift
+5. Agent 4A → live PubMed fetch for 2024 papers
+6. Agent 2 → re-evaluates merged chunks → PASS
+7. Agent 7 → generates with 2024 citations
 
-### Part 3 — Structured Output (30 seconds)
+Say: "The system diagnosed that it had stale knowledge, fetched live papers from PubMed, merged them with the original evidence, and verified the combined set before generating. All in one request. The user never waited for any of this to be explained."
 
-Still in Transparency tab:
+**Turn on REASONING:**
+Click "REASONING ON" in the feed header.
+Click any agent card to expand OBS/THK/ACT/OUT.
 
-Query — Comparative:
-  "Compare pembrolizumab and nivolumab
-   in lung cancer treatment"
+Say: "Every decision the system makes is logged in this ReAct format. You can see exactly what it observed, what it reasoned, what it decided, and what happened. Full audit trail."
 
-Show: Response renders as comparison TABLE
-Point out: TABLE badge in metadata bar
-Explain: "System detects comparative queries
-          and formats as table automatically"
+### Part 3 — Admin Dashboard (2 minutes)
 
-### Part 4 — Admin Dashboard (1.5 minutes)
-
-Navigate to Tab 3 (/admin)
+Go to /admin tab.
 
 Point out:
-  Health dots — all 4 databases green
-  Corpus stats — 1,767 documents, 10,900 chunks
-  Benchmark — 86.7% baseline pass rate
-  Agent 6 insights — actionable recommendations
-  Pending approvals — repair queue for large changes
+- Health dots — all 4 databases green
+- 1,767 documents indexed, 22,600+ chunks
+- 86.7% baseline benchmark pass rate
+- Agent 6 coverage gaps — "these are topics users asked about that the corpus could not answer — they drive what papers get ingested next"
+- Pending repairs — "Agent 4B found corpus structure problems — these need approval before applying because they affect hundreds of papers"
 
-Explain:
-  "This shows the self-learning in action.
-   Every query makes the system smarter.
-   Coverage gaps drive which papers get ingested.
-   Confidence calibration improves over time."
+---
 
-## Key Talking Points
+## Key Points to Emphasize
 
-### On self-healing:
-"Normal RAG systems fail silently. FailureRAG fails loudly,
-diagnoses why, and fixes itself in the same request.
-The repair cycle is the core innovation."
+**On self-healing:**
+"Standard RAG generates an answer whether or not the evidence is good. FailureRAG checks the evidence first. If it is bad it finds out why and tries to fix it before answering."
 
-### On self-learning:
-"Agent 6 observes every query. After 20 completeness failures
-in immunotherapy it detects a systemic problem and surfaces
-it as an insight. The corpus grows toward what users actually ask."
+**On self-learning:**
+"Agent 6 watches every query. After enough queries on the same topic it detects patterns, recalibrates confidence scores, and directs the corpus to grow toward what users actually ask about."
 
-### On production quality:
-"Everything here runs on free tier. The architecture scales
-to millions of queries. Rate limiting, authentication, staging
-validation, admin approval — all built in."
+**On cost:**
+"Everything runs on free tier. Qdrant, Supabase, Neo4j, Redis — all free. The only limitation is Gemini API quota which is 1,500 requests per day on free tier."
 
-### On claim provenance:
-"Every fact in every answer links to the exact chunk
-that supports it. For biomedical applications where
-hallucination is dangerous — this is critical."
+**On transparency:**
+"Most AI systems are black boxes. Every decision this system makes is logged with the full reasoning. If it gets something wrong you can trace exactly why."
+
+---
 
 ## Questions to Anticipate
 
-Q: How is this different from standard RAG?
-A: Standard RAG retrieves and generates.
-   FailureRAG evaluates, diagnoses, repairs, and learns.
-   86.7% pass rate means 13% of queries triggered the
-   repair cycle and got better answers because of it.
+**"How is this different from standard RAG?"**
+Standard RAG: retrieve → generate → hope.
+FailureRAG: retrieve → verify → repair if needed → generate from verified evidence only.
 
-Q: What happens when Gemini quota is exhausted?
-A: System falls back gracefully. Users get honest
-   low-confidence responses. Never crashes.
-   Cache still serves repeat queries instantly.
+**"What happens when Gemini quota runs out?"**
+The system falls back gracefully. Users get a low-confidence response with a note. The cache still serves repeat queries instantly. Nothing crashes.
 
-Q: Can this scale to production?
-A: Celery workers scale horizontally.
-   Qdrant Cloud auto-scales.
-   The free tier limitation is Gemini API quota
-   which resolves with a paid plan.
+**"Can this scale to production?"**
+Celery workers scale horizontally. Qdrant Cloud auto-scales. The free tier limitation is Gemini quota — resolved with a paid plan.
