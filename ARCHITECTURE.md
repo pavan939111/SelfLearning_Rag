@@ -179,7 +179,7 @@ During retrieval, Agent 1 utilizes Neo4j to find hidden connections via citation
 ```mermaid
 flowchart TD
     classDef start fill:#e3f2fd,stroke:#42a5f5,stroke-width:2px,color:#000,rx:5px
-    classDef graph fill:#eceff1,stroke:#78909c,stroke-width:2px,color:#000,rx:5px
+    classDef kg fill:#eceff1,stroke:#78909c,stroke-width:2px,color:#000,rx:5px
     classDef process fill:#fff3e0,stroke:#ffa726,stroke-width:2px,color:#000,rx:5px
     classDef result fill:#e8f5e9,stroke:#66bb6a,stroke-width:2px,color:#000,rx:5px
 
@@ -188,9 +188,9 @@ flowchart TD
     CHUNK --> N4J{"Query Neo4j Graph\nFind 1-hop citations"}:::process
     
     subgraph GRAPH ["Knowledge Graph Expansion"]
-        N4J -->|"Cites"| REF["Reference Paper\n(Older foundational work)"]:::graph
-        N4J -->|"Cited By"| CIT["Citing Paper\n(Newer follow-up work)"]:::graph
-        N4J -->|"Contradicts"| CON["Contradicting Paper\n(Opposing findings)"]:::graph
+        N4J -->|"Cites"| REF["Reference Paper\n(Older foundational work)"]:::kg
+        N4J -->|"Cited By"| CIT["Citing Paper\n(Newer follow-up work)"]:::kg
+        N4J -->|"Contradicts"| CON["Contradicting Paper\n(Opposing findings)"]:::kg
     end
     
     REF --> EXTRACT["Extract chunks from neighboring papers"]:::process
