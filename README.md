@@ -14,51 +14,81 @@ Built on 1,767 PubMed papers across immunotherapy, drug interactions, and genomi
 This is the complete bird's-eye view of how the React frontend, FastAPI backend, 9 autonomous agents, and 4 specialized databases interact.
 
 ```mermaid
-flowchart TB
-    USER(("👤 User")) -->|1. Asks Medical Question| UI["React Frontend\n(Chat UI & Transparency Panel)"]
-    
-    UI -->|2. POST /chat| API["FastAPI Backend\n(Orchestration Layer)"]
-    API -.->|"3. Streams Thought Traces (SSE)"| UI
-    
-    subgraph HOT ["⚡ Hot Path (Real-Time Retrieval & Generation)"]
+flowchart TD
+    %% LAYER 1: UI
+    subgraph L1 ["🌐 Layer 1: User Experience"]
         direction TB
-        A1["🔍 Agent 1 (Finder)\nHybrid Search + Graph Expansion"] --> A2{"⚖️ Agent 2 (Inspector)\nRelevance & Freshness Gate"}
-        A2 -->|"Passes"| A7["✍️ Agent 7 (Writer)\nFormats Output & Citations"]
-        A2 -->|"Fails"| A3["🩺 Agent 3 (Detective)\nRoot Cause Diagnosis"]
-        A3 --> A4A["🎯 Agent 4A (Formulator)\nQuery Rewrite & Live Fetch"]
+        USER(("👤 User")) -->|"1. Asks Question"| UI["React Frontend\nChat Interface & Transparency Panel"]
+    end
+
+    %% LAYER 2: ROUTING & CLASSIFICATION
+    subgraph L2 ["🚦 Layer 2: Orchestration & Routing (FastAPI)"]
+        direction TB
+        API["API Gateway"]
+        CLASS{"🧠 Query Classifier\n(Domain Check)"}
+        REJECT["❌ Early Rejection\n(Out of scope)"]
+        CACHE{"⚡ Redis Semantic Cache"}
+        
+        API -->|"2. Process Query"| CLASS
+        CLASS -->|"Abnormal / Non-Medical"| REJECT
+        CLASS -->|"Valid Query"| CACHE
+    end
+
+    UI --> API
+    REJECT -.->|"Rejection Message"| UI
+
+    %% LAYER 3: HOT PATH
+    subgraph L3 ["⚡ Layer 3: Hot Path (Real-Time 9-Agent Pipeline)"]
+        direction TB
+        A1["🔍 Agent 1 (Finder)\nHybrid Search + Graph Expansion"]
+        A2{"⚖️ Agent 2 (Inspector)\nRelevance & Freshness Gate"}
+        A7["✍️ Agent 7 (Writer)\nFormats Output & Inlines Citations"]
+        
+        A3["🩺 Agent 3 (Detective)\nRoot Cause Diagnosis"]
+        A4A["🎯 Agent 4A (Formulator)\nQuery Rewrite & Live Fetch"]
+        
+        A1 --> A2
+        A2 -->|"Passes"| A7
+        A2 -->|"Fails"| A3
+        A3 --> A4A
         A4A -->|"Retries Search"| A1
     end
 
-    subgraph COLD ["🌙 Cold Path (Asynchronous Maintenance)"]
+    %% CACHE LOGIC
+    CACHE -->|"3a. Cache Miss\n(Triggers Pipeline)"| A1
+    CACHE -.->|"3b. Cache Hit\n(Bypasses Agent 1)"| A2
+
+    %% LAYER 4: COLD PATH
+    subgraph L4 ["🌙 Layer 4: Cold Path (Asynchronous Background Maintenance)"]
         direction TB
-        A4B["🔧 Agent 4B (Repair)\nFixes structural data issues"]
-        A5A["✅ Agent 5A (Verifier)\nValidates PubMed quality"]
-        A5B["📥 Agent 5B (Ingester)\nChunks and vectorizes"]
-        A6["🧠 Agent 6 (Learning)\nAdjusts system parameters"]
+        A4B["🔧 Agent 4B (Repair)\nFixes structural knowledge gaps"]
+        A5A["✅ Agent 5A (Verifier)\nFilters incoming PubMed papers"]
+        A5B["📥 Agent 5B (Ingester)\nChunks, embeds, and indexes data"]
+        A6["🧠 Agent 6 (Learning)\nAnalyzes telemetry & patterns"]
     end
 
-    subgraph DATABASES ["🗄️ Core Data Infrastructure"]
+    A3 -.->|"Class A/B Error\nTriggers Background Repair"| A4B
+
+    %% LAYER 5: DATABASES
+    subgraph L5 ["🗄️ Layer 5: Core Data Infrastructure"]
         direction LR
-        REDIS[("⚡ Upstash Redis\nSemantic Cache & Celery Task Queues")]
-        QDRANT[("🧠 Qdrant Cloud\nVector Embeddings (Hybrid Search)")]
-        NEO4J[("🕸️ Neo4j AuraDB\nCitation Knowledge Graph")]
-        SUPA[("📊 Supabase PostgreSQL\nSQL Telemetry & ReAct Thought Traces")]
+        REDIS[("⚡ Upstash Redis\n(Cache & Celery Queues)")]
+        QDRANT[("🧠 Qdrant Cloud\n(Vector Embeddings)")]
+        NEO4J[("🕸️ Neo4j AuraDB\n(Citation Knowledge Graph)")]
+        SUPA[("📊 Supabase PostgreSQL\n(SQL Telemetry & Thought Traces)")]
     end
 
-    API -->|4. Checks Cache| REDIS
-    REDIS -->|"5a. Cache Miss"| HOT
-    REDIS -.->|"5b. Cache Hit (Bypasses Agent 1)"| A2
+    %% DATABASE LINKS
+    CACHE -.->|"Reads / Writes"| REDIS
+    A1 <-->|"Queries"| QDRANT
+    A1 <-->|"Expands"| NEO4J
     
-    A1 <--> QDRANT
-    A1 <--> NEO4J
-    HOT <--> SUPA
+    L3 -.->|"Streams Thought Traces\nLogs Telemetry"| SUPA
+    A7 -->|"4. Final Answer Delivered"| UI
     
-    A3 -.->|"Triggers Background Repair"| REDIS
-    REDIS -.->|"Dispatches Task"| COLD
-    COLD <--> QDRANT
-    COLD <--> SUPA
-    
-    A7 -->|6. Final Answer| API
+    L4 <-->|"Reads / Updates"| QDRANT
+    L4 <-->|"Logs Operations"| SUPA
+    A6 -.->|"Updates Calibration"| A2
 ```
 
 ---
