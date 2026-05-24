@@ -12,21 +12,13 @@ Built on 1,767 PubMed papers across immunotherapy, drug interactions, and genomi
 
 ```mermaid
 graph LR
-    A[You ask a question] --> B[System finds evidence]
-    B --> C{Is the evidence good enough?}
-    C -->|Yes| D[Generate answer with citations]
-    C -->|No| E[Diagnose why it failed]
-    E --> F[Fix the problem]
+    A["👤 User: Asks a medical question"] --> B["🔍 System: Retrieves biomedical evidence"]
+    B --> C{"⚖️ Quality Gate:\nIs evidence relevant, complete, and fresh?"}
+    C -->|Yes: Evidence is solid| D["✍️ Generation:\nWrite answer with inline citations"]
+    C -->|No: Evidence is flawed| E["🩺 Diagnosis:\nAgent identifies root cause of failure"]
+    E --> F["🔧 Repair:\nAdjust query, fetch live data, and re-search"]
     F --> B
-    D --> G[You get a reliable answer]
-
-    style A fill:#1a2a4a,stroke:#4a9eff,color:#e8eef8
-    style B fill:#1a2a4a,stroke:#4a9eff,color:#e8eef8
-    style C fill:#2a2a1a,stroke:#ffd60a,color:#ffd60a
-    style D fill:#1a3a1a,stroke:#00e5a0,color:#00e5a0
-    style E fill:#2a2a1a,stroke:#ffd60a,color:#ffd60a
-    style F fill:#2a1a0a,stroke:#ff8c42,color:#ff8c42
-    style G fill:#1a3a1a,stroke:#00e5a0,color:#00e5a0
+    D --> G["✅ User: Receives a reliable, verified answer"]
 ```
 
 The system never gives you an answer it has not verified first.
@@ -43,29 +35,26 @@ Two parallel loops run at all times:
 
 ```mermaid
 flowchart LR
-    subgraph HOT ["⚡ Hot Path — your query"]
-        H1[Agent 1\nRetrieval] --> H2[Agent 2\nQuality Gate]
-        H2 -->|pass| H7[Agent 7\nGenerator]
-        H2 -->|fail| H3[Agent 3\nDiagnosis]
-        H3 --> H4A[Agent 4A\nFormulator]
-        H4A --> H1
+    subgraph HOT ["⚡ Synchronous Hot Path (Real-time Query Resolution)"]
+        H1["Agent 1 (Retrieval)\nVector & BM25 Search"] --> H2["Agent 2 (Quality Gate)\n5-Step Evidence Verification"]
+        H2 -->|"Passes Verification"| H7["Agent 7 (Generator)\nFormats Prose/Table/List"]
+        H2 -->|"Fails Verification"| H3["Agent 3 (Diagnosis)\nRoot Cause Analysis"]
+        H3 --> H4A["Agent 4A (Formulator)\nQuery Expansion & Live Fetch"]
+        H4A -->|"Retries Search"| H1
     end
 
-    subgraph COLD ["🌙 Cold Path — background workers"]
-        C4B[Agent 4B\nCorpus Repair]
-        C5A[Agent 5A\nVerification]
-        C5B[Agent 5B\nIngestion]
-        C6[Agent 6\nLearning]
+    subgraph COLD ["🌙 Asynchronous Cold Path (Background Maintenance)"]
+        C4B["Agent 4B (Repair)\nFixes structural corpus issues"]
+        C5A["Agent 5A (Verification)\nValidates PubMed papers"]
+        C5B["Agent 5B (Ingestion)\nChunks & embeds papers"]
+        C6["Agent 6 (Learning)\nAnalyzes telemetry & patterns"]
     end
 
-    H2 -->|Class A/B failure| C4B
-    H7 --> C6
-    C6 -.->|calibration| H2
-    C6 -.->|TTL settings| CACHE[(Redis Cache)]
-    CACHE -.->|cache hit| H2
-
-    style HOT fill:#0a1a2a,stroke:#00d4ff
-    style COLD fill:#1a0a2a,stroke:#a855f7
+    H2 -.->|"Triggers Class A/B Repair"| C4B
+    H7 -.->|"Logs Query Telemetry"| C6
+    C6 -.->|"Updates Topic Calibration"| H2
+    C6 -.->|"Adjusts Cache Expiry (TTL)"| CACHE[("Redis Semantic Cache")]
+    CACHE -.->|"Bypasses Retrieval on Hit"| H2
 ```
 
 ---
@@ -87,38 +76,27 @@ Think of it as a team of specialists, each with one job:
 
 ```mermaid
 flowchart TD
-    USER([You ask a question]) --> A1
+    USER(["👤 User Query: e.g. 'How does pembrolizumab work?'"]) --> A1
 
-    subgraph HOT ["⚡ Answering your question — happens in real time"]
-        A1["🔍 Agent 1 — Finder\nSearches 22,600+ research chunks\nUses 5 different search strategies"]
-        A1 --> A2["🔬 Agent 2 — Inspector\nChecks if evidence is good enough\nRuns 5 quality tests before generating"]
-        A2 -->|Evidence passes| A7["✍️ Agent 7 — Writer\nGenerates answer with citations\nShows confidence score"]
-        A2 -->|Evidence fails| RC["🔄 Repair Team\nAgent 3 + Agent 4A\nDiagnoses and fixes the problem"]
-        RC --> A1
+    subgraph HOT ["⚡ Hot Path: Answering your question in real time"]
+        A1["🔍 Agent 1 (Finder)\nScans 22,600+ chunks\nUses dense/sparse hybrid search"]
+        A1 --> A2["⚖️ Agent 2 (Inspector)\nStrictly verifies evidence quality\nChecks relevance & freshness"]
+        A2 -->|"Evidence Approved"| A7["✍️ Agent 7 (Writer)\nDrafts response\nEmbeds specific citations"]
+        A2 -->|"Evidence Rejected"| RC["🔄 Repair Team (Agents 3 & 4A)\nDiagnoses search failures\nFetches new data if needed"]
+        RC -->|"Retries Search"| A1
     end
 
-    subgraph COLD ["🌙 Running in background — keeps system healthy"]
-        A4B["🔧 Agent 4B\nFixes corpus problems\nasync — never slows you down"]
-        A5A["✅ Agent 5A\nVerifies new papers\nbefore adding to corpus"]
-        A5B["📥 Agent 5B\nAdds new papers\nto the knowledge base"]
-        A6["🧠 Agent 6\nLearns from every query\nMakes system smarter over time"]
+    subgraph COLD ["🌙 Cold Path: Keeping the system healthy in background"]
+        A4B["🔧 Agent 4B\nResolves deep knowledge gaps"]
+        A5A["✅ Agent 5A\nFilters incoming PubMed papers"]
+        A5B["📥 Agent 5B\nIndexes verified biomedical papers"]
+        A6["🧠 Agent 6\nLearns from query success rates"]
     end
 
-    A7 --> ANSWER([You get a reliable answer])
-    A7 --> A6
-    A6 -.->|Improves search| A1
-    A6 -.->|Improves confidence| A2
-
-    style USER fill:#0f2a1a,stroke:#00e5a0,color:#00e5a0
-    style ANSWER fill:#0f2a1a,stroke:#00e5a0,color:#00e5a0
-    style A1 fill:#1a2a4a,stroke:#4a9eff,color:#4a9eff
-    style A2 fill:#1a3a4a,stroke:#00d4ff,color:#00d4ff
-    style A7 fill:#1a3a1a,stroke:#00e5a0,color:#00e5a0
-    style RC fill:#2a1a0a,stroke:#ff8c42,color:#ff8c42
-    style A4B fill:#2a1a2a,stroke:#a855f7,color:#a855f7
-    style A5A fill:#1a2a3a,stroke:#60a5fa,color:#60a5fa
-    style A5B fill:#1a3a3a,stroke:#34d399,color:#34d399
-    style A6 fill:#3a1a3a,stroke:#e879f9,color:#e879f9
+    A7 --> ANSWER(["✅ Final Answer Delivered\nIncludes confidence score"])
+    A7 -.->|"Sends interaction data"| A6
+    A6 -.->|"Optimizes future searches"| A1
+    A6 -.->|"Improves confidence scoring"| A2
 ```
 
 ---
@@ -129,31 +107,22 @@ This is the most important part — the self-healing repair cycle:
 
 ```mermaid
 flowchart TD
-    FAIL(["❌ Agent 2 says:\nevidence is not good enough"]) --> A3
+    FAIL(["❌ Agent 2 Rejection:\n'Evidence does not fully answer the question'"]) --> A3
 
-    A3["🔍 Agent 3 — Detective\nRuns 5 diagnostic tests\nFinds the root cause"]
+    A3["🔍 Agent 3 (Detective)\nRuns 5 automated diagnostic tests to find the root cause"]
 
-    A3 -->|"Problem: Wrong search strategy\nor filters too strict"| A4A
-    A3 -->|"Problem: Knowledge is outdated\nor missing from corpus"| EXIT
+    A3 -->|"Cause: Search strategy was too narrow"| A4A
+    A3 -->|"Cause: Information is completely missing"| EXIT
 
-    A4A["🎯 Agent 4A — Strategist\nRe-thinks the search approach\nFormulates better targeted queries\nMerges new evidence with original"]
+    A4A["🎯 Agent 4A (Strategist)\nGenerates sub-queries to fill knowledge gaps\nFetches recent PubMed articles if data is stale"]
 
-    EXIT["📤 Queue Agent 4B\nFix the corpus in background\nYou still get an answer now"]
+    EXIT["📤 Queue Agent 4B\nSchedules background corpus repair\n(System will answer based on partial data)"]
 
-    A4A --> RETRY["🔄 Try Again\nSearch with new strategy\nMerge with original evidence"]
-    RETRY --> CHECK["🔬 Agent 2 checks again\nDid the new evidence help?"]
+    A4A --> RETRY["🔄 Second Attempt\nExecutes new search strategy\nMerges new findings with original evidence"]
+    RETRY --> CHECK["⚖️ Agent 2 Re-evaluation\n'Does the merged evidence pass now?'"]
 
-    CHECK -->|"Yes — evidence is good now"| GEN["✍️ Agent 7 generates\nyour answer"]
-    CHECK -->|"Still not good after 2 tries"| HONEST["✍️ Agent 7 generates\nwith honest note:\nsome aspects not covered"]
-
-    style FAIL fill:#3a1a1a,stroke:#ff4d6d,color:#ff4d6d
-    style A3 fill:#2a2a1a,stroke:#ffd60a,color:#ffd60a
-    style A4A fill:#2a1a0a,stroke:#ff8c42,color:#ff8c42
-    style EXIT fill:#2a1a2a,stroke:#a855f7,color:#a855f7
-    style RETRY fill:#1a2a4a,stroke:#4a9eff,color:#4a9eff
-    style CHECK fill:#1a3a4a,stroke:#00d4ff,color:#00d4ff
-    style GEN fill:#1a3a1a,stroke:#00e5a0,color:#00e5a0
-    style HONEST fill:#2a2a1a,stroke:#ffd60a,color:#ffd60a
+    CHECK -->|"Passes"| GEN["✍️ Agent 7 generates complete answer"]
+    CHECK -->|"Still Fails"| HONEST["✍️ Agent 7 generates partial answer\nTransparently explains what is missing"]
 ```
 
 **The key insight:** The system tries twice, merges the best evidence from both attempts, and always tells you honestly what it could and could not find.
@@ -166,25 +135,23 @@ Agent 6 watches every query and learns from the results:
 
 ```mermaid
 flowchart LR
-    subgraph INPUTS ["What Agent 6 observes"]
-        I1["Every query result\n✓ or ✗"]
-        I2["User feedback\n👍 or 👎"]
-        I3["Weekly benchmark\nscores"]
+    subgraph INPUTS ["Data Sources (What Agent 6 observes)"]
+        I1["Query Outcomes (Pass/Fail)"]
+        I2["User Feedback (Thumbs up/down)"]
+        I3["Weekly Automated Benchmark Scores"]
     end
 
-    A6(["🧠 Agent 6\nLearning Engine"])
+    A6(["🧠 Agent 6 (Longitudinal Learning Engine)"])
 
-    subgraph OUTPUTS ["How it improves the system"]
-        O1["Adjusts confidence scores\nso they match reality"]
-        O2["Tracks knowledge gaps\nto fill them with new papers"]
-        O3["Controls cache expiry\nfast-changing topics expire sooner"]
-        O4["Recommends parameter changes\nfor admin to approve"]
+    subgraph OUTPUTS ["System Optimizations (How it improves)"]
+        O1["Recalibrates confidence scores to match reality"]
+        O2["Identifies knowledge gaps for Agent 5A to fill"]
+        O3["Adjusts cache expiry (fast-changing topics expire sooner)"]
+        O4["Generates actionable recommendations for human admins"]
     end
 
     INPUTS --> A6
     A6 --> OUTPUTS
-
-    style A6 fill:#3a1a3a,stroke:#e879f9,color:#e879f9
 ```
 
 **Result:** The 86.7% baseline pass rate improves automatically every week as the system learns from real usage.
@@ -197,42 +164,30 @@ Agent 2 runs 5 checks on retrieved evidence **before** writing a single word of 
 
 ```mermaid
 flowchart LR
-    IN(["Retrieved\nevidence"]) --> C1
+    IN(["Raw Retrieved Evidence\n(From Vector Database)"]) --> C1
 
-    C1{"Check 1\nIs it relevant\nto the question?"}
-    C1 -->|No| STOP1["❌ Stop\nEnter repair cycle"]
-    C1 -->|Yes| C2
+    C1{"Check 1: Relevance\nDoes it address the core topic?"}
+    C1 -->|"Irrelevant"| STOP1["❌ Blocking Failure\nTrigger Repair Cycle"]
+    C1 -->|"Relevant"| C2
 
-    C2{"Check 2\nDoes it fully\nanswer the question?"}
-    C2 -->|No| STOP2["❌ Stop\nEnter repair cycle"]
-    C2 -->|Yes| C3
+    C2{"Check 2: Completeness\nAre all query aspects covered?"}
+    C2 -->|"Incomplete"| STOP2["❌ Blocking Failure\nTrigger Repair Cycle"]
+    C2 -->|"Complete"| C3
 
-    C3{"Check 3\nIs it fresh enough\nfor this topic?"}
-    C3 -->|No| FLAG1["⚠️ Flag it\nFetch live from PubMed"]
-    C3 -->|Yes| C4
+    C3{"Check 3: Freshness\nIs the data recent enough?"}
+    C3 -->|"Stale Data"| FLAG1["⚠️ Non-Blocking Flag\nTrigger Live PubMed Fetch"]
+    C3 -->|"Fresh"| C4
     FLAG1 --> C4
 
-    C4{"Check 4\nWhat confidence\nshould we express?"}
+    C4{"Check 4: Calibration\nCalculate dynamic confidence interval"}
     C4 --> C5
 
-    C5{"Check 5\nDo any sources\ncontradict each other?"}
-    C5 -->|Yes| FLAG2["⚠️ Flag it\nTell user about conflict"]
-    C5 -->|No| OUT
+    C5{"Check 5: Contradiction\nDo the papers disagree?"}
+    C5 -->|"Conflict Found"| FLAG2["⚠️ Non-Blocking Flag\nSurface conflict in final answer"]
+    C5 -->|"Consensus"| OUT
     FLAG2 --> OUT
 
-    OUT(["✓ Evidence approved\nGenerate answer"])
-
-    style IN fill:#1a2a4a,stroke:#4a9eff,color:#4a9eff
-    style C1 fill:#1a3a4a,stroke:#00d4ff,color:#00d4ff
-    style C2 fill:#1a3a4a,stroke:#00d4ff,color:#00d4ff
-    style C3 fill:#1a3a4a,stroke:#00d4ff,color:#00d4ff
-    style C4 fill:#1a3a4a,stroke:#00d4ff,color:#00d4ff
-    style C5 fill:#1a3a4a,stroke:#00d4ff,color:#00d4ff
-    style STOP1 fill:#3a1a1a,stroke:#ff4d6d,color:#ff4d6d
-    style STOP2 fill:#3a1a1a,stroke:#ff4d6d,color:#ff4d6d
-    style FLAG1 fill:#2a1a0a,stroke:#ff8c42,color:#ff8c42
-    style FLAG2 fill:#2a1a0a,stroke:#ff8c42,color:#ff8c42
-    style OUT fill:#1a3a1a,stroke:#00e5a0,color:#00e5a0
+    OUT(["✅ Evidence Fully Approved\nProceed to Answer Generation"])
 ```
 
 Checks 1 and 2 are **blocking** — if they fail the system repairs and tries again.
@@ -246,42 +201,31 @@ Not every paper gets added. Agent 5A applies strict rules:
 
 ```mermaid
 flowchart TD
-    SOURCES(["PubMed · arXiv\nbioRxiv · Semantic Scholar"])
-    SOURCES --> GATE
+    SOURCES(["External Literature:\nPubMed, arXiv, Semantic Scholar"]) --> GATE
 
-    GATE["Agent 5A — Verification Gate\nEvery paper must pass 4 checks"]
+    GATE["Agent 5A (Verification Gate)\nEnsures only high-quality papers enter"]
 
-    GATE --> R1{"Is it biomedical?\nDomain check"}
-    R1 -->|No| DISCARD1(["❌ Discard"])
-    R1 -->|Yes| R2
+    GATE --> R1{"Domain Check\nIs it biomedical?"}
+    R1 -->|"No"| DISCARD1(["❌ Rejected: Out of scope"])
+    R1 -->|"Yes"| R2
 
-    R2{"Does it fill a gap\nor correct something?"}
-    R2 -->|No| DISCARD2(["❌ Discard"])
-    R2 -->|Yes| R3
+    R2{"Utility Check\nDoes it fill a known gap?"}
+    R2 -->|"No"| DISCARD2(["❌ Rejected: Redundant"])
+    R2 -->|"Yes"| R3
 
-    R3{"Is it quality evidence?\nRCT · Review · Cohort?"}
+    R3{"Quality Check\nIs it an RCT or peer-reviewed?"}
     R3 --> R4
 
-    R4{"Citation velocity check\nSemantic Scholar API\n50+ citations = important"}
+    R4{"Impact Check\nHigh citation velocity? (>50 citations)"}
 
-    R4 --> RULE{"Any rule matched?"}
-    RULE -->|None matched| DISCARD3(["❌ Discard"])
-    RULE -->|At least one| CHUNK
+    R4 --> RULE{"Did it pass all strict rules?"}
+    RULE -->|"Failed"| DISCARD3(["❌ Rejected: Low impact"])
+    RULE -->|"Passed"| CHUNK
 
-    CHUNK["Agent 5B — Chunker\nSplit into 4 levels\nDocument → Section → Chunk → Claim"]
-    CHUNK --> STAGE["Staging validation\n3 test queries must pass\nBefore production"]
-    STAGE -->|Fails| ROLLBACK(["❌ Rollback"])
-    STAGE -->|Passes| LIVE(["✓ Added to corpus"])
-
-    style SOURCES fill:#1a2a3a,stroke:#60a5fa,color:#60a5fa
-    style GATE fill:#1a2a3a,stroke:#60a5fa,color:#60a5fa
-    style DISCARD1 fill:#3a1a1a,stroke:#ff4d6d,color:#ff4d6d
-    style DISCARD2 fill:#3a1a1a,stroke:#ff4d6d,color:#ff4d6d
-    style DISCARD3 fill:#3a1a1a,stroke:#ff4d6d,color:#ff4d6d
-    style ROLLBACK fill:#3a1a1a,stroke:#ff4d6d,color:#ff4d6d
-    style CHUNK fill:#1a3a3a,stroke:#34d399,color:#34d399
-    style STAGE fill:#2a2a1a,stroke:#ffd60a,color:#ffd60a
-    style LIVE fill:#1a3a1a,stroke:#00e5a0,color:#00e5a0
+    CHUNK["Agent 5B (Chunker)\nSplits into 4 hierarchies:\nDocument -> Section -> Chunk -> Fact Claim"]
+    CHUNK --> STAGE["Staging Database\nMust pass 3 synthetic test queries"]
+    STAGE -->|"Fails Tests"| ROLLBACK(["❌ Rollback: Discarded"])
+    STAGE -->|"Passes Tests"| LIVE(["✅ Promoted to Production Vector Database"])
 ```
 
 ---
@@ -290,38 +234,31 @@ flowchart TD
 
 ```mermaid
 flowchart TB
-    subgraph Q ["🗄️ Qdrant Cloud — finds relevant research"]
-        Q1["Document level\n1,500 papers"]
-        Q2["Section level\n4,700 sections"]
-        Q3["Chunk level\n10,900 passages"]
-        Q4["Claim level\n5,500 facts"]
+    subgraph Q ["🗄️ Qdrant Cloud (Vector Database for Neural Search)"]
+        Q1["Document Level: 1,500 full papers"]
+        Q2["Section Level: 4,700 contextual sections"]
+        Q3["Chunk Level: 10,900 searchable passages"]
+        Q4["Claim Level: 5,500 specific factual claims"]
     end
 
-    subgraph S ["📊 Supabase — tracks everything that happens"]
-        S1["Ingestion logs"]
-        S2["Failure + repair history"]
-        S3["Agent 6 learning data"]
-        S4["Benchmark results"]
-        S5["User feedback"]
-        S6["Reasoning traces"]
+    subgraph S ["📊 Supabase PostgreSQL (Relational Data & Telemetry)"]
+        S1["Ingestion logs & paper metadata"]
+        S2["Failure rates & repair history"]
+        S3["Agent 6 learning metrics"]
+        S4["ReAct thought traces (OBS/THK/ACT/OUT)"]
     end
 
-    subgraph N ["🕸️ Neo4j — knows how papers relate"]
-        N1["1,767 paper nodes"]
-        N2["Citation relationships"]
-        N3["Contradiction relationships"]
+    subgraph N ["🕸️ Neo4j AuraDB (Knowledge Graph)"]
+        N1["1,767 Paper Nodes"]
+        N2["Citation & Reference Edges"]
+        N3["Contradiction & Agreement Edges"]
     end
 
-    subgraph R ["⚡ Redis — makes things fast"]
-        R1["Query cache\n3.4× speedup"]
-        R2["Conversation memory\n6 turns"]
-        R3["Background job queues"]
+    subgraph R ["⚡ Upstash Redis (High-Speed Caching & Queues)"]
+        R1["Semantic Cache (SimHash) - 3.4x speedup"]
+        R2["Conversation Context Memory (last 6 turns)"]
+        R3["Celery Background Job Queues"]
     end
-
-    style Q fill:#0a1a2a,stroke:#00d4ff
-    style S fill:#0a1a0a,stroke:#00e5a0
-    style N fill:#0a0a2a,stroke:#4a9eff
-    style R fill:#1a0a0a,stroke:#ff8c42
 ```
 
 ---
@@ -341,7 +278,7 @@ Agent 2 — Inspector
   OBS  5 chunks. Avg relevance 0.89. All mention PD-1 pathway.
   THK  Good relevance. Completeness checks out. Freshness OK.
   ACT  All 5 checks pass. Confidence calibrated to 0.82.
-  OUT  PASS → Agent 7 can generate.
+  OUT  PASS -> Agent 7 can generate.
 
 Agent 7 — Writer
   OBS  5 verified chunks. Confidence 0.82. Format: prose.
