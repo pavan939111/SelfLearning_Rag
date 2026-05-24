@@ -4,6 +4,7 @@ from config import get_config
 from utils.logger import get_logger
 from utils.llm_utils import get_gemini_key
 from agents.agent1_retrieval import QueryClassifier, MetadataPreFilter
+from utils.thought_logger import ThoughtLogger
 
 from agents.models import (
     SubQuery, LiveFetchResult, FormulationResult,
@@ -180,11 +181,13 @@ class Agent4AFormulator:
         self.logger.info("Starting Agent 4A Formulation...")
         
         try:
+            tl = ThoughtLogger(session_id='', agent='agent4a')
+            
             # Check for knowledge_drift at start
             if diagnosis and getattr(diagnosis, "root_cause", "") == "knowledge_drift":
                 self.logger.info("knowledge_drift detected — triggering live fetch")
                 live_result = self._handle_knowledge_drift(query, classification, retrieval_results)
-                return FormulationResult(
+                res = FormulationResult(
                     original_query=query,
                     sub_queries=[],
                     gaps_identified=["knowledge_drift — corpus stale"],
@@ -192,6 +195,19 @@ class Agent4AFormulator:
                     live_fetch_result=live_result,
                     used_live_fetch=True
                 )
+                try:
+                    tl.trace(
+                        step='formulate',
+                        obs="Diagnosis is knowledge_drift. Local corpus is stale.",
+                        thk="External live fetch is required to gather fresh evidence.",
+                        act="Trigger PubMed E-utilities live fetch. Queue background ingestion.",
+                        out=f"Live fetch returned {live_result.papers_fetched} papers. "
+                            f"{'Success' if live_result.success else 'Failed'}",
+                        confidence=0.9
+                    )
+                    res.thought_traces = tl.get_traces()
+                except Exception: pass
+                return res
                 
             # Step 1: Gap Analysis
             # Try to get gaps from Agent 2 completeness check first
@@ -284,12 +300,25 @@ class Agent4AFormulator:
                     target_gap="General broadening of the original query"
                 ))
                 
-            return FormulationResult(
+            res = FormulationResult(
                 original_query=query,
                 sub_queries=sub_queries,
                 gaps_identified=gaps,
                 strategy_explanation=f"Formulated {len(sub_queries)} targeted sub-queries to resolve diagnosis: {diagnosis.root_cause if diagnosis else 'unknown'}"
             )
+            try:
+                tl.trace(
+                    step='formulate',
+                    obs=f"Gap analysis identified {len(gaps)} gaps. "
+                        f"Diagnosis: {diagnosis.root_cause if diagnosis else 'unknown'}.",
+                    thk="Internal corpus search is viable. Breaking down gaps into precise sub-queries.",
+                    act=f"Formulate {len(sub_queries)} sub-queries via Gemini.",
+                    out=f"Sub-queries generated: {[q.query_text for q in sub_queries]}",
+                    confidence=0.85
+                )
+                res.thought_traces = tl.get_traces()
+            except Exception: pass
+            return res
             
         except Exception as e:
             self.logger.error(f"Agent 4A encountered an unexpected error: {e}")

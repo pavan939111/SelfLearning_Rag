@@ -3,6 +3,26 @@ from typing import Literal, Optional
 from datetime import datetime
 import uuid
 
+# ── THOUGHT TRACES ─────────────────────────────────
+
+class ThoughtTrace(BaseModel):
+    trace_id: str = Field(
+        default_factory=lambda: str(uuid.uuid4())[:8]
+    )
+    session_id: str = ''
+    agent: str                    # agent1, agent2, etc.
+    step: str                     # classify, retrieve, evaluate etc.
+    obs: str                      # what the agent observed
+    thk: str                      # what it reasoned
+    act: str                      # what action it decided
+    out: str                      # what the outcome was
+    confidence: float = Field(default=0.0, ge=0.0, le=1.0)
+    duration_ms: int = 0
+    timestamp: str = Field(
+        default_factory=lambda: datetime.now().isoformat()
+    )
+    metadata: dict = {}
+
 # ── AGENT 1 — RETRIEVAL ──────────────────────────
 
 class QueryClassification(BaseModel):
@@ -70,6 +90,7 @@ class Agent2Result(BaseModel):
     live_fetch_needed: bool = False
     coverage_gaps: list[str] = []
     retrieval_results: list[RetrievalResult] = []
+    thought_traces: list[ThoughtTrace] = []
 
 # ── AGENT 3 — ROOT CAUSE ─────────────────────────
 
@@ -79,8 +100,7 @@ class DiagnosisResult(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0)
     evidence: str = ""
     route_to: Literal['4A', '4B', 'escalate']
-    
-    model_config = ConfigDict(frozen=True)
+    thought_traces: list[ThoughtTrace] = []
 
 # ── AGENT 4A — FORMULATOR ────────────────────────
 
@@ -118,6 +138,7 @@ class CycleResult(BaseModel):
     diagnosis_history: list[DiagnosisResult] = []
     all_chunks_seen: list[RetrievalResult] = []
     agent4b_action: str = ""
+    thought_traces: list[ThoughtTrace] = []
 
 # ── AGENT 5A — VERIFICATION ──────────────────────
 
@@ -219,6 +240,7 @@ class GeneratedResponse(BaseModel):
     ] = 'prose'
     claim_provenance: list[ClaimProvenance] = []
     query_suggestions: list[str] = []
+    thought_traces: list[ThoughtTrace] = []
 
 # ── CONVERSATION ─────────────────────────────────
 
@@ -260,3 +282,4 @@ class PipelineState(BaseModel):
     follow_up_resolved: bool = False
     session_bias_applied: bool = False
     session_topic: str = ""
+    thought_traces: list[ThoughtTrace] = []

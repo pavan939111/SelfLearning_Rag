@@ -6,6 +6,7 @@ from config import get_config
 from utils.logger import get_logger
 from utils.llm_utils import get_gemini_key
 import json
+from utils.thought_logger import ThoughtLogger
 
 from agents.models import (
     ClaimProvenance, GeneratedResponse
@@ -264,6 +265,11 @@ No explanation."""
         self.logger.info("Starting Agent 7 Generation...")
         
         # Step 1: Prepare context from verified chunks
+        try:
+            tl = ThoughtLogger(session_id='', agent='agent7')
+        except Exception:
+            tl = None
+            
         chunks = []
         if cycle_result and hasattr(cycle_result, 'final_chunks') and cycle_result.final_chunks:
             chunks = cycle_result.final_chunks
@@ -299,6 +305,19 @@ No explanation."""
                         "journal": journal,
                         "year": year
                     }
+
+            try:
+                if tl:
+                    tl.trace(
+                        step='prepare_context',
+                        obs=f"Received {len(chunks)} verified chunks. "
+                            f"Mapped {len(paper_metadata_map)} distinct citations.",
+                        thk="Evidence is ready. Formatting prompt context for generation.",
+                        act="Compile evidence text with inline citation keys.",
+                        out=f"Context prepared: {len(evidence_text)} characters.",
+                        confidence=1.0
+                    )
+            except Exception: pass
 
             # Step 2: Build conversation context
             conv_text = ""
@@ -362,6 +381,20 @@ Answer:"""
                     "Format: 'Study A found X while Study B found Y...'"
                 )
 
+            try:
+                if tl:
+                    tl.trace(
+                        step='formatting',
+                        obs=f"Output format detected: {output_format}. "
+                            f"Contradiction flag: {has_contradiction}.",
+                        thk=f"Using {output_format} template. "
+                            f"{'Adding contradiction guardrails.' if has_contradiction else 'No guardrails needed.'}",
+                        act="Generate response using Gemini Flash with injected system instructions.",
+                        out="Generating...",
+                        confidence=confidence
+                    )
+            except Exception: pass
+
             # Step 4: Generate with Gemini Flash
             client = genai.Client(api_key=get_gemini_key())
             response = client.models.generate_content(
@@ -389,6 +422,20 @@ Answer:"""
             if chunks:
                 provenance = self._extract_claim_provenance(answer_text, chunks)
 
+            try:
+                if tl:
+                    tl.trace(
+                        step='extract_citations',
+                        obs=f"Generation complete. "
+                            f"Length: {len(answer_text)} chars. "
+                            f"Found {len(citations_list)} explicit citations.",
+                        thk="Need to map generated claims back to source chunks for provenance tracking.",
+                        act="Extract citations and execute claim provenance extraction.",
+                        out=f"Extracted {len(provenance) if provenance else 0} verified claims.",
+                        confidence=confidence
+                    )
+            except Exception: pass
+
             # Step 7: Build Final Response
             gap_ack = ""
             if coverage_gaps:
@@ -402,7 +449,7 @@ Answer:"""
             conf_lower = getattr(agent2_result, 'confidence_lower', confidence) if agent2_result else confidence
             conf_upper = getattr(agent2_result, 'confidence_upper', confidence) if agent2_result else confidence
             
-            return GeneratedResponse(
+            res = GeneratedResponse(
                 answer=answer_text,
                 citations=citations_list,
                 confidence=confidence,
@@ -418,6 +465,11 @@ Answer:"""
                 claim_provenance=provenance or [],
                 query_suggestions=suggestions
             )
+            
+            if tl:
+                res.thought_traces = tl.get_traces()
+                
+            return res
 
         except Exception as e:
             self.logger.error(f"Agent 7 Generation failed: {e}")

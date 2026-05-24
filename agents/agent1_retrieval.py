@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from config import get_config
 from utils.logger import get_logger
 from utils.llm_utils import get_gemini_key
+from utils.thought_logger import ThoughtLogger
 
 from agents.models import (
     QueryClassification, FilterConfig,
@@ -44,6 +45,11 @@ class QueryClassifier:
             QueryClassification object with type and metadata.
         """
         self.logger.info(f"Classifying query: {query[:50]}...")
+        
+        tl = ThoughtLogger(
+            session_id=getattr(self, '_session_id', ''),
+            agent='agent1'
+        )
         
         # Configure Gemini using round-robin key management
         client = genai.Client(api_key=get_gemini_key())
@@ -127,7 +133,7 @@ Return ONLY the JSON object. No explanation."""
             if qtype not in valid_types:
                 qtype = "simple_factual"
 
-            return QueryClassification(
+            classification = QueryClassification(
                 query=query,
                 query_type=qtype,
                 main_topics=parsed.get("main_topics", []),
@@ -136,6 +142,28 @@ Return ONLY the JSON object. No explanation."""
                 domain_rejected=False,
                 rejection_reason=''
             )
+            try:
+                tl.trace(
+                    step='classify',
+                    obs=f"Query received: '{query[:80]}' "
+                        f"Length: {len(query)} chars",
+                    thk=f"Analyzing query intent. "
+                        f"Keywords suggest {qtype} type. "
+                        f"Entities detected: {classification.entities[:3]}",
+                    act=f"Classify as {qtype}. "
+                        f"Set requires_recent={classification.requires_recent}",
+                    out=f"Classification: {qtype} | "
+                        f"Topics: {classification.main_topics[:2]} | "
+                        f"Entities: {classification.entities[:2]}",
+                    confidence=0.85,
+                    metadata={'query_type': qtype,
+                              'entity_count': len(classification.entities)}
+                )
+                classification.thought_traces = tl.get_traces()
+            except Exception as trace_err:
+                self.logger.warning(f"Trace logging failed: {trace_err}")
+                
+            return classification
 
         except Exception as e:
             self.logger.error(f"Query classification failed: {e}")
@@ -234,13 +262,36 @@ class MetadataPreFilter:
             # No age restriction, but bias toward newer comparisons
             should.append({"key": "year", "range": {"gte": 2015}})
             
-        return FilterConfig(
+        filter_config = FilterConfig(
             must_conditions=must,
             should_conditions=should,
             min_year=min_year,
             topic_cluster=cluster,
             requires_fresh=requires_fresh
         )
+        
+        try:
+            tl = ThoughtLogger(session_id='', agent='agent1')
+            tl.trace(
+                step='pre_filter',
+                obs=f"Query type: {classification.query_type}. "
+                    f"Topics: {classification.main_topics[:2]}. "
+                    f"Requires recent: {classification.requires_recent}",
+                thk=f"Temporal query needs tightest filter. "
+                    f"Simple factual needs cluster match only. "
+                    f"Applying {'tight' if classification.requires_recent else 'standard'} filter.",
+                act=f"Building filter: "
+                    f"cluster={filter_config.topic_cluster}, "
+                    f"min_year={filter_config.min_year}, "
+                    f"requires_fresh={filter_config.requires_fresh}",
+                out=f"Filter built with "
+                    f"{len(filter_config.must_conditions)} must conditions",
+                confidence=0.9
+            )
+        except Exception as trace_err:
+            pass
+            
+        return filter_config
 
     def build(self, classification: QueryClassification) -> FilterConfig:
         """Alias for build_filter for compatibility."""
@@ -478,6 +529,37 @@ class HybridRetriever:
                     topic_cluster=filter_config.topic_cluster or "immunotherapy",
                     live_fetch=True
                 ))
+
+            try:
+                tl = ThoughtLogger(session_id=session_id or '', agent='agent1')
+                avg_score = sum(r.score for r in results_to_return) / max(len(results_to_return), 1)
+                fresh_count = sum(
+                    1 for r in results_to_return if getattr(r, 'freshness_score', 0) > 0.7
+                )
+                tl.trace(
+                    step='retrieve',
+                    obs=f"Searched {len(results_to_return)} chunks returned. "
+                        f"Avg score: {avg_score:.3f}. "
+                        f"Fresh chunks: {fresh_count}/{len(results_to_return)}",
+                    thk=f"{'Good coverage' if avg_score > 0.7 else 'Low similarity scores — sparse coverage'}. "
+                        f"{'Sufficient fresh evidence' if fresh_count >= 3 else 'Limited fresh chunks for temporal query'}. "
+                        f"Strategy: {classification.query_type}",
+                    act=f"Return top {len(results_to_return)} chunks after RRF+MMR. "
+                        f"{'Flag for freshness check' if fresh_count < 3 else 'No flags needed'}",
+                    out=f"Retrieved {len(results_to_return)} chunks. "
+                        f"Top score: {results_to_return[0].score:.3f if results_to_return else 0:.3f}. "
+                        f"Clusters: {list(set(getattr(r, 'topic_cluster', '') for r in results_to_return[:3]))}",
+                    confidence=avg_score,
+                    metadata={'result_count': len(results_to_return),
+                              'avg_score': avg_score}
+                )
+                
+                # Append the traces to the classification object since results is a list
+                if classification is not None and not hasattr(classification, "thought_traces"):
+                    classification.thought_traces = []
+                classification.thought_traces.extend(tl.get_traces())
+            except Exception as trace_err:
+                self.logger.warning(f"Trace logging failed: {trace_err}")
 
             return results_to_return
 

@@ -1,8 +1,10 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import AgentCard from './AgentCard'
+import { ThoughtTraceCard } from './ThoughtTraceCard'
 
 export default function AgentFeed({ events, streaming }) {
   const endRef = useRef(null)
+  const [showReasoning, setShowReasoning] = useState(false)
 
   useEffect(() => {
     if (endRef.current) {
@@ -42,6 +44,17 @@ export default function AgentFeed({ events, streaming }) {
               Waiting for query
             </>
           )}
+          
+          <button
+            onClick={() => setShowReasoning(!showReasoning)}
+            className={`ml-4 px-2 py-1 rounded text-xs font-semibold uppercase tracking-wider border transition-colors ${
+              showReasoning 
+                ? 'bg-slate-700 border-slate-500 text-slate-200' 
+                : 'bg-transparent border-slate-700 text-slate-500 hover:text-slate-300'
+            }`}
+          >
+            {showReasoning ? 'Reasoning ON' : 'Reasoning OFF'}
+          </button>
         </div>
       </div>
 
@@ -112,9 +125,13 @@ export default function AgentFeed({ events, streaming }) {
           </div>
         )}
         
-        {events.map((evt) => (
-          <AgentCard key={evt.id} event={evt} />
-        ))}
+        {events.map((evt) => {
+          if (evt.type === 'thought') {
+            if (!showReasoning) return null
+            return <ThoughtTraceCard key={evt.id} trace={evt} />
+          }
+          return <AgentCard key={evt.id} event={evt} />
+        })}
         
         <div ref={endRef} />
       </div>

@@ -445,48 +445,75 @@ async def chat_stream(session_id: str, query: str):
             
             # Step 1 — Classification
             classification = classifier.classify(query)
-            yield f"data: {json.dumps({'agent': 'agent1', 'step': 'classify', 'status': 'complete', 'detail': f'Query type: {classification.query_type}', 'duration_ms': int((time.time()-start)*1000)})}\n\n"
+            if hasattr(classification, 'thought_traces'):
+                for t in classification.thought_traces:
+                    yield f"data: {json.dumps({'type': 'thought', 'agent': t.agent, 'step': t.step, 'obs': t.obs, 'thk': t.thk, 'act': t.act, 'out': t.out, 'confidence': t.confidence, 'duration_ms': t.duration_ms})}\n\n"
+                    
+            yield f"data: {json.dumps({'type': 'event', 'agent': 'agent1', 'step': 'classify', 'status': 'complete', 'detail': f'Query type: {classification.query_type}', 'duration_ms': int((time.time()-start)*1000)})}\n\n"
             await asyncio.sleep(0.1)
             
             # Step 2 — Cache check
             query_embedding = embedder.embed_text(query)
             cached = cache.get(query_embedding)
             if cached:
-                yield f"data: {json.dumps({'agent': 'cache', 'step': 'hit', 'status': 'complete', 'detail': f'Cache hit — skipping retrieval', 'duration_ms': int((time.time()-start)*1000)})}\n\n"
+                yield f"data: {json.dumps({'type': 'event', 'agent': 'cache', 'step': 'hit', 'status': 'complete', 'detail': f'Cache hit — skipping retrieval', 'duration_ms': int((time.time()-start)*1000)})}\n\n"
                 retrieval_results = cached
                 cache_hit = True
             else:
-                yield f"data: {json.dumps({'agent': 'cache', 'step': 'miss', 'status': 'info', 'detail': 'Cache miss — running full retrieval', 'duration_ms': int((time.time()-start)*1000)})}\n\n"
+                yield f"data: {json.dumps({'type': 'event', 'agent': 'cache', 'step': 'miss', 'status': 'info', 'detail': 'Cache miss — running full retrieval', 'duration_ms': int((time.time()-start)*1000)})}\n\n"
                 
                 # Step 3 — Retrieval
                 t = time.time()
                 filter_config = pre_filter.build_filter(classification)
-                retrieval_results = retriever.retrieve(query, classification, filter_config, top_k=5)
-                yield f"data: {json.dumps({'agent': 'agent1', 'step': 'retrieve', 'status': 'complete', 'detail': f'Retrieved {len(retrieval_results)} chunks — avg score {sum(r.score for r in retrieval_results)/max(len(retrieval_results),1):.3f}', 'duration_ms': int((time.time()-t)*1000)})}\n\n"
+                retrieval_results = retriever.retrieve(query, classification, filter_config, top_k=5, session_id=session_id)
+                
+                # Check for additional thought traces added during pre_filter and retrieve
+                if hasattr(classification, 'thought_traces'):
+                    # The classifier traces were already yielded, so we only yield the new ones.
+                    # Since they are all appended to the same list, we can just yield the ones from index 1 onwards or track count.
+                    # Actually, pre_filter uses a fresh logger but doesn't attach to classification.
+                    # Let's just iterate classification.thought_traces and yield ones we haven't seen.
+                    # A better way is just to yield all that are for step 'pre_filter' or 'retrieve'.
+                    for tr in classification.thought_traces:
+                        if tr.step in ['pre_filter', 'retrieve']:
+                            yield f"data: {json.dumps({'type': 'thought', 'agent': tr.agent, 'step': tr.step, 'obs': tr.obs, 'thk': tr.thk, 'act': tr.act, 'out': tr.out, 'confidence': tr.confidence, 'duration_ms': tr.duration_ms})}\n\n"
+                            
+                yield f"data: {json.dumps({'type': 'event', 'agent': 'agent1', 'step': 'retrieve', 'status': 'complete', 'detail': f'Retrieved {len(retrieval_results)} chunks — avg score {sum(r.score for r in retrieval_results)/max(len(retrieval_results),1):.3f}', 'duration_ms': int((time.time()-t)*1000)})}\n\n"
                 cache_hit = False
                 await asyncio.sleep(0.1)
             
             # Step 4 — Agent 2
             t = time.time()
             agent2_result = evaluator.evaluate(query, classification, retrieval_results)
+            
+            if hasattr(agent2_result, 'thought_traces'):
+                for tr in agent2_result.thought_traces:
+                    yield f"data: {json.dumps({'type': 'thought', 'agent': tr.agent, 'step': tr.step, 'obs': tr.obs, 'thk': tr.thk, 'act': tr.act, 'out': tr.out, 'confidence': tr.confidence, 'duration_ms': tr.duration_ms})}\n\n"
+                    
             status = 'pass' if agent2_result.all_passed else 'fail'
             failed = agent2_result.failed_check if not agent2_result.all_passed else 'none'
-            yield f"data: {json.dumps({'agent': 'agent2', 'step': 'evaluate', 'status': status, 'detail': f'Quality gate: {status.upper()} — {failed}', 'checks': [{'name': c.check_name, 'passed': c.passed, 'score': round(c.score,2)} for c in agent2_result.checks], 'duration_ms': int((time.time()-t)*1000)})}\n\n"
+            yield f"data: {json.dumps({'type': 'event', 'agent': 'agent2', 'step': 'evaluate', 'status': status, 'detail': f'Quality gate: {status.upper()} — {failed}', 'checks': [{'name': c.check_name, 'passed': c.passed, 'score': round(c.score,2)} for c in agent2_result.checks], 'duration_ms': int((time.time()-t)*1000)})}\n\n"
             await asyncio.sleep(0.1)
             
             # Step 5 — Repair cycle if needed
             cycle_result = None
             if not agent2_result.all_passed:
                 t = time.time()
-                yield f"data: {json.dumps({'agent': 'agent3', 'step': 'diagnose', 'status': 'running', 'detail': 'Running root cause diagnosis...', 'duration_ms': 0})}\n\n"
+                yield f"data: {json.dumps({'type': 'event', 'agent': 'agent3', 'step': 'diagnose', 'status': 'running', 'detail': 'Running root cause diagnosis...', 'duration_ms': 0})}\n\n"
                 
                 cycle_result = cycle.run(query, classification, retrieval_results, session_id)
                 
+                # Assume cycle_result has diagnosis_history which contains traces
                 if cycle_result.diagnosis_history:
                     d = cycle_result.diagnosis_history[0]
-                    yield f"data: {json.dumps({'agent': 'agent3', 'step': 'diagnose', 'status': 'complete', 'detail': f'Root cause: {d.root_cause} (Class {d.failure_class})', 'confidence': d.confidence, 'duration_ms': int((time.time()-t)*1000)})}\n\n"
+                    if hasattr(d, 'thought_traces'):
+                        for tr in d.thought_traces:
+                            yield f"data: {json.dumps({'type': 'thought', 'agent': tr.agent, 'step': tr.step, 'obs': tr.obs, 'thk': tr.thk, 'act': tr.act, 'out': tr.out, 'confidence': tr.confidence, 'duration_ms': tr.duration_ms})}\n\n"
+                    yield f"data: {json.dumps({'type': 'event', 'agent': 'agent3', 'step': 'diagnose', 'status': 'complete', 'detail': f'Root cause: {d.root_cause} (Class {d.failure_class})', 'confidence': d.confidence, 'duration_ms': int((time.time()-t)*1000)})}\n\n"
                 
-                yield f"data: {json.dumps({'agent': 'agent4a', 'step': 'repair', 'status': 'complete', 'detail': f'Repair cycle: {cycle_result.exit_reason} after {cycle_result.iterations_run} iterations', 'duration_ms': int((time.time()-t)*1000)})}\n\n"
+                # For Agent 4 formulation traces, cycle_result doesn't expose them directly if we didn't attach them to cycle_result.
+                # Assuming they might be attached later, we just yield the agent4a repair step for now.
+                yield f"data: {json.dumps({'type': 'event', 'agent': 'agent4a', 'step': 'repair', 'status': 'complete', 'detail': f'Repair cycle: {cycle_result.exit_reason} after {cycle_result.iterations_run} iterations', 'duration_ms': int((time.time()-t)*1000)})}\n\n"
                 
                 retrieval_results = cycle_result.final_chunks
                 agent2_result_final = cycle_result.agent2_result
@@ -498,7 +525,7 @@ async def chat_stream(session_id: str, query: str):
             
             # Step 6 — Generation
             t = time.time()
-            yield f"data: {json.dumps({'agent': 'agent7', 'step': 'generate', 'status': 'running', 'detail': 'Generating conversational response...', 'duration_ms': 0})}\n\n"
+            yield f"data: {json.dumps({'type': 'event', 'agent': 'agent7', 'step': 'generate', 'status': 'running', 'detail': 'Generating conversational response...', 'duration_ms': 0})}\n\n"
             
             history = memory.get_history_for_agent7(session_id)
             response = generator.generate(
@@ -511,14 +538,37 @@ async def chat_stream(session_id: str, query: str):
             
             memory.add_turn(session_id, 'user', query, classification.query_type, 0.0)
             memory.add_turn(session_id, 'assistant', response.answer, '', response.confidence)
-            
-            yield f"data: {json.dumps({'agent': 'agent7', 'step': 'generate', 'status': 'complete', 'detail': f'Response ready — {len(response.citations)} citations', 'duration_ms': int((time.time()-t)*1000)})}\n\n"
+            if hasattr(response, 'thought_traces'):
+                for tr in response.thought_traces:
+                    yield f"data: {json.dumps({'type': 'thought', 'agent': tr.agent, 'step': tr.step, 'obs': tr.obs, 'thk': tr.thk, 'act': tr.act, 'out': tr.out, 'confidence': tr.confidence, 'duration_ms': tr.duration_ms})}\n\n"
+
+            yield f"data: {json.dumps({'type': 'event', 'agent': 'agent7', 'step': 'generate', 'status': 'complete', 'detail': f'Response ready — {len(response.citations)} citations', 'duration_ms': int((time.time()-t)*1000)})}\n\n"
             
             # Final answer
-            yield f"data: {json.dumps({'agent': 'system', 'step': 'answer', 'status': 'done', 'answer': response.answer, 'citations': response.citations, 'confidence': response.confidence, 'has_gaps': response.has_gaps, 'gap_acknowledgment': response.gap_acknowledgment, 'has_contradiction': response.has_contradiction, 'contradiction_note': response.contradiction_note, 'cycle_ran': cycle_result is not None, 'cache_hit': cache_hit, 'processing_time_ms': int((time.time()-start)*1000), 'output_format': response.output_format, 'claim_provenance': [vars(p) for p in response.claim_provenance] if response.claim_provenance else [], 'proactive_contradiction_detected': topic_has_contradictions})}\n\n"
+            yield f"data: {json.dumps({'type': 'event', 'agent': 'system', 'step': 'answer', 'status': 'done', 'answer': response.answer, 'citations': response.citations, 'confidence': response.confidence, 'has_gaps': response.has_gaps, 'gap_acknowledgment': response.gap_acknowledgment, 'has_contradiction': response.has_contradiction, 'contradiction_note': response.contradiction_note, 'cycle_ran': cycle_result is not None, 'cache_hit': cache_hit, 'processing_time_ms': int((time.time()-start)*1000), 'output_format': response.output_format, 'claim_provenance': [vars(p) for p in response.claim_provenance] if response.claim_provenance else [], 'proactive_contradiction_detected': False})}\n\n"
+            
+            # Non-blocking trace persist here
+            try:
+                # gather all traces
+                all_traces = []
+                if hasattr(classification, 'thought_traces'): all_traces.extend(classification.thought_traces)
+                if hasattr(agent2_result, 'thought_traces'): all_traces.extend(agent2_result.thought_traces)
+                if cycle_result and cycle_result.diagnosis_history and hasattr(cycle_result.diagnosis_history[-1], 'thought_traces'):
+                    all_traces.extend(cycle_result.diagnosis_history[-1].thought_traces)
+                if hasattr(response, 'thought_traces'): all_traces.extend(response.thought_traces)
+                
+                if all_traces:
+                    from utils.thought_logger import ThoughtLogger
+                    tl = ThoughtLogger(session_id, 'system')
+                    tl.traces = all_traces
+                    from database.supabase_client import SupabaseManager
+                    sb = SupabaseManager()
+                    tl.persist(sb)
+            except Exception as e:
+                logger.warning(f"Trace persist error: {e}")
             
         except Exception as e:
-            yield f"data: {json.dumps({'agent': 'system', 'step': 'error', 'status': 'error', 'detail': str(e)})}\n\n"
+            yield f"data: {json.dumps({'type': 'event', 'agent': 'system', 'step': 'error', 'status': 'error', 'detail': str(e)})}\n\n"
     
     return StreamingResponse(
         event_generator(),

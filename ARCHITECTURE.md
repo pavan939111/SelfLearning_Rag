@@ -14,29 +14,23 @@ COLD PATH (async — Celery workers)
 
 ## Semantic Hash Cache
 
-```
-Query embedding (768d)
-        │
-        ▼
-32-bit SimHash (seed=42, consistent)
-        │
-        ▼
-Redis key: cache:{8-char-hex}
-        │
-    ┌───┴───┐
-   HIT     MISS
-    │        │
-    ▼        ▼
-Agent 2    Full
-(2 checks) Pipeline
-    │
- PASS → Agent 7 (fresh generation)
- FAIL → treat as MISS
-
-Dynamic TTL from Agent 6 velocity:
-  immunotherapy   → 4 hours
-  drug_interactions → 24 hours
-  genomics        → 7 days
+```mermaid
+flowchart TD
+    Q[Query embedding 768d] --> S[32-bit SimHash\nseed=42, consistent]
+    S --> K[Redis key: cache:8-char-hex]
+    K --> HIT{Cache Status}
+    
+    HIT -->|MISS| FULL[Full Pipeline]
+    HIT -->|HIT| A2[Agent 2\n2 checks: Freshness & Completeness]
+    
+    A2 -->|FAIL| FULL
+    A2 -->|PASS| A7[Agent 7\nfresh generation]
+    
+    subgraph TTL [Dynamic TTL from Agent 6 velocity]
+        T1[immunotherapy → 4 hours]
+        T2[drug_interactions → 24 hours]
+        T3[genomics → 7 days]
+    end
 ```
 
 ## Metadata Pre-Filter (Applied Before Vector Search)

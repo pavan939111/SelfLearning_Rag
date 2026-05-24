@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from config import get_config
 from utils.logger import get_logger
 from utils.llm_utils import get_gemini_key
+from utils.thought_logger import ThoughtLogger
 
 from agents.models import (
     EvaluationResult, Agent2Result, RetrievalResult
@@ -435,41 +436,164 @@ class Agent2Evaluator:
                 if not (isinstance(r, dict) and r.get("chunk_id") == "LIVE_FETCH_SIGNAL")
             ]
 
+            tl = ThoughtLogger(session_id='', agent='agent2')
+
             # Check 1: Retrieval Relevance (BLOCKING)
             relevance_check = self._check_retrieval_relevance(query, clean_results)
             checks.append(relevance_check)
             
+            try:
+                tl.trace(
+                    step='check_relevance',
+                    obs=f"Evaluating {len(clean_results)} chunks for "
+                        f"relevance to query. "
+                        f"Query: '{query[:60]}'",
+                    thk=f"LLM scoring each chunk against query intent. "
+                        f"Need at least 3 of {len(clean_results)} chunks relevant. "
+                        f"Chunk topics: {list(set(getattr(r, 'topic_cluster', '') for r in clean_results[:3]))}",
+                    act=f"Score each chunk with Gemini Flash. "
+                        f"Threshold: 3 relevant chunks minimum",
+                    out=f"Relevance check: {'PASS' if relevance_check.passed else 'FAIL'}. "
+                        f"Score: {relevance_check.score:.2f}. "
+                        f"{relevance_check.reason[:80]}",
+                    confidence=relevance_check.score
+                )
+            except Exception as e:
+                self.logger.warning(f"Trace fail: {e}")
+            
             if not relevance_check.passed and not has_sentinel:
                 self.logger.warning(f"Quality Gate FAILED: {relevance_check.check_name}")
-                return self._make_result(checks, retrieval_results)
+                res = self._make_result(checks, retrieval_results)
+                try:
+                    tl.trace(
+                        step='verdict',
+                        obs=f"Checks stopped early. Failed at {res.failed_check}",
+                        thk="Blocking check failed. Evidence is insufficient. Entering repair cycle.",
+                        act="Trigger repair cycle → Agent 3",
+                        out="Agent 2 verdict: FAIL → Repair cycle",
+                        confidence=res.calibrated_confidence
+                    )
+                    res.thought_traces = tl.get_traces()
+                except Exception: pass
+                return res
 
             # Check 2: Completeness Grounding (BLOCKING)
             completeness_check, gaps = self._check_completeness_grounding(query, clean_results)
             checks.append(completeness_check)
             
+            try:
+                qtype = getattr(classification, 'query_type', 'simple_factual') if classification else 'unknown'
+                tl.trace(
+                    step='check_completeness',
+                    obs=f"Checking if query can be fully answered "
+                        f"from {len(clean_results)} chunks. "
+                        f"Gaps detected: {gaps[:2]}",
+                    thk=f"Query type: {qtype}. "
+                        f"Available evidence covers: "
+                        f"{list(set(getattr(r, 'topic_cluster', '') for r in clean_results))}. "
+                        f"{'Full coverage' if completeness_check.passed else 'Missing aspects detected'}",
+                    act=f"Evaluate completeness with Gemini Flash. "
+                        f"Flag any uncovered query aspects",
+                    out=f"Completeness: {'PASS' if completeness_check.passed else 'FAIL'}. "
+                        f"Score: {completeness_check.score:.2f}. "
+                        f"Gaps: {gaps[:2]}",
+                    confidence=completeness_check.score
+                )
+            except Exception as e:
+                self.logger.warning(f"Trace fail: {e}")
+            
             if not completeness_check.passed and not has_sentinel:
                 self.logger.warning(f"Quality Gate FAILED: {completeness_check.check_name}")
-                return self._make_result(
+                res = self._make_result(
                     checks=checks, 
                     retrieval_results=retrieval_results,
                     coverage_gaps=gaps
                 )
+                try:
+                    tl.trace(
+                        step='verdict',
+                        obs=f"Checks stopped early. Failed at {res.failed_check}",
+                        thk="Blocking check failed. Evidence is insufficient. Entering repair cycle.",
+                        act="Trigger repair cycle → Agent 3",
+                        out="Agent 2 verdict: FAIL → Repair cycle",
+                        confidence=res.calibrated_confidence
+                    )
+                    res.thought_traces = tl.get_traces()
+                except Exception: pass
+                return res
 
             # Check 3: Freshness (NON-BLOCKING)
             freshness_check = self._check_freshness(classification, retrieval_results)
             checks.append(freshness_check)
             live_fetch_needed = not freshness_check.passed or getattr(self, "_live_fetch_needed", False)
 
+            try:
+                avg_freshness = sum(getattr(r, 'freshness_score', 0) for r in clean_results) / max(len(clean_results), 1)
+                req_recent = getattr(classification, 'requires_recent', False) if classification else False
+                tl.trace(
+                    step='check_freshness',
+                    obs=f"Checking freshness of {len(clean_results)} chunks. "
+                        f"Avg freshness score: {avg_freshness:.2f}. "
+                        f"Query requires_recent: {req_recent}. "
+                        f"Chunk years: {sorted(set(getattr(r, 'year', 0) for r in clean_results), reverse=True)[:4]}",
+                    thk=f"{'Temporal query needs fresh evidence' if req_recent else 'Non-temporal query, freshness less critical'}. "
+                        f"{'Chunks are sufficiently fresh' if avg_freshness > 0.6 else 'Many chunks are stale — live fetch may help'}. ",
+                    act=f"{'Set live_fetch_needed=True' if not freshness_check.passed else 'No live fetch needed'}. "
+                        f"Flag stale chunks for Agent 7",
+                    out=f"Freshness: {'PASS' if freshness_check.passed else 'FAIL — live fetch triggered'}. "
+                        f"Avg freshness: {avg_freshness:.2f}",
+                    confidence=avg_freshness
+                )
+            except Exception as e:
+                self.logger.warning(f"Trace fail: {e}")
+
             # Check 4: Calibration (NON-BLOCKING)
             calibration_check, confidence = self._check_calibration(clean_results, user_id)
             checks.append(calibration_check)
+
+            try:
+                tc = clean_results[0].topic_cluster if (clean_results and hasattr(clean_results[0], 'topic_cluster')) else 'unknown'
+                tl.trace(
+                    step='check_calibration',
+                    obs=f"Reading Agent 6 calibration for cluster '{tc}'. "
+                        f"Sample size available in Supabase",
+                    thk=f"{'Using Agent 6 calibration curves — data driven' if 'Agent 6' in calibration_check.reason else 'No calibration data yet — using corpus count fallback'}. "
+                        f"Expressed confidence should match actual pass rate. "
+                        f"User feedback weighted 2x vs agent signal",
+                    act=f"Set calibrated_confidence = {calibration_check.score:.2f}. "
+                        f"Will be passed to Agent 7 for response generation",
+                    out=f"Calibration: PASS. "
+                        f"Confidence recommendation: {calibration_check.score:.2f}. "
+                        f"Interval: [{calibration_check.confidence_lower:.2f}, "
+                        f"{calibration_check.confidence_upper:.2f}]",
+                    confidence=calibration_check.score
+                )
+            except Exception as e:
+                self.logger.warning(f"Trace fail: {e}")
 
             # Check 5: Cross-Chunk Contradiction (NON-BLOCKING)
             contradiction_check, found_contra, contra_chunks = self._check_cross_chunk_contradiction(clean_results)
             checks.append(contradiction_check)
             
+            try:
+                tl.trace(
+                    step='check_contradiction',
+                    obs=f"Scanning {len(clean_results)} chunks for "
+                        f"conflicting claims. "
+                        f"Checking cross-chunk consistency",
+                    thk=f"{'Multiple chunks from same cluster — contradiction possible' if len(clean_results) >= 3 else 'Too few chunks to detect contradiction'}. "
+                        f"Contradictions should be surfaced to user not hidden",
+                    act=f"Compare chunk pairs with Gemini Flash. "
+                        f"Flag contradictions for Agent 7",
+                    out=f"Contradiction: {'DETECTED — flagged for Agent 7' if found_contra else 'None found'}. "
+                        f"Score: {contradiction_check.score:.2f}",
+                    confidence=contradiction_check.score
+                )
+            except Exception as e:
+                self.logger.warning(f"Trace fail: {e}")
+            
             # Final Result Aggregation
-            return self._make_result(
+            res = self._make_result(
                 checks=checks, 
                 retrieval_results=retrieval_results,
                 coverage_gaps=gaps if 'gaps' in locals() else [],
@@ -480,6 +604,25 @@ class Agent2Evaluator:
                 contradiction_found=found_contra,
                 contradicting_chunks=contra_chunks
             )
+
+            try:
+                tl.trace(
+                    step='verdict',
+                    obs=f"All checks complete. "
+                        f"Results: {[c.check_name+':'+('P' if c.passed else 'F') for c in res.checks]}",
+                    thk=f"{'All checks passed — evidence is sufficient' if res.all_passed else f'Failed on {res.failed_check} — repair needed'}. "
+                        f"Calibrated confidence: {res.calibrated_confidence:.2f}. "
+                        f"{'Proceeding to Agent 7' if res.all_passed else 'Entering repair cycle'}",
+                    act=f"{'Allow generation' if res.all_passed else 'Trigger repair cycle → Agent 3'}",
+                    out=f"Agent 2 verdict: {'PASS → Agent 7' if res.all_passed else 'FAIL → Repair cycle'}. "
+                        f"Confidence: {res.calibrated_confidence:.2f}",
+                    confidence=res.calibrated_confidence
+                )
+                res.thought_traces = tl.get_traces()
+            except Exception as e:
+                self.logger.warning(f"Trace fail: {e}")
+
+            return res
 
         except Exception as e:
             self.logger.error(f"Agent 2 evaluation pipeline failed: {e}")

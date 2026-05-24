@@ -7,6 +7,7 @@ from utils.logger import get_logger
 from utils.llm_utils import get_gemini_key
 from database.qdrant_client import QdrantManager
 from ingestion.embedder import BiomedicalEmbedder
+from utils.thought_logger import ThoughtLogger
 
 from agents.models import DiagnosisResult
 
@@ -193,24 +194,74 @@ class Agent3Classifier:
         self.logger.info("Starting Agent 3 Diagnosis...")
         
         try:
+            tl = ThoughtLogger(session_id='', agent='agent3')
+            
             # Check 4 is often deterministic and fast, but user said:
             # "Runs 5 diagnostic tests in sequence. First test that returns confident result wins."
             
             # Test 1 - Existence Test
             res_1 = self._test_1_existence(query)
-            if res_1: return res_1
+            if res_1:
+                try:
+                    tl.trace(
+                        step='diagnose',
+                        obs="Test 1 (Existence) returned positive.",
+                        thk="5 alternative phrasings all yielded low semantic scores. This is a true corpus coverage gap.",
+                        act="Diagnose Class B: knowledge_gap. Route to 4B (Live Fetch).",
+                        out="Diagnosis: Class B. Route: 4B",
+                        confidence=res_1.confidence
+                    )
+                    res_1.thought_traces = tl.get_traces()
+                except Exception: pass
+                return res_1
             
             # Test 2 - Query Processing Test
             res_2 = self._test_2_query_processing(classification, retrieval_results, agent2_result)
-            if res_2: return res_2
+            if res_2:
+                try:
+                    tl.trace(
+                        step='diagnose',
+                        obs="Test 2 (Query Processing) returned positive.",
+                        thk="Retrieved chunks have zero overlap with query topics/entities. Retrieval strategy failed.",
+                        act="Diagnose Class C: query_formulation. Route to 4A (Reformulate).",
+                        out="Diagnosis: Class C. Route: 4A",
+                        confidence=res_2.confidence
+                    )
+                    res_2.thought_traces = tl.get_traces()
+                except Exception: pass
+                return res_2
             
             # Test 3 - Completeness Test
             res_3 = self._test_3_completeness(query, classification, agent2_result)
-            if res_3: return res_3
+            if res_3:
+                try:
+                    tl.trace(
+                        step='diagnose',
+                        obs="Test 3 (Completeness) returned positive.",
+                        thk=f"Gaps identified. LLM classified them as {'IN_SCOPE (Class C)' if res_3.failure_class == 'C' else 'NOVEL (Class B)'}.",
+                        act=f"Diagnose Class {res_3.failure_class}: {res_3.root_cause}. Route to {res_3.route_to}.",
+                        out=f"Diagnosis: Class {res_3.failure_class}. Route: {res_3.route_to}",
+                        confidence=res_3.confidence
+                    )
+                    res_3.thought_traces = tl.get_traces()
+                except Exception: pass
+                return res_3
             
             # Test 4 - Freshness Test
             res_4 = self._test_4_freshness(agent2_result)
-            if res_4: return res_4
+            if res_4:
+                try:
+                    tl.trace(
+                        step='diagnose',
+                        obs="Test 4 (Freshness) returned positive.",
+                        thk="Agent 2 flagged live_fetch_needed=True due to stale local chunks.",
+                        act="Diagnose Class B: knowledge_drift. Route to 4B (Live Fetch).",
+                        out="Diagnosis: Class B. Route: 4B",
+                        confidence=res_4.confidence
+                    )
+                    res_4.thought_traces = tl.get_traces()
+                except Exception: pass
+                return res_4
             
         except Exception as e:
             self.logger.error(f"Agent 3 encountered an unexpected error: {e}")
@@ -219,10 +270,22 @@ class Agent3Classifier:
         self.logger.info("Test 5 (Default Fallback) triggered.")
         fc = "C"
         conf = 0.50
-        return DiagnosisResult(
+        res_5 = DiagnosisResult(
             failure_class=fc,
             root_cause="unknown_query_issue",
             confidence=conf,
             evidence="No diagnostic test yielded a confident diagnosis.",
             route_to=self._determine_route(fc, conf)
         )
+        try:
+            tl.trace(
+                step='diagnose',
+                obs="All diagnostic tests failed or returned no confident result.",
+                thk="Cannot confidently determine root cause. Fallback to query reformulation.",
+                act="Diagnose Class C: unknown_query_issue. Route to 4A (Reformulate).",
+                out="Diagnosis: Class C. Route: 4A",
+                confidence=conf
+            )
+            res_5.thought_traces = tl.get_traces()
+        except Exception: pass
+        return res_5

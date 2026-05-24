@@ -1,5 +1,26 @@
 # Changelog
 
+## v2.2.0 — May 2026
+
+### ReAct Thought Traces
+- ThoughtTrace Pydantic model in agents/models.py
+- ThoughtLogger utility in utils/thought_logger.py
+- All 5 hot-path agents emit OBS/THK/ACT/OUT traces
+- thought_traces table in Supabase for audit log
+- SSE stream emits trace events with type='thought'
+- ThoughtTraceCard component in transparency mode
+- "REASONING ON/OFF" toggle in AgentFeed
+- Default OFF — users opt in to see reasoning
+
+### Domain Validation
+- QueryClassifier detects off-topic queries
+- Single Gemini call handles both domain check
+  AND query classification — no extra API calls
+- domain_rejected field in QueryClassification
+  and ChatResponse
+- Helpful rejection message with biomedical examples
+- Clickable query suggestion chips in UI
+
 ## v2.1.0 — May 2026
 
 ### Architecture
