@@ -46,7 +46,8 @@ flowchart TB
     end
 
     API -->|4. Checks Cache| REDIS
-    REDIS -->|5. Cache Miss| HOT
+    REDIS -->|"5a. Cache Miss"| HOT
+    REDIS -.->|"5b. Cache Hit (Bypasses Agent 1)"| A2
     
     A1 <--> QDRANT
     A1 <--> NEO4J
