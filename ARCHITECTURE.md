@@ -29,47 +29,54 @@ flowchart TD
     
     CLASS -->|"Valid Query"| CACHE{"⚡ Semantic Cache\n(Redis)"}:::database
     
-    subgraph HOT ["⚡ Hot Path (Real-Time Pipeline)"]
+    subgraph HOT ["⚡ Hot Path (Real-Time Synchronous Pipeline)"]
         direction TB
-        A1["🔍 Agent 1 (Finder)\nHybrid Search"]:::hotpath
-        A2{"⚖️ Agent 2 (Inspector)\nQuality Gate"}:::hotpath
-        A7["✍️ Agent 7 (Writer)\nFormat & Cite"]:::hotpath
-        A3["🩺 Agent 3 (Detective)\nDiagnosis"]:::hotpath
-        A4A["🎯 Agent 4A (Formulator)\nQuery Rewrite"]:::hotpath
+        A1["🔍 Agent 1 (Finder)\n• Parses Query Intent\n• Executes BM25 Sparse Search\n• Executes S-PubMedBert Dense Search\n• Expands via Neo4j Citation Graph\n• RRF/MMR Merging"]:::hotpath
+        
+        A2{"⚖️ Agent 2 (Inspector)\n• Evaluates Relevance (LLM)\n• Evaluates Completeness (LLM)\n• Checks Freshness Metadata\n• Calculates Calibration Score\n• Detects Contradictions"}:::hotpath
+        
+        A7["✍️ Agent 7 (Writer)\n• Triggers on A2 Approval\n• Selects Output Format (Table/List/Prose)\n• Generates Final Answer\n• Embeds Specific Inline Citations"]:::hotpath
+        
+        A3["🩺 Agent 3 (Detective)\n• Triggers on A2 Rejection\n• Checks Corpus for Knowledge Gap (Class B)\n• Checks for Chunking/Embedding Mismatches (Class A)\n• Checks for Search Strategy Failures (Class C)"]:::hotpath
+        
+        A4A["🎯 Agent 4A (Formulator)\n• Triggers on Class C Error\n• Generates Sub-Queries for Missing Gaps\n• Triggers Live PubMed API Fetch if Stale\n• Re-queries Corpus & Merges Results"]:::hotpath
         
         A1 --> A2
         A2 -->|"Passes"| A7
         A2 -->|"Fails"| A3
-        A3 --> A4A
-        A4A -->|"Retries"| A1
+        A3 -->|"Class C Error"| A4A
+        A4A -->|"Retries Search"| A1
     end
 
     CACHE -->|"Cache Miss"| A1
-    CACHE -.->|"Cache Hit"| A2
+    CACHE -.->|"Cache Hit\n(Bypasses Agent 1)"| A2
     
-    subgraph COLD ["🌙 Cold Path (Background Maintenance)"]
+    subgraph COLD ["🌙 Cold Path (Asynchronous Background Maintenance)"]
         direction TB
-        A4B["🔧 Agent 4B\n(Corpus Repair)"]:::coldpath
-        A5A["✅ Agent 5A\n(PubMed Verifier)"]:::coldpath
-        A5B["📥 Agent 5B\n(Data Ingester)"]:::coldpath
-        A6["🧠 Agent 6\n(Learning Engine)"]:::coldpath
+        A4B["🔧 Agent 4B (Corpus Repair)\n• Triggers on Class A/B Error\n• Asynchronous Background Worker\n• Resolves Deep Structural Knowledge Gaps"]:::coldpath
+        
+        A5A["✅ Agent 5A (PubMed Verifier)\n• Scans External Literature\n• Validates Biomedical Domain\n• Checks Peer-Review / RCT Status\n• Filters by High Citation Velocity"]:::coldpath
+        
+        A5B["📥 Agent 5B (Data Ingester)\n• Runs on A5A Approval\n• Splits Papers (Doc->Sec->Chunk->Claim)\n• Generates S-PubMedBert Vectors\n• Promotes to Production Qdrant Database"]:::coldpath
+        
+        A6["🧠 Agent 6 (Learning Engine)\n• Analyzes Pass/Fail & User Telemetry\n• Identifies Frequent Missing Topics\n• Tunes Agent 2 Confidence Calibration\n• Adjusts Redis Cache TTL dynamically"]:::coldpath
     end
 
-    A3 -.->|"Schedules Repair"| A4B
+    A3 -.->|"Schedules Repair (Class A/B)"| A4B
     A7 -->|"Final Verified Answer"| UI
     A7 -.->|"Logs Query Telemetry"| A6
     A6 -.->|"Updates Calibration"| A2
     
-    subgraph DB ["🗄️ Infrastructure Layer"]
+    subgraph DB ["🗄️ Core Data Infrastructure"]
         direction LR
-        REDIS[("⚡ Redis\nQueues")]:::database
-        QDRANT[("🧠 Qdrant\nVectors")]:::database
-        NEO4J[("🕸️ Neo4j\nGraph")]:::database
-        SUPA[("📊 Supabase\nSQL")]:::database
+        REDIS[("⚡ Upstash Redis\n(Cache & Celery Queues)")]:::database
+        QDRANT[("🧠 Qdrant Cloud\n(Vector Embeddings)")]:::database
+        NEO4J[("🕸️ Neo4j AuraDB\n(Citation Knowledge Graph)")]:::database
+        SUPA[("📊 Supabase PostgreSQL\n(SQL Telemetry & Thought Traces)")]:::database
     end
     
-    HOT <--> DB
-    COLD <--> DB
+    HOT <-->|"Reads/Writes"| DB
+    COLD <-->|"Reads/Writes"| DB
 ```
 
 ---
