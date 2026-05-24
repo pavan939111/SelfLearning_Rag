@@ -18,7 +18,7 @@ flowchart TB
     USER(("👤 User")) -->|1. Asks Medical Question| UI["React Frontend\n(Chat UI & Transparency Panel)"]
     
     UI -->|2. POST /chat| API["FastAPI Backend\n(Orchestration Layer)"]
-    API -.->|3. Streams Thought Traces (SSE)| UI
+    API -.->|"3. Streams Thought Traces (SSE)"| UI
     
     subgraph HOT ["⚡ Hot Path (Real-Time Retrieval & Generation)"]
         direction TB
