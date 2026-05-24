@@ -111,35 +111,70 @@ If you ask something unrelated to biomedical research, it tells you so and sugge
 
 ---
 
+## How Hybrid Retrieval Works (Agent 1)
+
+Before any text is generated, the system performs a multi-stage, graph-expanded search to ensure the highest quality evidence is found.
+
+```mermaid
+flowchart TD
+    classDef query fill:#e3f2fd,stroke:#42a5f5,stroke-width:2px,color:#000,rx:5px
+    classDef db fill:#eceff1,stroke:#78909c,stroke-width:2px,color:#000,rx:10px
+    classDef process fill:#f3e5f5,stroke:#ab47bc,stroke-width:2px,color:#000,rx:5px
+    classDef result fill:#e8f5e9,stroke:#66bb6a,stroke-width:2px,color:#000,rx:5px
+
+    Q["👤 User Query"]:::query --> PARSE["⚙️ Agent 1: Query Parsing"]:::process
+
+    subgraph SEARCH ["Hybrid Search Execution"]
+        direction LR
+        PARSE --> DENSE["🧠 Dense Search\n(S-PubMedBert)"]:::process
+        PARSE --> SPARSE["📝 Sparse Search\n(BM25)"]:::process
+        
+        DENSE --> QDRANT[("🗄️ Qdrant Cloud")]:::db
+        SPARSE --> QDRANT
+    end
+
+    subgraph FUSION ["Ranking & Expansion"]
+        direction TB
+        QDRANT --> RRF["🧮 Reciprocal Rank Fusion\n(Merges Dense & Sparse)"]:::process
+        RRF --> NEO4J[("🕸️ Neo4j AuraDB\nCitation Graph")]:::db
+        NEO4J -->|"Applies +20% score to highly cited\nApplies -15% to contradicted"| MMR["🎯 MMR Re-ranking\n(Removes duplicates)"]:::process
+    end
+
+    MMR --> OUT["✅ Top 5 Verified Chunks\n(Passed to Agent 2)"]:::result
+```
+
+---
+
 ## What Happens When Evidence Is Bad (The Repair Cycle)
 
 This is the most important part — the self-healing repair cycle:
 
 ```mermaid
-flowchart TD
+flowchart LR
+    classDef process fill:#e3f2fd,stroke:#42a5f5,stroke-width:2px,color:#000,rx:5px
+    classDef evaluate fill:#f3e5f5,stroke:#ab47bc,stroke-width:2px,color:#000,rx:5px
     classDef fail fill:#ffebee,stroke:#ef5350,stroke-width:2px,color:#000,rx:5px
     classDef repair fill:#fff3e0,stroke:#ffa726,stroke-width:2px,color:#000,rx:5px
     classDef success fill:#e8f5e9,stroke:#66bb6a,stroke-width:2px,color:#000,rx:5px
 
-    FAIL(["❌ Agent 2 Rejection:\n'Evidence does not fully answer the question'"]):::fail --> A3
+    %% Define the cyclical nodes
+    RETRIEVE["🔍 1. Execute Search\n(Agent 1)"]:::process
+    INSPECT{"⚖️ 2. Inspect Evidence\n(Agent 2)"}:::evaluate
+    DIAGNOSE["🩺 3. Diagnose Failure\n(Agent 3)"]:::fail
+    FORMULATE["🎯 4. Formulate Fix\n(Agent 4A)"]:::repair
+    ANSWER["✅ 5. Generate Answer\n(Agent 7)"]:::success
 
-    A3["🔍 Agent 3 (Detective)\nRuns 5 automated diagnostic tests to find the root cause"]:::repair
+    %% Create the cycle
+    RETRIEVE -->|"Yields chunks"| INSPECT
+    INSPECT -->|"Reject (Poor Quality)"| DIAGNOSE
+    DIAGNOSE -->|"Finds Root Cause"| FORMULATE
+    FORMULATE -->|"Injects New Query"| RETRIEVE
 
-    A3 -->|"Cause: Search strategy was too narrow"| A4A
-    A3 -->|"Cause: Information is completely missing"| EXIT
-
-    A4A["🎯 Agent 4A (Strategist)\nGenerates sub-queries to fill knowledge gaps\nFetches recent PubMed articles if data is stale"]:::repair
-
-    EXIT["📤 Queue Agent 4B\nSchedules background corpus repair\n(System will answer based on partial data)"]:::repair
-
-    A4A --> RETRY["🔄 Second Attempt\nExecutes new search strategy\nMerges new findings with original evidence"]:::repair
-    RETRY --> CHECK["⚖️ Agent 2 Re-evaluation\n'Does the merged evidence pass now?'"]:::success
-
-    CHECK -->|"Passes"| GEN["✍️ Agent 7 generates complete answer"]:::success
-    CHECK -->|"Still Fails"| HONEST["✍️ Agent 7 generates partial answer\nTransparently explains what is missing"]:::fail
+    %% Exit the cycle
+    INSPECT -->|"Approve (High Quality)"| ANSWER
 ```
 
-**The key insight:** The system tries twice, merges the best evidence from both attempts, and always tells you honestly what it could and could not find.
+**The key insight:** The system loops through a true cycle, adjusting the search strategy, fetching live data, and re-querying until Agent 2 approves the evidence.
 
 ---
 
