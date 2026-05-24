@@ -10,80 +10,66 @@ This is the complete bird's-eye view of the system, showing how the frontend, ba
 
 ```mermaid
 flowchart TD
-    %% LAYER 1: UI
-    subgraph L1 ["🌐 Layer 1: User Experience"]
-        direction TB
-        USER(("👤 User")) -->|"1. Asks Question"| UI["React Frontend\nChat Interface & Transparency Panel"]
-    end
+    classDef user fill:#f3e5f5,stroke:#ab47bc,stroke-width:2px,color:#000,rx:10px
+    classDef frontend fill:#e3f2fd,stroke:#42a5f5,stroke-width:2px,color:#000,rx:10px
+    classDef gateway fill:#fff3e0,stroke:#ffa726,stroke-width:2px,color:#000
+    classDef hotpath fill:#e8f5e9,stroke:#66bb6a,stroke-width:2px,color:#000,rx:5px
+    classDef coldpath fill:#ede7f6,stroke:#7e57c2,stroke-width:2px,color:#000,rx:5px
+    classDef database fill:#eceff1,stroke:#78909c,stroke-width:2px,color:#000,rx:10px
+    classDef rejection fill:#ffebee,stroke:#ef5350,stroke-width:2px,color:#000
 
-    %% LAYER 2: ROUTING & CLASSIFICATION
-    subgraph L2 ["🚦 Layer 2: Orchestration & Routing (FastAPI)"]
+    USER(("👤 User")):::user -->|"Asks Medical Question"| UI["💻 React Frontend\n(Chat UI & Traces)"]:::frontend
+    
+    UI -->|"POST /chat"| API["🚦 API Gateway (FastAPI)"]:::gateway
+    API -.->|"SSE Live Thought Traces"| UI
+    
+    API --> CLASS{"🧠 Query Classifier\n(Domain Check)"}:::gateway
+    CLASS -->|"Out of Scope"| REJ["❌ Early Rejection"]:::rejection
+    REJ -.->|"Alert Message"| UI
+    
+    CLASS -->|"Valid Query"| CACHE{"⚡ Semantic Cache\n(Redis)"}:::database
+    
+    subgraph HOT ["⚡ Hot Path (Real-Time Pipeline)"]
         direction TB
-        API["API Gateway"]
-        CLASS{"🧠 Query Classifier\n(Domain Check)"}
-        REJECT["❌ Early Rejection\n(Out of scope)"]
-        CACHE{"⚡ Redis Semantic Cache"}
-        
-        API -->|"2. Process Query"| CLASS
-        CLASS -->|"Abnormal / Non-Medical"| REJECT
-        CLASS -->|"Valid Query"| CACHE
-    end
-
-    UI --> API
-    REJECT -.->|"Rejection Message"| UI
-
-    %% LAYER 3: HOT PATH
-    subgraph L3 ["⚡ Layer 3: Hot Path (Real-Time 9-Agent Pipeline)"]
-        direction TB
-        A1["🔍 Agent 1 (Finder)\nHybrid Search + Graph Expansion"]
-        A2{"⚖️ Agent 2 (Inspector)\nRelevance & Freshness Gate"}
-        A7["✍️ Agent 7 (Writer)\nFormats Output & Inlines Citations"]
-        
-        A3["🩺 Agent 3 (Detective)\nRoot Cause Diagnosis"]
-        A4A["🎯 Agent 4A (Formulator)\nQuery Rewrite & Live Fetch"]
+        A1["🔍 Agent 1 (Finder)\nHybrid Search"]:::hotpath
+        A2{"⚖️ Agent 2 (Inspector)\nQuality Gate"}:::hotpath
+        A7["✍️ Agent 7 (Writer)\nFormat & Cite"]:::hotpath
+        A3["🩺 Agent 3 (Detective)\nDiagnosis"]:::hotpath
+        A4A["🎯 Agent 4A (Formulator)\nQuery Rewrite"]:::hotpath
         
         A1 --> A2
         A2 -->|"Passes"| A7
         A2 -->|"Fails"| A3
         A3 --> A4A
-        A4A -->|"Retries Search"| A1
+        A4A -->|"Retries"| A1
     end
 
-    %% CACHE LOGIC
-    CACHE -->|"3a. Cache Miss\n(Triggers Pipeline)"| A1
-    CACHE -.->|"3b. Cache Hit\n(Bypasses Agent 1)"| A2
-
-    %% LAYER 4: COLD PATH
-    subgraph L4 ["🌙 Layer 4: Cold Path (Asynchronous Background Maintenance)"]
+    CACHE -->|"Cache Miss"| A1
+    CACHE -.->|"Cache Hit"| A2
+    
+    subgraph COLD ["🌙 Cold Path (Background Maintenance)"]
         direction TB
-        A4B["🔧 Agent 4B (Repair)\nFixes structural knowledge gaps"]
-        A5A["✅ Agent 5A (Verifier)\nFilters incoming PubMed papers"]
-        A5B["📥 Agent 5B (Ingester)\nChunks, embeds, and indexes data"]
-        A6["🧠 Agent 6 (Learning)\nAnalyzes telemetry & patterns"]
+        A4B["🔧 Agent 4B\n(Corpus Repair)"]:::coldpath
+        A5A["✅ Agent 5A\n(PubMed Verifier)"]:::coldpath
+        A5B["📥 Agent 5B\n(Data Ingester)"]:::coldpath
+        A6["🧠 Agent 6\n(Learning Engine)"]:::coldpath
     end
 
-    A3 -.->|"Class A/B Error\nTriggers Background Repair"| A4B
-
-    %% LAYER 5: DATABASES
-    subgraph L5 ["🗄️ Layer 5: Core Data Infrastructure"]
-        direction LR
-        REDIS[("⚡ Upstash Redis\n(Cache & Celery Queues)")]
-        QDRANT[("🧠 Qdrant Cloud\n(Vector Embeddings)")]
-        NEO4J[("🕸️ Neo4j AuraDB\n(Citation Knowledge Graph)")]
-        SUPA[("📊 Supabase PostgreSQL\n(SQL Telemetry & Thought Traces)")]
-    end
-
-    %% DATABASE LINKS
-    CACHE -.->|"Reads / Writes"| REDIS
-    A1 <-->|"Queries"| QDRANT
-    A1 <-->|"Expands"| NEO4J
-    
-    L3 -.->|"Streams Thought Traces\nLogs Telemetry"| SUPA
-    A7 -->|"4. Final Answer Delivered"| UI
-    
-    L4 <-->|"Reads / Updates"| QDRANT
-    L4 <-->|"Logs Operations"| SUPA
+    A3 -.->|"Schedules Repair"| A4B
+    A7 -->|"Final Verified Answer"| UI
+    A7 -.->|"Logs Query Telemetry"| A6
     A6 -.->|"Updates Calibration"| A2
+    
+    subgraph DB ["🗄️ Infrastructure Layer"]
+        direction LR
+        REDIS[("⚡ Redis\nQueues")]:::database
+        QDRANT[("🧠 Qdrant\nVectors")]:::database
+        NEO4J[("🕸️ Neo4j\nGraph")]:::database
+        SUPA[("📊 Supabase\nSQL")]:::database
+    end
+    
+    HOT <--> DB
+    COLD <--> DB
 ```
 
 ---
@@ -132,17 +118,22 @@ The first thing that happens when you ask a question. One Gemini call does both 
 
 ```mermaid
 flowchart TD
-    Q["User Query\n(Raw Input)"] --> GEMINI["Gemini Flash\nSingle Zero-Shot API call"]
+    classDef input fill:#e3f2fd,stroke:#42a5f5,stroke-width:2px,color:#000,rx:5px
+    classDef process fill:#f3e5f5,stroke:#ab47bc,stroke-width:2px,color:#000,rx:5px
+    classDef fail fill:#ffebee,stroke:#ef5350,stroke-width:2px,color:#000,rx:5px
+    classDef route fill:#e8f5e9,stroke:#66bb6a,stroke-width:2px,color:#000,rx:5px
 
-    GEMINI --> DOM{"Domain Check:\nIs it biomedical?"}
-    DOM -->|"No"| REJ["Rejection Handler\nReturns 'domain_rejected=True'\nSuggests sample medical queries"]
-    DOM -->|"Yes"| TYPE{"Query Type Classification"}
+    Q["User Query\n(Raw Input)"]:::input --> GEMINI["Gemini Flash\nSingle Zero-Shot API call"]:::process
 
-    TYPE -->|"simple_factual"| T1["Factual Retrieval\nSingle concept lookup"]
-    TYPE -->|"multi_hop"| T2["Multi-Hop Retrieval\nConnects multiple concepts"]
-    TYPE -->|"comparative"| T3["Comparative Retrieval\nOptimized for side-by-side Table output"]
-    TYPE -->|"temporal"| T4["Temporal Retrieval\nApplies tighter freshness metadata filter"]
-    TYPE -->|"exploratory"| T5["Exploratory Retrieval\nBroadest search parameters"]
+    GEMINI --> DOM{"Domain Check:\nIs it biomedical?"}:::process
+    DOM -->|"No"| REJ["Rejection Handler\nReturns 'domain_rejected=True'\nSuggests sample medical queries"]:::fail
+    DOM -->|"Yes"| TYPE{"Query Type Classification"}:::process
+
+    TYPE -->|"simple_factual"| T1["Factual Retrieval\nSingle concept lookup"]:::route
+    TYPE -->|"multi_hop"| T2["Multi-Hop Retrieval\nConnects multiple concepts"]:::route
+    TYPE -->|"comparative"| T3["Comparative Retrieval\nOptimized for side-by-side Table output"]:::route
+    TYPE -->|"temporal"| T4["Temporal Retrieval\nApplies tighter freshness metadata filter"]:::route
+    TYPE -->|"exploratory"| T5["Exploratory Retrieval\nBroadest search parameters"]:::route
 ```
 
 ---
@@ -153,19 +144,30 @@ Agent 1 uses a sophisticated hybrid search to guarantee high-quality retrieval.
 
 ```mermaid
 flowchart TD
-    Q["User Query\n(Text)"] --> EM["S-PubMedBert-MS-MARCO\nGenerates 768d Vector"]
-    
-    subgraph HYBRID ["Hybrid Search Engine (Qdrant Cloud)"]
-        EM --> DENSE["Dense Vector Search\nFinds contextual semantic meaning\n(e.g., matching 'cancer' to 'oncology')"]
-        Q --> SPARSE["Sparse BM25 Search\nFinds exact keyword matches\n(e.g., specific drug names)"]
+    classDef query fill:#e3f2fd,stroke:#42a5f5,stroke-width:2px,color:#000,rx:5px
+    classDef db fill:#eceff1,stroke:#78909c,stroke-width:2px,color:#000,rx:10px
+    classDef process fill:#f3e5f5,stroke:#ab47bc,stroke-width:2px,color:#000,rx:5px
+    classDef result fill:#e8f5e9,stroke:#66bb6a,stroke-width:2px,color:#000,rx:5px
+
+    Q["👤 User Query"]:::query --> PARSE["⚙️ Agent 1: Query Parsing"]:::process
+
+    subgraph SEARCH ["Hybrid Search Execution"]
+        direction LR
+        PARSE --> DENSE["🧠 Dense Search\n(S-PubMedBert)"]:::process
+        PARSE --> SPARSE["📝 Sparse Search\n(BM25)"]:::process
         
-        DENSE --> RRF["Reciprocal Rank Fusion (RRF)\nMerges and re-ranks both lists based on rank position\nscore = 1 / (k + rank)"]
-        SPARSE --> RRF
+        DENSE --> QDRANT[("🗄️ Qdrant Cloud")]:::db
+        SPARSE --> QDRANT
     end
 
-    RRF --> MMR["Maximal Marginal Relevance (MMR)\nLambda = 0.7\nFilters out redundant chunks to maximize diversity"]
-    
-    MMR --> OUT["Top 5 High-Diversity,\nHigh-Relevance Chunks passed to Agent 2"]
+    subgraph FUSION ["Ranking & Expansion"]
+        direction TB
+        QDRANT --> RRF["🧮 Reciprocal Rank Fusion\n(Merges Dense & Sparse)"]:::process
+        RRF --> NEO4J[("🕸️ Neo4j AuraDB\nCitation Graph")]:::db
+        NEO4J -->|"Applies +20% score to highly cited\nApplies -15% to contradicted"| MMR["🎯 MMR Re-ranking\n(Removes duplicates)"]:::process
+    end
+
+    MMR --> OUT["✅ Top 5 Verified Chunks\n(Passed to Agent 2)"]:::result
 ```
 
 ---
@@ -176,22 +178,27 @@ During retrieval, Agent 1 utilizes Neo4j to find hidden connections via citation
 
 ```mermaid
 flowchart TD
-    START["Agent 1 Retrieves Top Chunks"] --> CHUNK["Target Chunk\n(Belongs to Paper A)"]
+    classDef start fill:#e3f2fd,stroke:#42a5f5,stroke-width:2px,color:#000,rx:5px
+    classDef graph fill:#eceff1,stroke:#78909c,stroke-width:2px,color:#000,rx:5px
+    classDef process fill:#fff3e0,stroke:#ffa726,stroke-width:2px,color:#000,rx:5px
+    classDef result fill:#e8f5e9,stroke:#66bb6a,stroke-width:2px,color:#000,rx:5px
+
+    START["Agent 1 Retrieves Top Chunks"]:::start --> CHUNK["Target Chunk\n(Belongs to Paper A)"]:::start
     
-    CHUNK --> N4J{"Query Neo4j Graph\nFind 1-hop citations"}
+    CHUNK --> N4J{"Query Neo4j Graph\nFind 1-hop citations"}:::process
     
     subgraph GRAPH ["Knowledge Graph Expansion"]
-        N4J -->|"Cites"| REF["Reference Paper\n(Older foundational work)"]
-        N4J -->|"Cited By"| CIT["Citing Paper\n(Newer follow-up work)"]
-        N4J -->|"Contradicts"| CON["Contradicting Paper\n(Opposing findings)"]
+        N4J -->|"Cites"| REF["Reference Paper\n(Older foundational work)"]:::graph
+        N4J -->|"Cited By"| CIT["Citing Paper\n(Newer follow-up work)"]:::graph
+        N4J -->|"Contradicts"| CON["Contradicting Paper\n(Opposing findings)"]:::graph
     end
     
-    REF --> EXTRACT["Extract chunks from neighboring papers"]
+    REF --> EXTRACT["Extract chunks from neighboring papers"]:::process
     CIT --> EXTRACT
     CON --> EXTRACT
     
-    EXTRACT --> PENALTY["Apply 0.85x Score Penalty\n(Prioritizes direct matches, but surfaces hidden links)"]
-    PENALTY --> MERGE["Merge into final retrieval set"]
+    EXTRACT --> PENALTY["Apply 0.85x Score Penalty\n(Prioritizes direct matches, but surfaces hidden links)"]:::process
+    PENALTY --> MERGE["Merge into final retrieval set"]:::result
 ```
 
 ---
@@ -216,24 +223,29 @@ Runs when Agent 2 fails. Five diagnostic tests:
 
 ```mermaid
 flowchart TD
-    FAIL["Agent 2 Blocking Failure"] --> T1
+    classDef fail fill:#ffebee,stroke:#ef5350,stroke-width:2px,color:#000,rx:5px
+    classDef test fill:#fff3e0,stroke:#ffa726,stroke-width:2px,color:#000,rx:5px
+    classDef coldpath fill:#ede7f6,stroke:#7e57c2,stroke-width:2px,color:#000,rx:5px
+    classDef hotpath fill:#e8f5e9,stroke:#66bb6a,stroke-width:2px,color:#000,rx:5px
 
-    T1["Test 1: Existence\nDoes information exist in corpus at all?\nTests 8 query variations"] -->|"Not found"| CA["Class B Error\n(Knowledge Gap)"]
+    FAIL["Agent 2 Blocking Failure"]:::fail --> T1
+
+    T1["Test 1: Existence\nDoes information exist in corpus at all?\nTests 8 query variations"]:::test -->|"Not found"| CA["Class B Error\n(Knowledge Gap)"]:::fail
     T1 -->|"Found"| T2
 
-    T2["Test 2: Chunking\nIs info split across chunk boundaries?"] -->|"Split"| CB["Class A Error\n(Data Chunking Problem)"]
+    T2["Test 2: Chunking\nIs info split across chunk boundaries?"]:::test -->|"Split"| CB["Class A Error\n(Data Chunking Problem)"]:::fail
     T2 -->|"Not split"| T3
 
-    T3["Test 3: Embedding\nIs there a big gap between BM25 and Vector scores?"] -->|"Big gap"| CC["Class A Error\n(Embedding Mismatch)"]
+    T3["Test 3: Embedding\nIs there a big gap between BM25 and Vector scores?"]:::test -->|"Big gap"| CC["Class A Error\n(Embedding Mismatch)"]:::fail
     T3 -->|"No gap"| T4
 
-    T4["Test 4: Query\nWas the search strategy wrong for this query?"] -->|"Wrong strategy"| CD["Class C Error\n(Query Strategy Problem)"]
+    T4["Test 4: Query\nWas the search strategy wrong for this query?"]:::test -->|"Wrong strategy"| CD["Class C Error\n(Query Strategy Problem)"]:::fail
     T4 -->|"Strategy OK"| T5
 
-    T5["Test 5: Filter\nDid metadata filters accidentally remove good chunks?"] -->|"Over-filtered"| CE["Class C Error\n(Filter Problem)"]
+    T5["Test 5: Filter\nDid metadata filters accidentally remove good chunks?"]:::test -->|"Over-filtered"| CE["Class C Error\n(Filter Problem)"]:::fail
 
-    CA & CB & CC --> ROUTE4B["Route to Agent 4B\n(Background Corpus Repair)\nExit hot path immediately"]
-    CD & CE --> ROUTE4A["Route to Agent 4A\n(Repair this query right now)"]
+    CA & CB & CC --> ROUTE4B["Route to Agent 4B\n(Background Corpus Repair)\nExit hot path immediately"]:::coldpath
+    CD & CE --> ROUTE4A["Route to Agent 4A\n(Repair this query right now)"]:::hotpath
 ```
 
 ---
@@ -244,25 +256,33 @@ How background tasks are handled using Redis and Celery without blocking the use
 
 ```mermaid
 flowchart LR
+    classDef producer fill:#fff3e0,stroke:#ffa726,stroke-width:2px,color:#000,rx:5px
+    classDef queue fill:#e3f2fd,stroke:#42a5f5,stroke-width:2px,color:#000,rx:5px
+    classDef worker fill:#ede7f6,stroke:#7e57c2,stroke-width:2px,color:#000,rx:5px
+    classDef db fill:#eceff1,stroke:#78909c,stroke-width:2px,color:#000,rx:10px
+
     subgraph PRODUCERS ["Task Producers (FastAPI Hot Path)"]
-        A3["Agent 3 (Diagnosis)\nFinds Class A/B Error"] -->|Queue Task| R[("Upstash Redis\nMessage Broker")]
-        A4A["Agent 4A (Formulator)\nFetches Live PubMed"] -->|Queue Task| R
-        A6["Agent 6 (Learning)\nDetects Knowledge Gap"] -->|Queue Task| R
+        direction TB
+        A3["Agent 3 (Diagnosis)\nFinds Class A/B Error"]:::producer -->|Queue Task| R[("Upstash Redis\nMessage Broker")]:::db
+        A4A["Agent 4A (Formulator)\nFetches Live PubMed"]:::producer -->|Queue Task| R
+        A6["Agent 6 (Learning)\nDetects Knowledge Gap"]:::producer -->|Queue Task| R
     end
 
     subgraph REDIS ["Redis Queues"]
-        R --> Q1["Queue: 'repair_tasks'"]
-        R --> Q2["Queue: 'ingestion_tasks'"]
-        R --> Q3["Queue: 'learning_tasks'"]
+        direction TB
+        R --> Q1["Queue: 'repair_tasks'"]:::queue
+        R --> Q2["Queue: 'ingestion_tasks'"]:::queue
+        R --> Q3["Queue: 'learning_tasks'"]:::queue
     end
 
     subgraph CONSUMERS ["Celery Worker Nodes (Cold Path)"]
-        Q1 --> W1["Worker 1 (Agent 4B)\nExecutes Deep Corpus Repair"]
-        Q2 --> W2["Worker 2 (Agent 5B)\nEmbeds & Indexes New Papers"]
-        Q3 --> W3["Worker 3 (Agent 6)\nRuns Weekly Benchmarks"]
+        direction TB
+        Q1 --> W1["Worker 1 (Agent 4B)\nExecutes Deep Corpus Repair"]:::worker
+        Q2 --> W2["Worker 2 (Agent 5B)\nEmbeds & Indexes New Papers"]:::worker
+        Q3 --> W3["Worker 3 (Agent 6)\nRuns Weekly Benchmarks"]:::worker
     end
     
-    W1 -.-> DB[("Supabase / Qdrant\nCloud Databases")]
+    W1 -.-> DB[("Supabase / Qdrant\nCloud Databases")]:::db
     W2 -.-> DB
     W3 -.-> DB
 ```
@@ -275,18 +295,22 @@ Handles Class C failures (query problems). Gets another chance to find the right
 
 ```mermaid
 flowchart LR
-    IN["Class C Diagnosis\n+ Original Chunks"] --> GAP
+    classDef input fill:#ffebee,stroke:#ef5350,stroke-width:2px,color:#000,rx:5px
+    classDef process fill:#fff3e0,stroke:#ffa726,stroke-width:2px,color:#000,rx:5px
+    classDef success fill:#e8f5e9,stroke:#66bb6a,stroke-width:2px,color:#000,rx:5px
 
-    GAP["Gap Analysis\nIdentify exactly what query aspects\nwere missing from retrieved chunks"]
+    IN["Class C Diagnosis\n+ Original Chunks"]:::input --> GAP
 
-    GAP --> FORM["Sub-Query Formulation\nGenerate one highly targeted query\nper missing aspect"]
+    GAP["Gap Analysis\nIdentify exactly what query aspects\nwere missing from retrieved chunks"]:::process
 
-    FORM --> FETCH{"Diagnosis:\nIs Knowledge Drift detected?"}
-    FETCH -->|"Yes"| LIVE["Live PubMed API Fetch\nGet papers from last 30 days\nQueue for permanent ingestion"]
-    FETCH -->|"No"| NORMAL["Standard Re-retrieval\nQuery corpus with better strategy"]
+    GAP --> FORM["Sub-Query Formulation\nGenerate one highly targeted query\nper missing aspect"]:::process
 
-    LIVE & NORMAL --> MERGE["Merge & Deduplicate\nCombine new chunks with original chunks"]
-    MERGE --> OUT["Back to Agent 2\n(Re-evaluation)"]
+    FORM --> FETCH{"Diagnosis:\nIs Knowledge Drift detected?"}:::process
+    FETCH -->|"Yes"| LIVE["Live PubMed API Fetch\nGet papers from last 30 days\nQueue for permanent ingestion"]:::process
+    FETCH -->|"No"| NORMAL["Standard Re-retrieval\nQuery corpus with better strategy"]:::process
+
+    LIVE & NORMAL --> MERGE["Merge & Deduplicate\nCombine new chunks with original chunks"]:::process
+    MERGE --> OUT["Back to Agent 2\n(Re-evaluation)"]:::success
 ```
 
 ---
@@ -295,23 +319,28 @@ flowchart LR
 
 ```mermaid
 flowchart TD
+    classDef stream fill:#e3f2fd,stroke:#42a5f5,stroke-width:2px,color:#000,rx:5px
+    classDef process fill:#ede7f6,stroke:#7e57c2,stroke-width:2px,color:#000,rx:5px
+    classDef result fill:#e8f5e9,stroke:#66bb6a,stroke-width:2px,color:#000,rx:5px
+
     subgraph IN ["Data Streams (Every query feeds Agent 6)"]
-        I1["Query Result (Pass/Fail)"]
-        I2["User Feedback (👍/👎)"]
-        I3["Weekly Benchmark Iteration"]
+        direction LR
+        I1["Query Result (Pass/Fail)"]:::stream
+        I2["User Feedback (👍/👎)"]:::stream
+        I3["Weekly Benchmark Iteration"]:::stream
     end
 
-    IN --> OBS["Record to Supabase PostgreSQL"]
+    IN --> OBS["Record to Supabase PostgreSQL"]:::process
 
-    OBS --> P1["Pattern Detection\nSame failure type >5 times = Pattern\n>20 times = High Severity"]
-    OBS --> P2["Calibration Tracking\nExpressed Confidence vs Actual Pass Rate"]
-    OBS --> P3["Gap Mapping\nIdentify topics asked but not answered"]
-    OBS --> P4["Topic Velocity\nCalculate how fast topics evolve"]
+    OBS --> P1["Pattern Detection\nSame failure type >5 times = Pattern\n>20 times = High Severity"]:::process
+    OBS --> P2["Calibration Tracking\nExpressed Confidence vs Actual Pass Rate"]:::process
+    OBS --> P3["Gap Mapping\nIdentify topics asked but not answered"]:::process
+    OBS --> P4["Topic Velocity\nCalculate how fast topics evolve"]:::process
 
-    P1 --> D1["Admin Dashboard\nActionable Insights Panel"]
-    P2 --> D2["Agent 2 Dynamically Reads Calibration\nProvides honest Wilson Score intervals"]
-    P3 --> D3["Agent 5A Priority Targeting\nIngest new papers based on real user gaps"]
-    P4 --> D4["Cache TTL Tuning\nImmunotherapy = 4hr\nDrug Interactions = 24hr\nGenomics = 7 days"]
+    P1 --> D1["Admin Dashboard\nActionable Insights Panel"]:::result
+    P2 --> D2["Agent 2 Dynamically Reads Calibration\nProvides honest Wilson Score intervals"]:::result
+    P3 --> D3["Agent 5A Priority Targeting\nIngest new papers based on real user gaps"]:::result
+    P4 --> D4["Cache TTL Tuning\nImmunotherapy = 4hr\nDrug Interactions = 24hr\nGenomics = 7 days"]:::result
 ```
 
 ---
@@ -320,17 +349,19 @@ flowchart TD
 
 Produces the final answer. Receives everything the pipeline discovered.
 
-**Output format detection:**
-
 ```mermaid
 flowchart LR
-    Q["Query Type & Keywords"] --> DET
+    classDef input fill:#e3f2fd,stroke:#42a5f5,stroke-width:2px,color:#000,rx:5px
+    classDef process fill:#fff3e0,stroke:#ffa726,stroke-width:2px,color:#000,rx:5px
+    classDef result fill:#e8f5e9,stroke:#66bb6a,stroke-width:2px,color:#000,rx:5px
 
-    DET{"Detect Best Output Format"}
-    DET -->|"comparative + 2 entities"| TABLE["Table Format\nSide-by-side feature comparison"]
-    DET -->|"list / what are / side effects"| LIST["Numbered List\nEach item explicitly cited"]
-    DET -->|"summarize / overview / explain"| SUMMARY["Structured Summary\nKey Finding + Evidence + Limitations"]
-    DET -->|"everything else"| PROSE["Conversational Prose\nFluent text with inline citations"]
+    Q["Query Type & Keywords"]:::input --> DET
+
+    DET{"Detect Best Output Format"}:::process
+    DET -->|"comparative + 2 entities"| TABLE["Table Format\nSide-by-side feature comparison"]:::result
+    DET -->|"list / what are / side effects"| LIST["Numbered List\nEach item explicitly cited"]:::result
+    DET -->|"summarize / overview / explain"| SUMMARY["Structured Summary\nKey Finding + Evidence + Limitations"]:::result
+    DET -->|"everything else"| PROSE["Conversational Prose\nFluent text with inline citations"]:::result
 ```
 
 ---
@@ -339,30 +370,20 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    Q["Query Embedding\n768 dimensions"] --> HASH["SimHash Algorithm\n32-bit consistent hash\nseed=42"]
-    HASH --> KEY["Redis Key\ncache:{8-char-hex}"]
-    KEY --> CHECK{"Cache Hit?"}
-    CHECK -->|"Hit"| VERIFY["Agent 2 (Fast Path)\nChecks Freshness & Completeness only"]
-    CHECK -->|"Miss"| FULL["Full 9-Agent Pipeline Execution"]
-    VERIFY -->|"Pass"| A7["Agent 7\nGenerates fresh text from cached chunks"]
+    classDef input fill:#e3f2fd,stroke:#42a5f5,stroke-width:2px,color:#000,rx:5px
+    classDef process fill:#fff3e0,stroke:#ffa726,stroke-width:2px,color:#000,rx:5px
+    classDef db fill:#eceff1,stroke:#78909c,stroke-width:2px,color:#000,rx:10px
+    classDef success fill:#e8f5e9,stroke:#66bb6a,stroke-width:2px,color:#000,rx:5px
+
+    Q["Query Embedding\n768 dimensions"]:::input --> HASH["SimHash Algorithm\n32-bit consistent hash\nseed=42"]:::process
+    HASH --> KEY["Redis Key\ncache:{8-char-hex}"]:::db
+    KEY --> CHECK{"Cache Hit?"}:::process
+    
+    CHECK -->|"Hit"| VERIFY["Agent 2 (Fast Path)\nChecks Freshness & Completeness only"]:::success
+    CHECK -->|"Miss"| FULL["Full 9-Agent Pipeline Execution"]:::process
+    
+    VERIFY -->|"Pass"| A7["Agent 7\nGenerates fresh text from cached chunks"]:::success
     VERIFY -->|"Fail"| FULL
-    FULL --> STORE["Store retrieved chunks in Redis\n(Answers are NEVER cached)"]
+    
+    FULL --> STORE["Store retrieved chunks in Redis\n(Answers are NEVER cached)"]:::db
 ```
-
----
-
-## Data Models — Pydantic
-
-All inter-agent data uses Pydantic BaseModel for type safety. Defined in `agents/models.py`.
-
----
-
-## Scheduled Jobs
-
-| Job | Schedule | Purpose |
-|-----|---------|---------|
-| Weekly benchmark | Sunday 2am | Track improvement over time |
-| Daily Agent 6 insights | Daily 6am | Generate recommendations |
-| Freshness sweep | Every 3 days | Flag stale clusters |
-| Daily paper monitor | Daily 4am | Check for new relevant papers |
-| Gap-targeted sweep | Sunday 3am | Find papers for known gaps |
