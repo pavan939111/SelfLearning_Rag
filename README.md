@@ -8,6 +8,60 @@ Built on 1,767 PubMed papers across immunotherapy, drug interactions, and genomi
 
 ---
 
+
+## System Architecture (Holistic View)
+
+This is the complete bird's-eye view of how the React frontend, FastAPI backend, 9 autonomous agents, and 4 specialized databases interact.
+
+```mermaid
+flowchart TB
+    USER(("👤 User")) -->|1. Asks Medical Question| UI["React Frontend\n(Chat UI & Transparency Panel)"]
+    
+    UI -->|2. POST /chat| API["FastAPI Backend\n(Orchestration Layer)"]
+    API -.->|3. Streams Thought Traces (SSE)| UI
+    
+    subgraph HOT ["⚡ Hot Path (Real-Time Retrieval & Generation)"]
+        direction TB
+        A1["🔍 Agent 1 (Finder)\nHybrid Search + Graph Expansion"] --> A2{"⚖️ Agent 2 (Inspector)\nRelevance & Freshness Gate"}
+        A2 -->|"Passes"| A7["✍️ Agent 7 (Writer)\nFormats Output & Citations"]
+        A2 -->|"Fails"| A3["🩺 Agent 3 (Detective)\nRoot Cause Diagnosis"]
+        A3 --> A4A["🎯 Agent 4A (Formulator)\nQuery Rewrite & Live Fetch"]
+        A4A -->|"Retries Search"| A1
+    end
+
+    subgraph COLD ["🌙 Cold Path (Asynchronous Maintenance)"]
+        direction TB
+        A4B["🔧 Agent 4B (Repair)\nFixes structural data issues"]
+        A5A["✅ Agent 5A (Verifier)\nValidates PubMed quality"]
+        A5B["📥 Agent 5B (Ingester)\nChunks and vectorizes"]
+        A6["🧠 Agent 6 (Learning)\nAdjusts system parameters"]
+    end
+
+    subgraph DATABASES ["🗄️ Core Data Infrastructure"]
+        direction LR
+        REDIS[("⚡ Upstash Redis\nSemantic Cache & Celery Task Queues")]
+        QDRANT[("🧠 Qdrant Cloud\nVector Embeddings (Hybrid Search)")]
+        NEO4J[("🕸️ Neo4j AuraDB\nCitation Knowledge Graph")]
+        SUPA[("📊 Supabase PostgreSQL\nSQL Telemetry & ReAct Thought Traces")]
+    end
+
+    API -->|4. Checks Cache| REDIS
+    REDIS -->|5. Cache Miss| HOT
+    
+    A1 <--> QDRANT
+    A1 <--> NEO4J
+    HOT <--> SUPA
+    
+    A3 -.->|"Triggers Background Repair"| REDIS
+    REDIS -.->|"Dispatches Task"| COLD
+    COLD <--> QDRANT
+    COLD <--> SUPA
+    
+    A7 -->|6. Final Answer| API
+```
+
+---
+
 ## The Core Idea
 
 ```mermaid
@@ -22,40 +76,6 @@ graph LR
 ```
 
 The system never gives you an answer it has not verified first.
-
----
-
-## System Architecture
-
-Two parallel loops run at all times:
-
-**Hot path** — synchronous, handles your query in real time (target: under 15 seconds)
-
-**Cold path** — asynchronous Celery workers, keeps the corpus healthy in the background
-
-```mermaid
-flowchart LR
-    subgraph HOT ["⚡ Synchronous Hot Path (Real-time Query Resolution)"]
-        H1["Agent 1 (Retrieval)\nVector & BM25 Search"] --> H2["Agent 2 (Quality Gate)\n5-Step Evidence Verification"]
-        H2 -->|"Passes Verification"| H7["Agent 7 (Generator)\nFormats Prose/Table/List"]
-        H2 -->|"Fails Verification"| H3["Agent 3 (Diagnosis)\nRoot Cause Analysis"]
-        H3 --> H4A["Agent 4A (Formulator)\nQuery Expansion & Live Fetch"]
-        H4A -->|"Retries Search"| H1
-    end
-
-    subgraph COLD ["🌙 Asynchronous Cold Path (Background Maintenance)"]
-        C4B["Agent 4B (Repair)\nFixes structural corpus issues"]
-        C5A["Agent 5A (Verification)\nValidates PubMed papers"]
-        C5B["Agent 5B (Ingestion)\nChunks & embeds papers"]
-        C6["Agent 6 (Learning)\nAnalyzes telemetry & patterns"]
-    end
-
-    H2 -.->|"Triggers Class A/B Repair"| C4B
-    H7 -.->|"Logs Query Telemetry"| C6
-    C6 -.->|"Updates Topic Calibration"| H2
-    C6 -.->|"Adjusts Cache Expiry (TTL)"| CACHE[("Redis Semantic Cache")]
-    CACHE -.->|"Bypasses Retrieval on Hit"| H2
-```
 
 ---
 
