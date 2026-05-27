@@ -22,29 +22,29 @@ export default function BenchmarkChart() {
 
   return (
     <div style={{
-      background: 'var(--bg2)',
+      background: 'var(--bg-card)',
       border: '1px solid var(--border)',
-      borderRadius: '12px',
+      borderRadius: 'var(--radius-lg)',
       padding: '24px',
-      marginTop: 0
+      marginTop: 0,
+      boxShadow: 'var(--shadow-sm)'
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
         <div>
-          <h2 style={{ fontFamily: 'var(--display)', fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>
+          <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', color: 'var(--text-primary)' }}>
             Benchmark Trend
           </h2>
-          <div style={{ color: 'var(--text3)', fontSize: '11px', marginTop: '4px' }}>
+          <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '4px' }}>
             Pass rate and confidence over time
           </div>
         </div>
         
         <div style={{
-          background: 'rgba(0, 229, 160, 0.1)',
-          border: '1px solid rgba(0, 229, 160, 0.3)',
-          color: 'var(--green)',
-          padding: '4px 10px',
-          borderRadius: '4px',
-          fontSize: '11px',
+          background: 'var(--success-bg)',
+          color: 'var(--success)',
+          padding: '4px 12px',
+          borderRadius: 'var(--radius-sm)',
+          fontSize: '12px',
           fontWeight: 600
         }}>
           Baseline: 86.7% pass rate
@@ -59,16 +59,16 @@ export default function BenchmarkChart() {
         <div style={{ height: '200px', width: '100%' }}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data}>
-              <XAxis dataKey="date" tick={{ fill: 'var(--text3)', fontSize: 10 }} stroke="var(--border)" />
-              <YAxis domain={[0, 1]} tick={{ fill: 'var(--text3)', fontSize: 10 }} stroke="var(--border)" tickFormatter={v => `${(v*100).toFixed(0)}%`} />
+              <XAxis dataKey="date" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} stroke="var(--border)" />
+              <YAxis domain={[0, 1]} tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} stroke="var(--border)" tickFormatter={v => `${(v*100).toFixed(0)}%`} />
               <Tooltip 
-                contentStyle={{ background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)' }}
-                itemStyle={{ fontSize: '12px' }}
-                labelStyle={{ fontSize: '12px', marginBottom: '8px' }}
+                contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-md)' }}
+                itemStyle={{ fontSize: '13px' }}
+                labelStyle={{ fontSize: '13px', marginBottom: '8px', color: 'var(--text-secondary)' }}
               />
-              <Legend wrapperStyle={{ color: 'var(--text2)', fontSize: '11px' }} />
-              <Line type="monotone" dataKey="pass_rate" name="Pass Rate" stroke="var(--green)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-              <Line type="monotone" dataKey="confidence" name="Confidence" stroke="var(--cyan)" strokeWidth={2} dot={{ r: 4 }} />
+              <Legend wrapperStyle={{ color: 'var(--text-secondary)', fontSize: '12px' }} />
+              <Line type="monotone" dataKey="pass_rate" name="Pass Rate" stroke="var(--success)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+              <Line type="monotone" dataKey="confidence" name="Confidence" stroke="var(--accent-teal)" strokeWidth={2} dot={{ r: 4 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -82,58 +82,58 @@ export default function BenchmarkChart() {
           }}>
             <div style={{ textAlign: 'center' }}>
               <div style={{
-                fontFamily: 'var(--display)',
-                fontSize: '32px',
-                fontWeight: 800,
-                color: 'var(--green)',
+                fontFamily: 'var(--font-heading)',
+                fontSize: '36px',
+                color: 'var(--success)',
               }}>86.7%</div>
               <div style={{
                 fontSize: '11px',
-                color: 'var(--text3)',
+                color: 'var(--text-muted)',
                 marginTop: '4px',
                 textTransform: 'uppercase',
                 letterSpacing: '1px',
+                fontWeight: 600
               }}>Pass Rate</div>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{
-                fontFamily: 'var(--display)',
-                fontSize: '32px',
-                fontWeight: 800,
-                color: 'var(--cyan)',
+                fontFamily: 'var(--font-heading)',
+                fontSize: '36px',
+                color: 'var(--accent-teal)',
               }}>0.67</div>
               <div style={{
                 fontSize: '11px',
-                color: 'var(--text3)',
+                color: 'var(--text-muted)',
                 marginTop: '4px',
                 textTransform: 'uppercase',
                 letterSpacing: '1px',
+                fontWeight: 600
               }}>Avg Confidence</div>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{
-                fontFamily: 'var(--display)',
-                fontSize: '32px',
-                fontWeight: 800,
-                color: 'var(--text2)',
+                fontFamily: 'var(--font-heading)',
+                fontSize: '36px',
+                color: 'var(--text-secondary)',
               }}>15</div>
               <div style={{
                 fontSize: '11px',
-                color: 'var(--text3)',
+                color: 'var(--text-muted)',
                 marginTop: '4px',
                 textTransform: 'uppercase',
                 letterSpacing: '1px',
+                fontWeight: 600
               }}>Questions</div>
             </div>
           </div>
           
           <div style={{
             textAlign: 'center',
-            fontSize: '11px',
-            color: 'var(--text3)',
-            marginTop: '8px',
+            fontSize: '13px',
+            color: 'var(--text-secondary)',
+            marginTop: '16px',
             paddingTop: '16px',
-            borderTop: '1px solid var(--border)',
+            borderTop: '1px solid var(--border-light)',
           }}>
             Baseline established — weekly runs will track improvement
           </div>

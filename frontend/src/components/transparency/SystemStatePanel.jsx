@@ -14,80 +14,94 @@ export default function SystemStatePanel() {
   const { qdrant_counts, agent6_insights, top_gaps } = stats
 
   return (
-    <div style={{ background: 'var(--bg2)', borderLeft: '1px solid var(--border)', height: '100%', overflowY: 'auto', padding: '20px 16px' }}>
-      <div style={{ fontFamily: 'var(--display)', fontSize: '14px', fontWeight: 700, color: 'var(--text)', borderBottom: '1px solid var(--border)', paddingBottom: '12px', marginBottom: '16px' }}>
-        System State
+    <div style={{ background: 'var(--bg-secondary)', height: '100%', overflowY: 'auto', padding: '32px' }}>
+      <div style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', color: 'var(--text-primary)', marginBottom: '24px' }}>
+        Query Analysis
       </div>
 
-      <div style={{ marginBottom: '24px' }}>
-        <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', marginBottom: '8px', fontWeight: 600 }}>
-          CORPUS
+      <div style={{ 
+        background: 'var(--bg-card)', padding: '16px', borderRadius: 'var(--radius-md)', 
+        boxShadow: 'var(--shadow-sm)', marginBottom: '16px', border: '1px solid var(--border)' 
+      }}>
+        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '8px', fontWeight: 600, letterSpacing: '0.5px' }}>
+          Corpus Size
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-          <span style={{ fontSize: '11px', color: 'var(--text3)' }}>Documents:</span>
-          <span style={{ fontSize: '12px', color: 'var(--text)', fontWeight: 600 }}>{qdrant_counts.document || 1495}</span>
+          <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Documents:</span>
+          <span style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 600 }}>{qdrant_counts.document || 1495}</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-          <span style={{ fontSize: '11px', color: 'var(--text3)' }}>Sections:</span>
-          <span style={{ fontSize: '12px', color: 'var(--text)', fontWeight: 600 }}>{qdrant_counts.section || 0}</span>
+          <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Sections:</span>
+          <span style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 600 }}>{qdrant_counts.section || 0}</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: '11px', color: 'var(--text3)' }}>Semantic:</span>
-          <span style={{ fontSize: '12px', color: 'var(--text)', fontWeight: 600 }}>{qdrant_counts.semantic || 0}</span>
+          <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Semantic:</span>
+          <span style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 600 }}>{qdrant_counts.semantic || 0}</span>
         </div>
       </div>
 
-      <div style={{ marginBottom: '24px' }}>
-        <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', marginBottom: '8px', fontWeight: 600 }}>
-          INSIGHTS
+      <div style={{ 
+        background: 'var(--bg-card)', padding: '16px', borderRadius: 'var(--radius-md)', 
+        boxShadow: 'var(--shadow-sm)', marginBottom: '16px', border: '1px solid var(--border)' 
+      }}>
+        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '8px', fontWeight: 600, letterSpacing: '0.5px' }}>
+          Insights Queue
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ color: 'var(--cyan)', fontSize: '12px', fontWeight: 600, background: 'rgba(0,212,255,0.1)', padding: '2px 8px', borderRadius: '4px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ color: 'var(--accent-blue)', fontSize: '13px', fontWeight: 600, background: 'var(--accent-blue-light)', padding: '4px 10px', borderRadius: 'var(--radius-sm)' }}>
             {agent6_insights || 0} pending insights
           </span>
-          {(agent6_insights || 0) > 0 && <span style={{ width: '6px', height: '6px', background: 'var(--orange)', borderRadius: '50%' }} />}
+          {(agent6_insights || 0) > 0 && <span style={{ width: '8px', height: '8px', background: 'var(--warning)', borderRadius: '50%' }} />}
         </div>
       </div>
 
-      <div style={{ marginBottom: '24px' }}>
-        <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', marginBottom: '8px', fontWeight: 600 }}>
-          TOP GAPS
+      <div style={{ 
+        background: 'var(--bg-card)', padding: '16px', borderRadius: 'var(--radius-md)', 
+        boxShadow: 'var(--shadow-sm)', marginBottom: '16px', border: '1px solid var(--border)' 
+      }}>
+        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '8px', fontWeight: 600, letterSpacing: '0.5px' }}>
+          Coverage Gaps
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {(top_gaps || []).slice(0, 3).map((gap, i) => (
             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '11px', color: 'var(--text2)', maxWidth: '140px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{gap.topic}</span>
-              <span style={{ fontSize: '10px', color: 'var(--red)', background: 'rgba(255,77,109,0.1)', padding: '2px 6px', borderRadius: '4px' }}>{gap.count} queries</span>
+              <span style={{ fontSize: '13px', color: 'var(--text-primary)', maxWidth: '140px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{gap.topic}</span>
+              <span style={{ fontSize: '12px', color: 'var(--danger)', background: 'var(--danger-bg)', padding: '2px 8px', borderRadius: 'var(--radius-sm)', fontWeight: 600 }}>{gap.count} queries</span>
             </div>
           ))}
           {(!top_gaps || top_gaps.length === 0) && (
-            <div style={{ fontSize: '11px', color: 'var(--text3)' }}>No coverage gaps detected.</div>
+            <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No coverage gaps detected.</div>
           )}
         </div>
       </div>
 
-      <div style={{ marginBottom: '24px' }}>
-        <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', marginBottom: '8px', fontWeight: 600 }}>
-          BASELINE
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+        <div style={{ 
+          background: 'var(--bg-card)', padding: '16px', borderRadius: 'var(--radius-md)', 
+          boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border)' 
+        }}>
+          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '8px', fontWeight: 600, letterSpacing: '0.5px' }}>
+            Baseline
+          </div>
+          <div style={{ color: 'var(--success)', fontSize: '24px', fontWeight: 700, marginBottom: '2px', fontFamily: 'var(--font-heading)' }}>
+            86.7%
+          </div>
+          <div style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>
+            0.67 avg conf
+          </div>
         </div>
-        <div style={{ color: 'var(--green)', fontSize: '20px', fontWeight: 700, marginBottom: '2px' }}>
-          86.7%
-        </div>
-        <div style={{ color: 'var(--text2)', fontSize: '11px', marginBottom: '2px' }}>
-          0.67 avg confidence
-        </div>
-        <div style={{ color: 'var(--text3)', fontSize: '10px' }}>
-          Updated just now
-        </div>
-      </div>
 
-      <div>
-        <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', marginBottom: '8px', fontWeight: 600 }}>
-          CACHE
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--green)' }}>
-          <span style={{ width: '6px', height: '6px', background: 'var(--green)', borderRadius: '50%' }} />
-          Semantic hash cache active
+        <div style={{ 
+          background: 'var(--bg-card)', padding: '16px', borderRadius: 'var(--radius-md)', 
+          boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'center'
+        }}>
+          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '8px', fontWeight: 600, letterSpacing: '0.5px' }}>
+            Cache
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--success)', fontWeight: 600 }}>
+            <span style={{ width: '8px', height: '8px', background: 'var(--success)', borderRadius: '50%' }} />
+            Active
+          </div>
         </div>
       </div>
     </div>

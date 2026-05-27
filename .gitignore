@@ -1,4 +1,5 @@
 # Secrets — NEVER commit
+vercel_env_template.txt
 render_env_template.txt
 keys.txt
 .env

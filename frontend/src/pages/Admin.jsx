@@ -15,9 +15,9 @@ export default function Admin() {
     <div style={{
       maxWidth: '1200px',
       margin: '0 auto',
-      padding: '32px 40px',
+      padding: '40px',
       overflowY: 'auto',
-      height: 'calc(100vh - 56px)',
+      height: '100%',
     }}>
 
       {/* Header */}
@@ -29,41 +29,51 @@ export default function Admin() {
       }}>
         <div>
           <h1 style={{
-            fontFamily: 'var(--display)',
-            fontSize: '26px',
-            fontWeight: 800,
-            color: 'var(--text)',
+            fontFamily: 'var(--font-heading)',
+            fontSize: '32px',
+            color: 'var(--text-primary)',
             letterSpacing: '-0.5px',
+            marginBottom: '8px'
           }}>
-            Admin Dashboard
+            Administrative Control
           </h1>
           <p style={{
-            color: 'var(--text3)',
-            fontSize: '12px',
-            marginTop: '4px',
+            color: 'var(--text-secondary)',
+            fontSize: '15px',
+            fontFamily: 'var(--font-body)'
           }}>
             Self-Learning and Self-Healing RAG System Health and Operations
           </p>
         </div>
-        <div style={{display:'flex', gap:'10px', alignItems:'center'}}>
+        <div style={{display:'flex', gap:'16px', alignItems:'center'}}>
           {lastUpdated && (
-            <span style={{color:'var(--text3)', fontSize:'11px'}}>
+            <span style={{color:'var(--text-muted)', fontSize:'13px'}}>
               Updated {lastUpdated.toLocaleTimeString()}
             </span>
           )}
           <button
             onClick={refresh}
             style={{
-              background: 'var(--panel)',
+              background: 'transparent',
               border: '1px solid var(--border)',
-              color: 'var(--text2)',
-              padding: '7px 16px',
-              borderRadius: '6px',
-              fontSize: '12px',
-              cursor: 'pointer'
+              color: 'var(--text-secondary)',
+              padding: '8px 16px',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor = 'var(--accent-teal)'
+              e.currentTarget.style.color = 'var(--accent-teal)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = 'var(--border)'
+              e.currentTarget.style.color = 'var(--text-secondary)'
             }}
           >
-            Refresh
+            Refresh Data
           </button>
         </div>
       </div>
@@ -71,11 +81,12 @@ export default function Admin() {
       {/* Health Row */}
       <section style={{marginBottom: '24px'}}>
         <div style={{
-          fontSize: '10px',
-          letterSpacing: '2px',
+          fontSize: '11px',
+          letterSpacing: '1px',
           textTransform: 'uppercase',
-          color: 'var(--text3)',
-          marginBottom: '12px',
+          fontWeight: 600,
+          color: 'var(--text-muted)',
+          marginBottom: '16px',
         }}>
           Database Health
         </div>
@@ -110,11 +121,13 @@ export default function Admin() {
       {/* Corpus Stats Row */}
       <section style={{marginBottom: '24px'}}>
         <div style={{
-          fontSize: '10px',
-          letterSpacing: '2px',
+          fontSize: '11px',
+          letterSpacing: '1px',
           textTransform: 'uppercase',
-          color: 'var(--text3)',
-          marginBottom: '12px',
+          fontWeight: 600,
+          color: 'var(--text-muted)',
+          marginBottom: '16px',
+          marginTop: '32px'
         }}>
           Corpus Statistics
         </div>

@@ -1,17 +1,18 @@
 export default function HealthDot({ name, connected, detail }) {
-  const color = connected ? 'var(--green)' : 'var(--red)'
+  const color = connected ? 'var(--success)' : 'var(--danger)'
   const status = connected ? 'CONNECTED' : 'OFFLINE'
   
   return (
     <div style={{
       display: 'flex',
       alignItems: 'center',
-      gap: '10px',
-      background: 'var(--panel)',
+      gap: '12px',
+      background: 'var(--bg-card)',
       border: '1px solid var(--border)',
-      borderRadius: '8px',
-      padding: '14px 18px',
-      minWidth: '180px'
+      borderRadius: 'var(--radius-md)',
+      padding: '16px 20px',
+      minWidth: '180px',
+      boxShadow: 'var(--shadow-sm)'
     }}>
       <div style={{
         width: '10px',
@@ -24,11 +25,11 @@ export default function HealthDot({ name, connected, detail }) {
       }} />
       
       <div style={{ flex: 1 }}>
-        <div style={{ color: 'var(--text)', fontSize: '13px', fontWeight: 600 }}>{name}</div>
-        {detail && <div style={{ color: 'var(--text3)', fontSize: '10px' }}>{detail}</div>}
+        <div style={{ color: 'var(--text-primary)', fontSize: '14px', fontWeight: 600 }}>{name}</div>
+        {detail && <div style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>{detail}</div>}
       </div>
       
-      <div style={{ color, fontSize: '10px', fontWeight: 600 }}>
+      <div style={{ color, fontSize: '11px', fontWeight: 600, letterSpacing: '0.5px' }}>
         {status}
       </div>
       

@@ -83,7 +83,7 @@ class StreamMonitor:
                                 self.logger.info(f"Queued paper {paper.paper_id} for batch ingestion.")
                         else:
                             results['papers_rejected'] += 1
-                            self.logger.info(f"Rejected paper {paper.paper_id}: {verification.rejection_reason}")
+                            self.logger.info(f"Rejected paper {paper.paper_id}: {verification.reason}")
                             
                     time.sleep(1.1)
                 except Exception as e:

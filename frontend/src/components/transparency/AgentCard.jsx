@@ -3,14 +3,14 @@ import LoadingSpinner from '../shared/LoadingSpinner'
 
 export default function AgentCard({ event }) {
   const AGENT_COLORS = {
-    cache:   '#00d4ff',
-    agent1:  '#4a9eff',
-    agent2:  '#00d4ff',
-    agent3:  '#ffd60a',
-    agent4a: '#ff8c42',
-    agent4b: '#a855f7',
-    agent7:  '#00e5a0',
-    system:  '#6b7d9e',
+    cache:   'var(--accent-teal)',
+    agent1:  'var(--accent-blue)',
+    agent2:  'var(--accent-teal)',
+    agent3:  'var(--warning)',
+    agent4a: 'var(--warning)',
+    agent4b: 'var(--warning)',
+    agent7:  'var(--success)',
+    system:  'var(--text-muted)',
   }
 
   const AGENT_NAMES = {
@@ -27,54 +27,60 @@ export default function AgentCard({ event }) {
   const color = AGENT_COLORS[event.agent] || '#00d4ff'
   const displayName = AGENT_NAMES[event.agent] || event.agent
 
+  const isRepair = event.agent === 'agent4a' || event.agent === 'agent4b'
+  const bgColor = isRepair ? 'var(--warning-bg)' : 'var(--bg-card)'
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
       style={{
-        background: 'var(--bg3)',
+        background: bgColor,
         border: '1px solid var(--border)',
-        borderLeft: `3px solid ${color}`,
-        borderRadius: '8px',
-        padding: '12px 16px',
-        marginBottom: '8px'
+        borderLeft: `4px solid ${color}`,
+        borderRadius: 'var(--radius-sm)',
+        padding: '16px',
+        marginBottom: '12px',
+        boxShadow: 'var(--shadow-sm)'
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <div style={{
-            border: `1px solid ${color}`,
             color: color,
             padding: '2px 8px',
             borderRadius: '4px',
-            fontSize: '10px',
+            fontSize: '11px',
             fontWeight: 600,
-            textTransform: 'uppercase'
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
           }}>
             {displayName}
           </div>
-          <div style={{ color: 'var(--text2)', fontSize: '12px', marginLeft: '8px' }}>
+          <div style={{ color: 'var(--text-secondary)', fontSize: '12px', marginLeft: '8px' }}>
             {event.step}
           </div>
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {event.status === 'running' && <LoadingSpinner />}
-          {event.status === 'complete' && <span style={{ color: 'var(--green)' }}>✓</span>}
-          {event.status === 'fail' && <span style={{ color: 'var(--red)' }}>✗</span>}
-          {event.status === 'info' && <span style={{ color: 'var(--text3)' }}>ℹ</span>}
-          {event.status === 'pass' && <span style={{ color: 'var(--green)', fontSize: '10px', fontWeight: 600 }}>✓ PASS</span>}
+          {event.status === 'running' && (
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent-blue)', animation: 'pulse 1.5s infinite' }} />
+          )}
+          {event.status === 'complete' && <span style={{ color: 'var(--success)' }}>✓</span>}
+          {event.status === 'fail' && <span style={{ color: 'var(--danger)' }}>✗</span>}
+          {event.status === 'info' && <span style={{ color: 'var(--text-muted)' }}>ℹ</span>}
+          {event.status === 'pass' && <span style={{ color: 'var(--success)', fontSize: '11px', fontWeight: 600 }}>✓ PASS</span>}
           
           {event.duration_ms !== undefined && event.duration_ms > 0 && (
-            <div style={{ color: 'var(--text3)', fontSize: '10px' }}>
+            <div style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
               {event.duration_ms}ms
             </div>
           )}
         </div>
       </div>
 
-      <div style={{ color: 'var(--text2)', fontSize: '11px', marginTop: '6px', lineHeight: 1.5 }}>
+      <div style={{ color: 'var(--text-primary)', fontSize: '13px', marginTop: '8px', lineHeight: 1.6 }}>
         {event.detail}
       </div>
 
@@ -90,14 +96,14 @@ export default function AgentCard({ event }) {
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              fontSize: '10px',
-              color: check.passed ? 'var(--green)' : 'var(--red)',
+              fontSize: '11px',
+              color: check.passed ? 'var(--success)' : 'var(--danger)',
             }}>
               <span>{check.passed ? '✓' : '✗'}</span>
-              <span style={{ color: 'var(--text3)' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>
                 {check.name.replace('_', ' ')}
               </span>
-              <span style={{ marginLeft: 'auto' }}>
+              <span style={{ marginLeft: 'auto', fontWeight: 600 }}>
                 {(check.score * 100).toFixed(0)}%
               </span>
             </div>

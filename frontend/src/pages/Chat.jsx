@@ -62,28 +62,37 @@ export default function Chat() {
   }, [error])
 
   return (
-    <div style={{ display: 'flex', height: 'calc(100vh - 56px)', overflow: 'hidden' }}>
-      <SessionSidebar 
-        currentSessionId={activeSessionId}
-        onNewSession={newSession}
-        onSelectSession={handleSelectSession}
-      />
+    <div style={{ display: 'flex', height: '100vh', width: '100%', overflow: 'hidden' }}>
       
-      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+      {/* Center Panel */}
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, backgroundColor: 'var(--bg-primary)', overflow: 'hidden' }}>
+        {/* Header Bar */}
         <div style={{
-          height: '48px',
-          background: 'var(--bg2)',
+          height: '72px',
+          background: 'var(--bg-card)',
           borderBottom: '1px solid var(--border)',
-          padding: '0 24px',
+          padding: '0 32px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between'
+          justifyContent: 'space-between',
+          boxShadow: 'var(--shadow-sm)'
         }}>
-          <div style={{ color: 'var(--text3)', fontSize: '11px' }}>
-            Session: {activeSessionId.slice(0, 8)}...
+          <div>
+            <h2 style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)', fontSize: '20px', margin: 0 }}>
+              Biomedical Research Chat
+            </h2>
+            <div style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px' }}>
+              1,767 papers · Immunotherapy · Drug Interactions · Genomics
+            </div>
           </div>
-          <div style={{ color: 'var(--text3)', fontSize: '11px' }}>
-            1,495 documents indexed
+          <div style={{ 
+            display: 'flex', alignItems: 'center', gap: '6px', 
+            background: 'var(--success-bg)', color: 'var(--success)', 
+            padding: '4px 10px', borderRadius: 'var(--radius-lg)', 
+            fontSize: '12px', fontWeight: 600 
+          }}>
+            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--success)' }} />
+            Live
           </div>
         </div>
 
@@ -105,8 +114,8 @@ export default function Chat() {
                 width: '64px',
                 height: '64px',
                 borderRadius: '16px',
-                background: 'rgba(0,212,255,0.1)',
-                border: '1px solid rgba(0,212,255,0.3)',
+                background: 'var(--accent-blue-light)',
+                color: 'var(--accent-blue)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -118,57 +127,24 @@ export default function Chat() {
               {/* Title */}
               <div>
                 <h2 style={{
-                  fontFamily: 'var(--display)',
-                  fontSize: '22px',
-                  fontWeight: 800,
-                  color: 'var(--text)',
+                  fontFamily: 'var(--font-heading)',
+                  fontSize: '28px',
+                  color: 'var(--text-primary)',
                   marginBottom: '8px',
-                  letterSpacing: '-0.5px',
                 }}>
-                  Self-Learning and Self-Healing RAG
+                  Clinical Intelligence
                 </h2>
                 <p style={{
-                  color: 'var(--text3)',
-                  fontSize: '13px',
-                  maxWidth: '340px',
+                  color: 'var(--text-secondary)',
+                  fontSize: '14px',
+                  maxWidth: '380px',
                   lineHeight: 1.6,
+                  margin: '0 auto'
                 }}>
                   Self-healing biomedical research assistant.
                   Ask any question about immunotherapy,
                   drug interactions, or genomics.
                 </p>
-              </div>
-              
-              {/* Feature pills */}
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px',
-                width: '100%',
-                maxWidth: '360px',
-              }}>
-                {[
-                  { icon: '⚡', text: 'Semantic cache for instant repeat queries' },
-                  { icon: '🔄', text: 'Self-healing repair cycle for better answers' },
-                  { icon: '📡', text: 'Live PubMed fetch when corpus is stale' },
-                  { icon: '🧠', text: 'Learns from every query via Agent 6' },
-                ].map((f, i) => (
-                  <div key={i} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    padding: '10px 16px',
-                    background: 'var(--panel)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                    color: 'var(--text2)',
-                    textAlign: 'left',
-                  }}>
-                    <span style={{ fontSize: '16px' }}>{f.icon}</span>
-                    {f.text}
-                  </div>
-                ))}
               </div>
             </div>
           )}
@@ -191,18 +167,33 @@ export default function Chat() {
 
         {errorVisible && error && (
           <div style={{
-            background: 'var(--red)',
-            color: 'var(--bg)',
-            padding: '8px 24px',
-            fontSize: '12px',
+            background: 'var(--danger-bg)',
+            color: 'var(--danger)',
+            padding: '12px 24px',
+            fontSize: '13px',
             textAlign: 'center',
-            fontWeight: 600
+            fontWeight: 500,
+            borderTop: '1px solid var(--danger)'
           }}>
             Error: {error}. Try again.
           </div>
         )}
 
         <QueryInput onSend={handleSend} loading={loading} />
+      </div>
+
+      {/* Right Panel - Session History */}
+      <div style={{
+        width: 'var(--right-panel-width)',
+        backgroundColor: 'var(--bg-secondary)',
+        borderLeft: '1px solid var(--border)',
+        overflowY: 'auto',
+      }}>
+        <SessionSidebar 
+          currentSessionId={activeSessionId}
+          onNewSession={newSession}
+          onSelectSession={handleSelectSession}
+        />
       </div>
     </div>
   )

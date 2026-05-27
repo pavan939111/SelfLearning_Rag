@@ -96,7 +96,7 @@ async def chat_endpoint(request: ChatRequest):
             return ChatResponse(
                 session_id=request.session_id,
                 query=request.query,
-                answer=classifier.rejection_message(),
+                answer=state.classification.rejection_message,
                 citations=[],
                 confidence=0.0,
                 confidence_lower=0.0,

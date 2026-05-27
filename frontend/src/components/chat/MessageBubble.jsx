@@ -213,13 +213,12 @@ export default function MessageBubble({ message, sessionId, onSuggestionSelect }
         animate={{ opacity: 1, y: 0 }}
         style={{
           alignSelf: 'flex-end',
-          background: 'var(--panel)',
-          border: '1px solid var(--border)',
-          borderRadius: '10px 10px 2px 10px',
-          padding: '12px 16px',
-          fontSize: '13px',
+          background: 'var(--accent-blue)',
+          borderRadius: '16px 16px 4px 16px',
+          padding: '14px 18px',
+          fontSize: '15px',
           maxWidth: '70%',
-          color: 'var(--text)'
+          color: '#FFFFFF'
         }}
       >
         {message.content}
@@ -236,14 +235,26 @@ export default function MessageBubble({ message, sessionId, onSuggestionSelect }
       animate={{ opacity: 1, y: 0 }}
       style={{
         alignSelf: 'flex-start',
-        background: isDomainRejected ? 'rgba(255,140,66,0.04)' : 'var(--bg2)',
+        background: isDomainRejected ? 'var(--danger-bg)' : 'var(--bg-card)',
         border: '1px solid var(--border)',
-        borderLeft: isDomainRejected ? '3px solid var(--orange)' : (isFallback ? '2px solid var(--yellow)' : undefined),
-        borderRadius: '10px 10px 10px 2px',
+        borderLeft: isDomainRejected ? '4px solid var(--danger)' : (isFallback ? '3px solid var(--warning)' : undefined),
+        borderRadius: '4px 16px 16px 16px',
         padding: '16px 20px',
-        maxWidth: '85%'
+        maxWidth: '80%',
+        boxShadow: 'var(--shadow-sm)',
+        fontSize: '15px'
       }}
     >
+      <div style={{
+        color: 'var(--accent-teal)',
+        fontSize: '11px',
+        fontWeight: 600,
+        textTransform: 'uppercase',
+        letterSpacing: '0.5px',
+        marginBottom: '12px'
+      }}>
+        FailureRAG
+      </div>
       {isDomainRejected && (
         <div style={{
           display: 'flex',
@@ -255,9 +266,9 @@ export default function MessageBubble({ message, sessionId, onSuggestionSelect }
         }}>
           <span style={{ fontSize: '16px' }}>🔬</span>
           <span style={{
-            fontSize: '11px',
+            fontSize: '12px',
             fontWeight: 600,
-            color: 'var(--orange)',
+            color: 'var(--danger)',
             textTransform: 'uppercase',
             letterSpacing: '1px',
           }}>
@@ -344,9 +355,9 @@ export default function MessageBubble({ message, sessionId, onSuggestionSelect }
         // Default prose rendering
         return (
           <div style={{
-            fontSize: '13px',
-            color: isFallback ? 'var(--text2)' : 'var(--text)',
-            lineHeight: 1.8,
+            fontSize: '15px',
+            color: isFallback ? 'var(--text-secondary)' : 'var(--text-primary)',
+            lineHeight: 1.6,
             whiteSpace: 'pre-wrap',
           }}>
             {renderTextWithCitations(content, message.citations)}
@@ -445,14 +456,24 @@ export default function MessageBubble({ message, sessionId, onSuggestionSelect }
       )}
 
       {!isDomainRejected && message.citations && message.citations.length > 0 && (
-        <div style={{ marginTop: '16px', borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
-          <div style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--text3)', marginBottom: '8px', fontWeight: 600 }}>
+        <div style={{ marginTop: '16px', borderTop: '1px solid var(--border-light)', paddingTop: '16px' }}>
+          <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 600 }}>
             Sources
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {message.citations.map((c, i) => (
-              <div key={i} style={{ fontSize: '10px', color: 'var(--text3)' }}>
-                {c.citation} | {c.journal} | {c.year}
+              <div key={i} style={{ 
+                fontSize: '12px', 
+                color: 'var(--text-secondary)',
+                borderLeft: '3px solid var(--accent-teal)',
+                padding: '6px 10px',
+                background: 'var(--accent-teal-light)',
+                borderRadius: '0 6px 6px 0',
+                display: 'flex',
+                flexDirection: 'column'
+              }}>
+                <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{c.title || c.citation}</div>
+                <div>{c.author || 'Authors'} · {c.year} · {c.journal}</div>
               </div>
             ))}
           </div>

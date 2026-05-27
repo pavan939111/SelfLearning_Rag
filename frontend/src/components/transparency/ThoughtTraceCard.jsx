@@ -7,30 +7,44 @@ export const ThoughtTraceCard = ({ trace }) => {
 
   // Map agents to readable names and colors
   const agentLabels = {
-    'agent1': { name: 'Agent 1 (Retrieval)', color: 'text-blue-400' },
-    'agent2': { name: 'Agent 2 (Quality Gate)', color: 'text-emerald-400' },
-    'agent3': { name: 'Agent 3 (Diagnosis)', color: 'text-amber-400' },
-    'agent4a': { name: 'Agent 4A (Formulator)', color: 'text-purple-400' },
-    'agent4b': { name: 'Agent 4B (Live Fetch)', color: 'text-purple-400' },
-    'agent7': { name: 'Agent 7 (Generator)', color: 'text-indigo-400' },
+    'agent1': { name: 'Agent 1 (Retrieval)', color: 'var(--accent-blue)' },
+    'agent2': { name: 'Agent 2 (Quality Gate)', color: 'var(--accent-teal)' },
+    'agent3': { name: 'Agent 3 (Diagnosis)', color: 'var(--warning)' },
+    'agent4a': { name: 'Agent 4A (Formulator)', color: 'var(--warning)' },
+    'agent4b': { name: 'Agent 4B (Live Fetch)', color: 'var(--warning)' },
+    'agent7': { name: 'Agent 7 (Generator)', color: 'var(--success)' },
   };
 
-  const aLabel = agentLabels[trace.agent] || { name: trace.agent.toUpperCase(), color: 'text-gray-400' };
+  const aLabel = agentLabels[trace.agent] || { name: trace.agent.toUpperCase(), color: 'var(--text-muted)' };
 
   return (
-    <div className="my-2 border border-slate-700/50 rounded-md bg-slate-800/30 overflow-hidden text-sm font-mono">
+    <div style={{
+      margin: '8px 0',
+      border: '1px solid var(--border)',
+      borderRadius: 'var(--radius-sm)',
+      backgroundColor: 'var(--bg-card)',
+      overflow: 'hidden',
+      fontSize: '13px',
+      fontFamily: 'var(--font-mono)'
+    }}>
       {/* Header */}
       <div 
-        className="flex items-center justify-between p-2 cursor-pointer hover:bg-slate-700/30 transition-colors"
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '8px 12px', cursor: 'pointer',
+          borderBottom: expanded ? '1px solid var(--border)' : 'none',
+          backgroundColor: expanded ? 'var(--bg-secondary)' : 'transparent',
+          transition: 'background-color 0.2s'
+        }}
         onClick={() => setExpanded(!expanded)}
       >
-        <div className="flex items-center gap-2">
-          {expanded ? <ChevronDown size={14} className="text-slate-400" /> : <ChevronRight size={14} className="text-slate-400" />}
-          <BrainCircuit size={14} className={aLabel.color} />
-          <span className={`font-semibold ${aLabel.color}`}>{aLabel.name}</span>
-          <span className="text-slate-400 px-2 border-l border-slate-600">[{trace.step}]</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {expanded ? <ChevronDown size={14} color="var(--text-secondary)" /> : <ChevronRight size={14} color="var(--text-secondary)" />}
+          <BrainCircuit size={14} color={aLabel.color} />
+          <span style={{ fontWeight: 600, color: aLabel.color }}>{aLabel.name}</span>
+          <span style={{ color: 'var(--text-muted)', padding: '0 8px', borderLeft: '1px solid var(--border)' }}>[{trace.step}]</span>
         </div>
-        <div className="text-slate-500 text-xs">
+        <div style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
           {trace.duration_ms}ms
         </div>
       </div>
@@ -43,32 +57,42 @@ export const ThoughtTraceCard = ({ trace }) => {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="border-t border-slate-700/50 bg-slate-900/50 p-3 space-y-3"
+            style={{
+              backgroundColor: 'var(--bg-primary)',
+              padding: '12px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
+            }}
           >
-            <div className="grid grid-cols-[40px_1fr] gap-2">
-              <span className="font-bold text-yellow-500">OBS</span>
-              <span className="text-slate-300 leading-relaxed">{trace.obs}</span>
+            <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr', gap: '8px' }}>
+              <span style={{ fontWeight: 700, color: 'var(--warning)' }}>OBS</span>
+              <span style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>{trace.obs}</span>
             </div>
             
-            <div className="grid grid-cols-[40px_1fr] gap-2">
-              <span className="font-bold text-cyan-500">THK</span>
-              <span className="text-slate-300 leading-relaxed">{trace.thk}</span>
+            <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr', gap: '8px' }}>
+              <span style={{ fontWeight: 700, color: 'var(--accent-teal)' }}>THK</span>
+              <span style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>{trace.thk}</span>
             </div>
             
-            <div className="grid grid-cols-[40px_1fr] gap-2">
-              <span className="font-bold text-orange-500">ACT</span>
-              <span className="text-slate-300 leading-relaxed">{trace.act}</span>
+            <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr', gap: '8px' }}>
+              <span style={{ fontWeight: 700, color: 'var(--danger)' }}>ACT</span>
+              <span style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>{trace.act}</span>
             </div>
             
-            <div className="grid grid-cols-[40px_1fr] gap-2">
-              <span className="font-bold text-emerald-500">OUT</span>
-              <span className="text-slate-300 leading-relaxed">{trace.out}</span>
+            <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr', gap: '8px' }}>
+              <span style={{ fontWeight: 700, color: 'var(--success)' }}>OUT</span>
+              <span style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>{trace.out}</span>
             </div>
 
             {trace.confidence > 0 && (
-              <div className="mt-2 pt-2 border-t border-slate-700/30 flex items-center justify-between text-xs">
-                <span className="text-slate-500">Confidence</span>
-                <span className="text-cyan-400">{(trace.confidence * 100).toFixed(0)}%</span>
+              <div style={{
+                marginTop: '8px', paddingTop: '8px', borderTop: '1px solid var(--border)',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                fontSize: '11px'
+              }}>
+                <span style={{ color: 'var(--text-muted)' }}>Confidence</span>
+                <span style={{ color: 'var(--accent-teal)', fontWeight: 600 }}>{(trace.confidence * 100).toFixed(0)}%</span>
               </div>
             )}
           </motion.div>

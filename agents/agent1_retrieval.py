@@ -65,7 +65,7 @@ Query: {query}
 Return this exact JSON structure:
 {{
   "is_biomedical": true or false,
-  "rejection_reason": "why rejected if not biomedical, else empty string",
+  "rejection_message": "why rejected if not biomedical, else empty string",
   "query_type": "simple_factual" or "multi_hop" or "comparative" or "temporal" or "exploratory",
   "main_topics": ["topic1", "topic2"],
   "entities": ["drug or gene or disease names"],
@@ -121,8 +121,8 @@ Return ONLY the JSON object. No explanation."""
                     requires_recent=False,
                     entities=[],
                     domain_rejected=True,
-                    rejection_reason=parsed.get(
-                        'rejection_reason',
+                    rejection_message=parsed.get(
+                        'rejection_message',
                         'Query not related to biomedical research'
                     )
                 )
@@ -140,7 +140,7 @@ Return ONLY the JSON object. No explanation."""
                 requires_recent=parsed.get("requires_recent", False),
                 entities=parsed.get("entities", []),
                 domain_rejected=False,
-                rejection_reason=''
+                rejection_message=''
             )
             try:
                 tl.trace(

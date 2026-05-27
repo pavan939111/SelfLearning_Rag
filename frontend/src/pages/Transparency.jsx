@@ -5,31 +5,27 @@ import AgentFeed from '../components/transparency/AgentFeed'
 import SystemStatePanel from '../components/transparency/SystemStatePanel'
 
 export default function Transparency() {
-  const { sessionId } = useSession()
-  const { events, answer, streaming, error, stream, reset } = useAgentStream()
-
-  const handleQuery = (query) => {
-    reset()
-    stream(sessionId, query)
-  }
+  const { events, streaming } = useAgentStream()
 
   return (
     <div style={{
-      display: 'grid',
-      gridTemplateColumns: '380px 1fr 280px',
-      height: 'calc(100vh - 56px)',
+      display: 'flex',
+      height: '100vh',
+      width: '100%',
       overflow: 'hidden',
     }}>
-      <MiniChat
-        onQuery={handleQuery}
-        answer={answer}
-        streaming={streaming}
-      />
-      <AgentFeed
-        events={events}
-        streaming={streaming}
-      />
-      <SystemStatePanel />
+      {/* LEFT (60%): Agent activity feed */}
+      <div style={{ flex: '6', borderRight: '1px solid var(--border)' }}>
+        <AgentFeed
+          events={events}
+          streaming={streaming}
+        />
+      </div>
+      
+      {/* RIGHT (40%): Live metadata */}
+      <div style={{ flex: '4', backgroundColor: 'var(--bg-secondary)' }}>
+        <SystemStatePanel />
+      </div>
     </div>
   )
 }

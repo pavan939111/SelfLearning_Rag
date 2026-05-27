@@ -36,7 +36,11 @@ class QueryClassification(BaseModel):
     entities: list[str] = []
     topic_cluster: str = "default"
     domain_rejected: bool = False
-    rejection_reason: str = ''
+    rejection_message: str = (
+        "I can only answer biomedical research "
+        "questions about immunotherapy, drug "
+        "interactions, or genomics."
+    )
 
 class FilterConfig(BaseModel):
     must_conditions: list[dict] = []

@@ -32,39 +32,40 @@ export default function ActivityTable({ getPendingApprovals, approveRepair }) {
 
   const getFailureClassBadge = (fc) => {
     switch(fc) {
-      case 'A': return <span style={{ background: 'rgba(255,77,109,0.1)', color: 'var(--red)', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 600 }}>CLASS A</span>
-      case 'B': return <span style={{ background: 'rgba(255,214,10,0.1)', color: 'var(--yellow)', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 600 }}>CLASS B</span>
-      case 'C': return <span style={{ background: 'rgba(255,140,66,0.1)', color: 'var(--orange)', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 600 }}>CLASS C</span>
+      case 'A': return <span style={{ background: 'var(--danger-bg)', color: 'var(--danger)', padding: '2px 8px', borderRadius: 'var(--radius-sm)', fontSize: '11px', fontWeight: 600 }}>CLASS A</span>
+      case 'B': return <span style={{ background: 'var(--warning-bg)', color: 'var(--warning)', padding: '2px 8px', borderRadius: 'var(--radius-sm)', fontSize: '11px', fontWeight: 600 }}>CLASS B</span>
+      case 'C': return <span style={{ background: 'var(--accent-blue-light)', color: 'var(--accent-blue)', padding: '2px 8px', borderRadius: 'var(--radius-sm)', fontSize: '11px', fontWeight: 600 }}>CLASS C</span>
       default: return null
     }
   }
 
   return (
     <div style={{
-      background: 'var(--bg2)',
+      background: 'var(--bg-card)',
       border: '1px solid var(--border)',
-      borderRadius: '12px',
+      borderRadius: 'var(--radius-lg)',
       overflow: 'hidden',
       display: 'flex',
-      flexDirection: 'column'
+      flexDirection: 'column',
+      boxShadow: 'var(--shadow-sm)'
     }}>
       <div style={{
-        padding: '18px 20px',
-        borderBottom: '1px solid var(--border)',
+        padding: '24px',
+        borderBottom: '1px solid var(--border-light)',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
-        <h2 style={{ fontFamily: 'var(--display)', fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>
+        <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', color: 'var(--text-primary)' }}>
           Pending Repairs
         </h2>
         
         {approvals.length > 0 ? (
-          <div style={{ background: 'var(--red)', color: 'var(--bg)', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 600 }}>
+          <div style={{ background: 'var(--danger-bg)', color: 'var(--danger)', padding: '4px 12px', borderRadius: 'var(--radius-lg)', fontSize: '12px', fontWeight: 600 }}>
             {approvals.length} pending
           </div>
         ) : (
-          <div style={{ color: 'var(--green)', fontSize: '11px', fontWeight: 600 }}>
+          <div style={{ color: 'var(--success)', fontSize: '13px', fontWeight: 600 }}>
             All clear
           </div>
         )}
@@ -80,36 +81,40 @@ export default function ActivityTable({ getPendingApprovals, approveRepair }) {
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
-            <thead style={{ background: 'var(--bg3)', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '10px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+            <thead style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '11px' }}>
               <tr>
-                <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 500 }}>Query</th>
-                <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 500 }}>Failure Class</th>
-                <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 500 }}>Root Cause</th>
-                <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 500 }}>Date</th>
-                <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 500 }}>Actions</th>
+                <th style={{ padding: '12px 24px', textAlign: 'left', fontWeight: 600 }}>Query</th>
+                <th style={{ padding: '12px 24px', textAlign: 'left', fontWeight: 600 }}>Failure Class</th>
+                <th style={{ padding: '12px 24px', textAlign: 'left', fontWeight: 600 }}>Root Cause</th>
+                <th style={{ padding: '12px 24px', textAlign: 'left', fontWeight: 600 }}>Date</th>
+                <th style={{ padding: '12px 24px', textAlign: 'left', fontWeight: 600 }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {approvals.map(a => (
-                <tr key={a.id} style={{ borderBottom: '1px solid var(--border)', color: 'var(--text2)' }}>
-                  <td style={{ padding: '12px 16px', color: 'var(--text)', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {approvals.map((a, index) => (
+                <tr key={a.id} style={{ 
+                  borderBottom: '1px solid var(--border-light)', 
+                  color: 'var(--text-secondary)',
+                  backgroundColor: index % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-primary)'
+                }}>
+                  <td style={{ padding: '16px 24px', color: 'var(--text-primary)', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {a.query.length > 50 ? a.query.substring(0, 50) + '...' : a.query}
                   </td>
-                  <td style={{ padding: '12px 16px' }}>{getFailureClassBadge(a.failure_class)}</td>
-                  <td style={{ padding: '12px 16px', fontStyle: 'italic', color: 'var(--text3)' }}>{a.root_cause}</td>
-                  <td style={{ padding: '12px 16px' }}>{new Date(a.date).toLocaleDateString()}</td>
-                  <td style={{ padding: '12px 16px' }}>
+                  <td style={{ padding: '16px 24px' }}>{getFailureClassBadge(a.failure_class)}</td>
+                  <td style={{ padding: '16px 24px', fontStyle: 'italic', color: 'var(--text-muted)' }}>{a.root_cause}</td>
+                  <td style={{ padding: '16px 24px' }}>{new Date(a.date).toLocaleDateString()}</td>
+                  <td style={{ padding: '16px 24px' }}>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button 
                         onClick={() => handleAction(a.id, 'approve')}
-                        style={{ background: 'rgba(0,229,160,0.1)', border: '1px solid var(--green)', color: 'var(--green)', padding: '4px 12px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}
+                        style={{ background: 'var(--accent-teal)', border: 'none', color: '#FFFFFF', padding: '6px 14px', borderRadius: 'var(--radius-sm)', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
                       >
                         Approve
                       </button>
                       <button 
                         onClick={() => handleAction(a.id, 'reject')}
-                        style={{ background: 'rgba(255,77,109,0.1)', border: '1px solid var(--red)', color: 'var(--red)', padding: '4px 12px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}
+                        style={{ background: 'transparent', border: '1px solid var(--danger)', color: 'var(--danger)', padding: '6px 14px', borderRadius: 'var(--radius-sm)', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
                       >
                         Reject
                       </button>

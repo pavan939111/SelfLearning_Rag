@@ -15,43 +15,53 @@ export default function AgentFeed({ events, streaming }) {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{
-        height: '48px',
-        background: 'var(--bg2)',
+        height: '72px',
+        background: 'var(--bg-card)',
         borderBottom: '1px solid var(--border)',
-        padding: '0 20px',
+        padding: '0 32px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        flexShrink: 0
+        flexShrink: 0,
+        boxShadow: 'var(--shadow-sm)'
       }}>
-        <div style={{ fontFamily: 'var(--display)', fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>
+        <div style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', color: 'var(--text-primary)' }}>
           Agent Activity
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--text3)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-secondary)' }}>
           {streaming ? (
             <>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--cyan)', boxShadow: '0 0 6px var(--cyan)', animation: 'pulse 1.5s infinite' }} />
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent-blue)', boxShadow: '0 0 6px var(--accent-blue)', animation: 'pulse 1.5s infinite' }} />
               Processing...
             </>
           ) : events.length > 0 ? (
             <>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--green)' }} />
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--success)' }} />
               Complete
             </>
           ) : (
             <>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--text3)' }} />
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--text-muted)' }} />
               Waiting for query
             </>
           )}
           
           <button
             onClick={() => setShowReasoning(!showReasoning)}
-            className={`ml-4 px-2 py-1 rounded text-xs font-semibold uppercase tracking-wider border transition-colors ${
-              showReasoning 
-                ? 'bg-slate-700 border-slate-500 text-slate-200' 
-                : 'bg-transparent border-slate-700 text-slate-500 hover:text-slate-300'
-            }`}
+            style={{
+              marginLeft: '16px',
+              padding: '6px 12px',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: '11px',
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '1px',
+              border: '1px solid',
+              transition: 'all 0.2s',
+              backgroundColor: showReasoning ? 'var(--bg-sidebar)' : 'transparent',
+              borderColor: showReasoning ? 'var(--bg-sidebar)' : 'var(--border)',
+              color: showReasoning ? '#FFFFFF' : 'var(--text-secondary)'
+            }}
           >
             {showReasoning ? 'Reasoning ON' : 'Reasoning OFF'}
           </button>
@@ -67,7 +77,7 @@ export default function AgentFeed({ events, streaming }) {
             justifyContent: 'center',
             height: '100%',
             gap: '16px',
-            color: 'var(--text3)',
+            color: 'var(--text-muted)',
             padding: '40px',
             textAlign: 'center',
           }}>
@@ -77,15 +87,15 @@ export default function AgentFeed({ events, streaming }) {
             }}>⚙️</div>
             <div>
               <div style={{
-                fontFamily: 'var(--display)',
-                fontSize: '15px',
-                color: 'var(--text2)',
+                fontFamily: 'var(--font-heading)',
+                fontSize: '20px',
+                color: 'var(--text-secondary)',
                 marginBottom: '6px',
               }}>
                 Agent Activity Feed
               </div>
-              <div style={{ fontSize: '12px', lineHeight: 1.6 }}>
-                Send a query in the left panel to watch<br/>
+              <div style={{ fontSize: '14px', lineHeight: 1.6, color: 'var(--text-secondary)' }}>
+                Send a query in the chat panel to watch<br/>
                 the nine agents work in real time
               </div>
             </div>
@@ -95,28 +105,29 @@ export default function AgentFeed({ events, streaming }) {
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
               gap: '6px',
-              marginTop: '8px',
+              marginTop: '16px',
               width: '100%',
-              maxWidth: '280px',
+              maxWidth: '320px',
             }}>
               {[
-                { name: 'Agent 1 — Retrieval', color: '#4a9eff' },
-                { name: 'Agent 2 — Quality Gate', color: '#00d4ff' },
-                { name: 'Agent 3 — Diagnosis', color: '#ffd60a' },
-                { name: 'Agent 4A — Repair', color: '#ff8c42' },
-                { name: 'Agent 7 — Generator', color: '#00e5a0' },
-                { name: 'Cache Check', color: '#00d4ff' },
+                { name: 'Agent 1 — Retrieval', color: 'var(--accent-blue)' },
+                { name: 'Agent 2 — Quality Gate', color: 'var(--accent-teal)' },
+                { name: 'Agent 3 — Diagnosis', color: 'var(--warning)' },
+                { name: 'Agent 4A — Repair', color: 'var(--warning)' },
+                { name: 'Agent 7 — Generator', color: 'var(--success)' },
+                { name: 'Cache Check', color: 'var(--accent-teal)' },
               ].map((a, i) => (
                 <div key={i} style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  fontSize: '10px',
-                  color: 'var(--text3)',
-                  padding: '5px 8px',
-                  background: 'var(--bg3)',
-                  borderRadius: '4px',
-                  borderLeft: `2px solid ${a.color}`,
+                  gap: '8px',
+                  fontSize: '11px',
+                  color: 'var(--text-secondary)',
+                  padding: '8px 12px',
+                  background: 'var(--bg-primary)',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border)',
+                  borderLeft: `3px solid ${a.color}`,
                 }}>
                   {a.name}
                 </div>

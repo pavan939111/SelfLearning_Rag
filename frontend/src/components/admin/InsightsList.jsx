@@ -4,34 +4,35 @@ export default function InsightsList({ stats }) {
 
   return (
     <div style={{
-      background: 'var(--bg2)',
+      background: 'var(--bg-card)',
       border: '1px solid var(--border)',
-      borderRadius: '12px',
-      overflow: 'hidden'
+      borderRadius: 'var(--radius-lg)',
+      overflow: 'hidden',
+      boxShadow: 'var(--shadow-sm)'
     }}>
       <div style={{
-        padding: '18px 20px',
-        borderBottom: '1px solid var(--border)',
+        padding: '24px',
+        borderBottom: '1px solid var(--border-light)',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
-        <h2 style={{ fontFamily: 'var(--display)', fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>
+        <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', color: 'var(--text-primary)' }}>
           Agent 6 Insights
         </h2>
         
-        <div style={{ background: 'rgba(168,85,247,0.1)', color: 'var(--purple)', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 600 }}>
+        <div style={{ background: 'var(--accent-blue-light)', color: 'var(--accent-blue)', padding: '4px 12px', borderRadius: 'var(--radius-lg)', fontSize: '12px', fontWeight: 600 }}>
           {agent6_insights} insights
         </div>
       </div>
 
-      <div style={{ padding: '16px 20px 8px' }}>
-        <div style={{ color: 'var(--text3)', fontSize: '10px', textTransform: 'uppercase', marginBottom: '16px', fontWeight: 600 }}>
+      <div style={{ padding: '24px' }}>
+        <div style={{ color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', marginBottom: '16px', fontWeight: 600, letterSpacing: '1px' }}>
           TOP COVERAGE GAPS
         </div>
 
         {top_gaps.length === 0 ? (
-          <div style={{ color: 'var(--text3)', fontSize: '12px', textAlign: 'center', padding: '20px 0' }}>
+          <div style={{ color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center', padding: '24px 0' }}>
             Agent 6 is learning from queries...<br/>
             Insights will appear after more queries
           </div>
@@ -43,14 +44,14 @@ export default function InsightsList({ stats }) {
               
               return (
                 <div key={i}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '12px', color: 'var(--text)' }}>{gap.topic}</span>
-                    <span style={{ background: 'rgba(255,77,109,0.1)', color: 'var(--red)', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: 500 }}>{gap.topic}</span>
+                    <span style={{ background: 'var(--danger-bg)', color: 'var(--danger)', fontSize: '11px', padding: '2px 8px', borderRadius: 'var(--radius-sm)', fontWeight: 600 }}>
                       {gap.count} queries
                     </span>
                   </div>
-                  <div style={{ width: '100%', height: '4px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
-                    <div style={{ width: `${percentage}%`, height: '100%', background: 'var(--red)', opacity: 0.8 }} />
+                  <div style={{ width: '100%', height: '6px', background: 'var(--border-light)', borderRadius: '3px', overflow: 'hidden' }}>
+                    <div style={{ width: `${percentage}%`, height: '100%', background: 'var(--danger)', opacity: 0.8 }} />
                   </div>
                 </div>
               )

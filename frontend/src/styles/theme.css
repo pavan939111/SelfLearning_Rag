@@ -1,0 +1,57 @@
+:root {
+  --bg-primary: #F7F9FC;
+  --bg-secondary: #EEF2F8;
+  --bg-card: #FFFFFF;
+  --bg-sidebar: #1B2E4B;
+  --bg-sidebar-hover: #243D61;
+  --bg-sidebar-active: #0A4A6E;
+
+  --text-primary: #0F1F35;
+  --text-secondary: #4A5E7A;
+  --text-muted: #8A9BB0;
+  --text-sidebar: #C8D8E8;
+  --text-sidebar-active: #FFFFFF;
+
+  --accent-teal: #0A8C7E;
+  --accent-teal-light: #E0F2F0;
+  --accent-blue: #1565C0;
+  --accent-blue-light: #E3F2FD;
+
+  --success: #1B7A4E;
+  --success-bg: #E8F5EE;
+  --warning: #B06A00;
+  --warning-bg: #FFF3E0;
+  --danger: #C02B2B;
+  --danger-bg: #FDECEA;
+
+  --border: #D4DCE8;
+  --border-light: #EEF2F8;
+  --shadow-sm: 0 1px 4px rgba(15,31,53,0.06);
+  --shadow-md: 0 4px 16px rgba(15,31,53,0.10);
+  --shadow-lg: 0 8px 32px rgba(15,31,53,0.14);
+
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+
+  --font-heading: 'DM Serif Display', serif;
+  --font-body: 'IBM Plex Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+
+  --sidebar-width: 260px;
+  --right-panel-width: 320px;
+  --transition: 0.2s ease;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+}

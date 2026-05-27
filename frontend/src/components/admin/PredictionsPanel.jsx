@@ -9,35 +9,36 @@ export default function PredictionsPanel({ predictions = [] }) {
 
   return (
     <div style={{
-      backgroundColor: 'var(--bg2, #1f2937)',
-      border: '1px solid var(--border, #374151)',
-      borderRadius: '12px',
+      backgroundColor: 'var(--bg-card)',
+      border: '1px solid var(--border)',
+      borderRadius: 'var(--radius-lg)',
       overflow: 'hidden',
       display: 'flex',
-      flexDirection: 'column'
+      flexDirection: 'column',
+      boxShadow: 'var(--shadow-sm)'
     }}>
-      <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border, #374151)' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text1, #f9fafb)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      <div style={{ padding: '24px', borderBottom: '1px solid var(--border-light)' }}>
+        <h2 style={{ fontSize: '20px', fontFamily: 'var(--font-heading)', color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span>🔮</span> Predictions
         </h2>
-        <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: 'var(--text2, #9ca3af)' }}>
+        <p style={{ margin: '4px 0 0', fontSize: '14px', color: 'var(--text-secondary)' }}>
           Based on current learning trends
         </p>
       </div>
 
-      <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {predictions.length === 0 ? (
-          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text2, #9ca3af)', fontSize: '0.875rem', backgroundColor: 'rgba(0,0,0,0.1)', borderRadius: '8px' }}>
+          <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)' }}>
             Not enough data yet — predictions appear after one week of usage
           </div>
         ) : (
           predictions.map((pred, i) => (
             <div key={i} style={{
               display: 'flex',
-              backgroundColor: 'var(--bg3, #374151)',
-              borderRadius: '8px',
+              backgroundColor: 'var(--bg-secondary)',
+              borderRadius: 'var(--radius-md)',
               overflow: 'hidden',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+              boxShadow: 'var(--shadow-sm)'
             }}>
               <div style={{
                 width: '6px',
@@ -45,18 +46,19 @@ export default function PredictionsPanel({ predictions = [] }) {
                 boxShadow: pred.urgency === 'high' ? `0 0 10px ${urgencyColors.high}` : 'none',
                 animation: pred.urgency === 'high' ? 'pulse 2s infinite' : 'none'
               }} />
-              <div style={{ padding: '1rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <span style={{
                     display: 'inline-block',
-                    padding: '0.25rem 0.5rem',
-                    backgroundColor: 'rgba(255,255,255,0.1)',
-                    borderRadius: '4px',
-                    fontSize: '0.75rem',
+                    padding: '4px 8px',
+                    backgroundColor: 'var(--bg-card)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '11px',
                     fontWeight: 600,
                     textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    color: 'var(--text2, #9ca3af)'
+                    letterSpacing: '0.5px',
+                    color: 'var(--text-secondary)'
                   }}>
                     {pred.type.replace(/_/g, ' ')}
                   </span>
@@ -65,8 +67,7 @@ export default function PredictionsPanel({ predictions = [] }) {
                   {pred.message}
                 </p>
                 <div style={{ marginTop: '0.5rem', padding: '0.75rem', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '6px', fontSize: '0.875rem' }}>
-                  <strong style={{ color: 'var(--text2, #9ca3af)' }}>Recommended Action:</strong>{' '}
-                  <span style={{ color: 'var(--text1, #f9fafb)' }}>{pred.action}</span>
+                  <span style={{ color: 'var(--text-primary)' }}>{pred.action}</span>
                 </div>
               </div>
             </div>

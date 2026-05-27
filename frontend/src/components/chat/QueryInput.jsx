@@ -40,17 +40,20 @@ export default function QueryInput({ onSend, loading, placeholder = "Ask a biome
 
   return (
     <div style={{
-      background: 'var(--bg2)',
+      background: 'var(--bg-card)',
       borderTop: '1px solid var(--border)',
-      padding: '20px 24px'
+      padding: '24px 32px',
+      boxShadow: '0 -4px 16px rgba(15,31,53,0.06)',
+      position: 'relative',
+      zIndex: 10
     }}>
       <div style={{
         display: 'flex',
-        background: 'var(--panel)',
-        border: `1px solid ${isFocused ? 'var(--cyan)' : 'var(--border)'}`,
-        borderRadius: '10px',
+        background: 'var(--bg-primary)',
+        border: `1px solid ${isFocused ? 'var(--accent-teal)' : 'var(--border)'}`,
+        borderRadius: 'var(--radius-lg)',
         overflow: 'hidden',
-        boxShadow: isFocused ? '0 0 0 2px rgba(0,212,255,0.1)' : 'none',
+        boxShadow: isFocused ? '0 0 0 3px var(--accent-teal-light)' : 'none',
         transition: 'all 0.2s'
       }}>
         <textarea
@@ -60,29 +63,29 @@ export default function QueryInput({ onSend, loading, placeholder = "Ask a biome
           onKeyDown={handleKeyDown}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          placeholder={placeholder}
+          placeholder="Ask about immunotherapy, drug interactions, genomics..."
           disabled={loading}
           style={{
             flex: 1,
             background: 'transparent',
             border: 'none',
             outline: 'none',
-            color: 'var(--text)',
-            fontFamily: 'var(--mono)',
-            fontSize: '13px',
-            padding: '14px 16px',
+            color: 'var(--text-primary)',
+            fontFamily: 'var(--font-body)',
+            fontSize: '15px',
+            padding: '16px 20px',
             resize: 'none',
-            minHeight: '52px',
-            maxHeight: '120px'
+            minHeight: '56px',
+            maxHeight: '140px'
           }}
         />
         <button
           onClick={submit}
           disabled={!text.trim() || loading}
           style={{
-            width: '44px',
-            background: (!text.trim() || loading) ? 'var(--border)' : 'var(--cyan)',
-            color: 'var(--bg)',
+            width: '56px',
+            background: (!text.trim() || loading) ? 'var(--border)' : 'var(--accent-teal)',
+            color: '#FFFFFF',
             border: 'none',
             display: 'flex',
             alignItems: 'center',
@@ -91,36 +94,38 @@ export default function QueryInput({ onSend, loading, placeholder = "Ask a biome
             transition: 'background 0.2s'
           }}
         >
-          {loading ? <LoadingSpinner /> : <ArrowRight size={18} />}
+          {loading ? <LoadingSpinner /> : <ArrowRight size={20} />}
         </button>
       </div>
       
-      <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '8px', marginTop: '16px', flexWrap: 'wrap' }}>
         {[
-          "How does pembrolizumab work?",
-          "Drug interactions with warfarin",
-          "What is CRISPR-Cas9?"
+          "Pembrolizumab mechanism",
+          "CAR-T therapy",
+          "Drug interactions with warfarin"
         ].map(q => (
           <div
             key={q}
             onClick={() => handleChipClick(q)}
             style={{
-              fontSize: '11px',
-              color: 'var(--text3)',
-              background: 'var(--bg)',
+              fontSize: '12px',
+              color: 'var(--text-secondary)',
+              background: 'var(--bg-primary)',
               border: '1px solid var(--border)',
-              padding: '4px 10px',
-              borderRadius: '12px',
+              padding: '6px 14px',
+              borderRadius: 'var(--radius-lg)',
               cursor: 'pointer',
               transition: 'all 0.2s'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.color = 'var(--cyan)'
-              e.currentTarget.style.borderColor = 'var(--cyan)'
+              e.currentTarget.style.color = 'var(--accent-teal)'
+              e.currentTarget.style.borderColor = 'var(--accent-teal)'
+              e.currentTarget.style.background = 'var(--accent-teal-light)'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'var(--text3)'
+              e.currentTarget.style.color = 'var(--text-secondary)'
               e.currentTarget.style.borderColor = 'var(--border)'
+              e.currentTarget.style.background = 'var(--bg-primary)'
             }}
           >
             {q}
