@@ -222,21 +222,18 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Self-Learning and Self-Healing RAG API", lifespan=lifespan)
 
 # CORS
-# Get frontend URL from environment
-FRONTEND_URL = os.environ.get(
-    'FRONTEND_URL', 'http://localhost:5173'
-)
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        FRONTEND_URL,
-        'http://localhost:5173',
-        'http://localhost:3000',
+        "https://self-learning-rag.vercel.app",
+        "https://selflearning-rag.vercel.app",
+        "http://localhost:5173",
+        "http://localhost:3000",
+        os.environ.get("FRONTEND_URL", ""),
     ],
     allow_credentials=True,
-    allow_methods=['*'],
-    allow_headers=['*'],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Rate Limiting
