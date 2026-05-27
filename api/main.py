@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
+import os
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from uuid import uuid4
@@ -221,12 +222,21 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Self-Learning and Self-Healing RAG API", lifespan=lifespan)
 
 # CORS
+# Get frontend URL from environment
+FRONTEND_URL = os.environ.get(
+    'FRONTEND_URL', 'http://localhost:5173'
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        FRONTEND_URL,
+        'http://localhost:5173',
+        'http://localhost:3000',
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=['*'],
+    allow_headers=['*'],
 )
 
 # Rate Limiting

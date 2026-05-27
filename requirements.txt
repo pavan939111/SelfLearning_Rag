@@ -10,7 +10,7 @@ biopython==1.87
 requests==2.32.3
 xmltodict==1.0.4
 fastapi==0.136.1
-uvicorn==0.46.0
+uvicorn[standard]==0.46.0
 httpx==0.27.0
 python-multipart==0.0.9
 celery==5.3.6
