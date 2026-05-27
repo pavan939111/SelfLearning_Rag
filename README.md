@@ -1,5 +1,7 @@
 # Self-Learning and Self-Healing RAG
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Try%20it%20now!-success?style=for-the-badge)](https://self-learning-rag.vercel.app/chat)
+
 A biomedical research assistant that diagnoses and fixes its own mistakes before giving you an answer.
 
 ---
