@@ -3,6 +3,8 @@
 celery -A workers.celery_app worker \
   --loglevel=info \
   -Q high_priority,medium_priority,low_priority \
+  --pool=solo \
+  --concurrency=1 \
   --detach \
   --logfile=/tmp/celery.log \
   --pidfile=/tmp/celery.pid

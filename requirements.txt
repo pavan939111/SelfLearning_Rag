@@ -2,9 +2,7 @@ qdrant-client==1.18.0
 supabase==2.30.0
 neo4j==6.2.0
 redis==7.1.0
-sentence-transformers==5.4.1
-torch==2.11.0
-transformers==5.7.0
+
 google-genai==1.0.0
 biopython==1.87
 requests==2.32.3
