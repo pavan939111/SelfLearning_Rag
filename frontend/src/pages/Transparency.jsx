@@ -5,7 +5,12 @@ import AgentFeed from '../components/transparency/AgentFeed'
 import SystemStatePanel from '../components/transparency/SystemStatePanel'
 
 export default function Transparency() {
-  const { events, streaming } = useAgentStream()
+  const { session } = useSession()
+  const { events, streaming, answer, stream } = useAgentStream()
+
+  const handleQuery = (text) => {
+    stream(session?.id || 'demo_session', text)
+  }
 
   return (
     <div style={{
@@ -13,17 +18,27 @@ export default function Transparency() {
       height: '100vh',
       width: '100%',
       overflow: 'hidden',
+      background: 'var(--bg-primary)'
     }}>
-      {/* LEFT (60%): Agent activity feed */}
-      <div style={{ flex: '6', borderRight: '1px solid var(--border)' }}>
+      {/* LEFT (25%): Live Query / MiniChat */}
+      <div style={{ flex: '0 0 25%', minWidth: '300px', borderRight: '1px solid var(--border)' }}>
+        <MiniChat 
+          onQuery={handleQuery} 
+          answer={answer} 
+          streaming={streaming} 
+        />
+      </div>
+
+      {/* CENTER (50%): Agent activity feed */}
+      <div style={{ flex: '1', borderRight: '1px solid var(--border)', background: 'var(--bg-primary)' }}>
         <AgentFeed
           events={events}
           streaming={streaming}
         />
       </div>
       
-      {/* RIGHT (40%): Live metadata */}
-      <div style={{ flex: '4', backgroundColor: 'var(--bg-secondary)' }}>
+      {/* RIGHT (25%): Live metadata */}
+      <div style={{ flex: '0 0 25%', minWidth: '300px', backgroundColor: 'var(--bg-secondary)' }}>
         <SystemStatePanel />
       </div>
     </div>
