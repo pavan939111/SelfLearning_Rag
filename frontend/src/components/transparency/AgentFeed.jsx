@@ -15,55 +15,63 @@ export default function AgentFeed({ events, streaming }) {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{
-        height: '72px',
-        background: 'var(--bg-card)',
+        height: '70px',
+        background: 'rgba(26, 26, 36, 0.8)',
+        backdropFilter: 'blur(12px)',
         borderBottom: '1px solid var(--border)',
         padding: '0 32px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexShrink: 0,
-        boxShadow: 'var(--shadow-sm)'
+        zIndex: 10
       }}>
-        <div style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', color: 'var(--text-primary)' }}>
-          Agent Activity
+        <div style={{ 
+          fontFamily: 'var(--font-heading)', 
+          fontSize: '22px', 
+          color: 'var(--text-primary)',
+          letterSpacing: '0.5px'
+        }}>
+          Multi-Agent Telemetry
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-secondary)' }}>
           {streaming ? (
-            <>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent-blue)', boxShadow: '0 0 6px var(--accent-blue)', animation: 'pulse 1.5s infinite' }} />
-              Processing...
-            </>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--accent-teal-light)', padding: '6px 12px', borderRadius: 'var(--radius-full)', border: '1px solid rgba(100,255,218,0.2)' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent-teal)', boxShadow: '0 0 10px var(--accent-teal)', animation: 'pulse 1.5s infinite' }} />
+              <span style={{ color: 'var(--accent-teal)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>PROCESSING</span>
+            </div>
           ) : events.length > 0 ? (
-            <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-primary)', padding: '6px 12px', borderRadius: 'var(--radius-full)', border: '1px solid var(--border)' }}>
               <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--success)' }} />
-              Complete
-            </>
+              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>IDLE</span>
+            </div>
           ) : (
-            <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-primary)', padding: '6px 12px', borderRadius: 'var(--radius-full)', border: '1px dashed var(--border-light)' }}>
               <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--text-muted)' }} />
-              Waiting for query
-            </>
+              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>WAITING</span>
+            </div>
           )}
           
           <button
             onClick={() => setShowReasoning(!showReasoning)}
             style={{
               marginLeft: '16px',
-              padding: '6px 12px',
-              borderRadius: 'var(--radius-sm)',
+              padding: '8px 16px',
+              borderRadius: 'var(--radius-full)',
               fontSize: '11px',
+              fontFamily: 'var(--font-mono)',
               fontWeight: 600,
               textTransform: 'uppercase',
               letterSpacing: '1px',
               border: '1px solid',
-              transition: 'all 0.2s',
-              backgroundColor: showReasoning ? 'var(--bg-sidebar)' : 'transparent',
-              borderColor: showReasoning ? 'var(--bg-sidebar)' : 'var(--border)',
-              color: showReasoning ? '#FFFFFF' : 'var(--text-secondary)'
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              backgroundColor: showReasoning ? 'var(--accent-purple-light)' : 'var(--bg-primary)',
+              borderColor: showReasoning ? 'rgba(179,146,240,0.3)' : 'var(--border)',
+              color: showReasoning ? 'var(--accent-purple)' : 'var(--text-secondary)',
+              cursor: 'pointer'
             }}
           >
-            {showReasoning ? 'Reasoning ON' : 'Reasoning OFF'}
+            {showReasoning ? '🧠 Trace ON' : '🧠 Trace OFF'}
           </button>
         </div>
       </div>

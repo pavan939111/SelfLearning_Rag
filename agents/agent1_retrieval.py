@@ -97,7 +97,7 @@ Return ONLY the JSON object. No explanation."""
 
         try:
             response = client.models.generate_content(
-                model="gemini-flash-latest",
+                model="gemini-2.5-flash",
                 contents=prompt
             )
             text = response.text.strip()
@@ -391,28 +391,23 @@ class HybridRetriever:
                 
         return [results[i] for i in selected_indices]
 
-    def retrieve(self, 
+    async def retrieve(self, 
                  query: str, 
                  classification = None, 
                  filter_config = None, 
                  top_k: int = 5,
-                 session_id: str | None = None) -> list[RetrievalResult]:
-        """
-        Main retrieval entry point.
-        Supports both retrieve(query, classification, filter_config, top_k)
-        and retrieve(query, filter_config, top_k) positional patterns.
-        """
+                 session_id = None):
         try:
-            # Handle parameter swapping dynamically
+            import asyncio
             if classification is not None and classification.__class__.__name__ == "FilterConfig":
                 tmp = classification
                 classification = filter_config if (filter_config is not None and filter_config.__class__.__name__ == "QueryClassification") else None
                 filter_config = tmp
-
-            # Fallback to defaults if None
             if classification is None:
+                from agents.models import QueryClassification
                 classification = QueryClassification(query=query, query_type="simple_factual", main_topics=[], requires_recent=False, entities=[])
             if filter_config is None:
+                from agents.models import FilterConfig
                 filter_config = FilterConfig(must_conditions=[], should_conditions=[], min_year=0, topic_cluster=None, requires_fresh=False)
 
             from utils.config_overrides import get_override
@@ -430,141 +425,68 @@ class HybridRetriever:
                     if bias.get("preferred_cluster") and not filter_config.topic_cluster:
                         filter_config.topic_cluster = bias["preferred_cluster"]
                         filter_config.must_conditions.append({"key": "topic_cluster", "match": bias["preferred_cluster"]})
-                    self.logger.info(f"Session bias applied: {bias.get('preferred_cluster')}")
 
-            query_emb = self.embedder.embed_text(embedding_query)
+            query_emb = await asyncio.to_thread(self.embedder.embed_text, embedding_query)
             
-            # Step 1: Dense Retrieval with Pre-filters
             filters = {}
             if filter_config.topic_cluster:
                 filters["topic_cluster"] = filter_config.topic_cluster
             
-            results = self.qdrant.search_chunks(
+            results_task = asyncio.to_thread(
+                self.qdrant.search_chunks,
                 query_embedding=query_emb,
                 level="semantic",
                 top_k=20,
                 filters=filters
             )
 
-            # Step 3: Keyword Boost & RRF Fusion
-            fused_results = self._rrf_fuse(results, query)
+            results = await results_task
 
-            # Step 4: Apply metadata filtering (Safety Check)
+            fused_results = self._rrf_fuse(results, query)
             filtered = []
             
-            from utils.config_overrides import get_override
             freshness_threshold = get_override('temporal_freshness_threshold', 0.5)
-            
             for r in fused_results:
-                # Contradiction check
-                if r.get("contradiction_flag", False):
-                    continue
-                # Date check
-                if filter_config.min_year and r.get("year", 0) < filter_config.min_year:
-                    continue
-                # Freshness check
-                if filter_config.requires_fresh and r.get("freshness_score", 0) < freshness_threshold:
-                    continue
+                if r.get("contradiction_flag", False): continue
+                if filter_config.min_year and r.get("year", 0) < filter_config.min_year: continue
+                if filter_config.requires_fresh and r.get("freshness_score", 0) < freshness_threshold: continue
                 filtered.append(r)
 
-            # Record number of filtered results before potentially relaxing
             num_filtered_before_relax = len(filtered)
-
-            # Step 6: Safeguard - Relax filters if needed
             if len(filtered) < 3 and results:
                 self.logger.warning(f"Retrieval returned only {len(filtered)} results. Relaxing filters.")
-                # Just use original results without date/freshness constraints
                 filtered = [r for r in fused_results if not r.get("contradiction_flag", False)]
 
-            # Step 5: MMR Reranking for diversity
             final_list = self._mmr_rerank(query_emb, filtered, top_k)
-
+            from agents.models import RetrievalResult
             results_to_return = [
                 RetrievalResult(
-                    chunk_id=r["chunk_id"],
-                    paper_id=r["paper_id"],
-                    text=r["text"],
-                    score=r["score"],
-                    level=r["level"],
-                    section_type=r["section_type"],
-                    topic_cluster=r["topic_cluster"],
-                    year=r["year"],
-                    freshness_score=r["freshness_score"],
-                    contradiction_flag=r["contradiction_flag"],
-                    keyword_matches=r.get("keyword_matches", 0),
-                    from_graph=r.get("from_graph", False)
-                )
-                for r in final_list
+                    chunk_id=r["chunk_id"], paper_id=r["paper_id"], text=r["text"], score=r["score"],
+                    level=r["level"], section_type=r["section_type"], topic_cluster=r["topic_cluster"],
+                    year=r["year"], freshness_score=r["freshness_score"], contradiction_flag=r["contradiction_flag"],
+                    keyword_matches=r.get("keyword_matches", 0), from_graph=r.get("from_graph", False),
+                    journal=r.get("journal", ""), authors=r.get("authors", [])
+                ) for r in final_list
             ]
 
-            # Graph Expansion
-            if len(results_to_return) < top_k * 2:
-                try:
-                    graph_expander = GraphExpansionRetriever()
-                    expanded_results = graph_expander.expand_with_graph(
-                        results_to_return, query_emb, top_k
-                    )
-                    if any(getattr(r, 'from_graph', False) for r in expanded_results):
-                        self.logger.info("Graph expansion added citation neighbors")
-                    results_to_return = expanded_results
-                except Exception as e:
-                    self.logger.warning(f"Graph expansion failed: {e}")
+            if qtype in ['multi_hop', 'exploratory']:
+                ger = GraphExpansionRetriever()
+                expanded_results = await asyncio.to_thread(
+                    ger.expand_with_graph,
+                    results_to_return,
+                    query_emb,
+                    top_k
+                )
+                results_to_return = expanded_results
 
-            # Safeguard: if temporal query produces fewer than 3 chunks after pre-filter/retry
-            qtype = getattr(classification, "query_type", "")
             is_temporal = qtype == "temporal" or (filter_config and getattr(filter_config, "requires_fresh", False))
             if is_temporal and (num_filtered_before_relax < 3 or len(results_to_return) < 3):
-                self.logger.info(
-                    "Temporal query: insufficient corpus coverage"
-                    " - signaling immediate live fetch needed"
-                )
-                
-                # Append LIVE_FETCH_SIGNAL sentinel dict to trigger immediate live fetch
-                results_to_return.append(RetrievalResult(
-                    chunk_id="LIVE_FETCH_SIGNAL",
-                    paper_id="",
-                    text="",
-                    score=0.0,
-                    level="",
-                    topic_cluster=filter_config.topic_cluster or "immunotherapy",
-                    live_fetch=True
-                ))
-
-            try:
-                tl = ThoughtLogger(session_id=session_id or '', agent='agent1')
-                avg_score = sum(r.score for r in results_to_return) / max(len(results_to_return), 1)
-                fresh_count = sum(
-                    1 for r in results_to_return if getattr(r, 'freshness_score', 0) > 0.7
-                )
-                tl.trace(
-                    step='retrieve',
-                    obs=f"Searched {len(results_to_return)} chunks returned. "
-                        f"Avg score: {avg_score:.3f}. "
-                        f"Fresh chunks: {fresh_count}/{len(results_to_return)}",
-                    thk=f"{'Good coverage' if avg_score > 0.7 else 'Low similarity scores - sparse coverage'}. "
-                        f"{'Sufficient fresh evidence' if fresh_count >= 3 else 'Limited fresh chunks for temporal query'}. "
-                        f"Strategy: {classification.query_type}",
-                    act=f"Return top {len(results_to_return)} chunks after RRF+MMR. "
-                        f"{'Flag for freshness check' if fresh_count < 3 else 'No flags needed'}",
-                    out=f"Retrieved {len(results_to_return)} chunks. "
-                        f"Top score: {results_to_return[0].score:.3f if results_to_return else 0:.3f}. "
-                        f"Clusters: {list(set(getattr(r, 'topic_cluster', '') for r in results_to_return[:3]))}",
-                    confidence=avg_score,
-                    metadata={'result_count': len(results_to_return),
-                              'avg_score': avg_score}
-                )
-                
-                # Append the traces to the classification object since results is a list
-                if classification is not None and not hasattr(classification, "thought_traces"):
-                    classification.thought_traces = []
-                classification.thought_traces.extend(tl.get_traces())
-            except Exception as trace_err:
-                self.logger.warning(f"Trace logging failed: {trace_err}")
+                self.logger.info("Temporal query: insufficient corpus coverage - signaling immediate live fetch needed")
+                results_to_return.insert(0, RetrievalResult(chunk_id="LIVE_FETCH_SIGNAL", paper_id="", text="", score=0, level="", section_type="", topic_cluster="", year=0, freshness_score=0, contradiction_flag=False, keyword_matches=0, from_graph=False))
 
             return results_to_return
-
         except Exception as e:
-            self.logger.error(f"Hybrid retrieval failed: {e}")
+            self.logger.error(f"Retrieval pipeline failed: {e}")
             return []
 
 class RetrievalSufficiencyEvaluator:
@@ -665,7 +587,7 @@ class Agent1Retrieval:
                 f"Return ONLY the rewritten query text."
             )
             response = client.models.generate_content(
-                model="gemini-flash-latest",
+                model="gemini-2.5-flash",
                 contents=prompt
             )
             return response.text.strip()
@@ -787,7 +709,9 @@ class GraphExpansionRetriever:
                 freshness_score=chunk.get('freshness_score', 1.0),
                 contradiction_flag=chunk.get('contradiction_flag', False),
                 keyword_matches=0,
-                from_graph=True
+                from_graph=True,
+                journal=chunk.get('journal', ''),
+                authors=chunk.get('authors', [])
             ))
             
         # Step 5: Combine and re-rank with MMR

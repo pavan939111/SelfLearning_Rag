@@ -47,7 +47,7 @@ class RepairCycle:
         scores = [getattr(c, 'score', 0.0) if hasattr(c, 'score') else c.get('score', 0.0) for c in chunks]
         return sum(scores) / len(scores)
 
-    def run(self, query: str, classification, initial_results: list, session_id: str = "unknown") -> CycleResult:
+    async def run(self, query: str, classification, initial_results: list, session_id: str = "unknown") -> CycleResult:
         self.logger.info("Starting Autonomous Repair Cycle...")
         
         try:
@@ -62,7 +62,7 @@ class RepairCycle:
             
             while True:
                 # Step 1: Run Agent 2 (Quality Gate)
-                agent2_result = self.evaluator.evaluate(query, classification, current_chunks)
+                agent2_result = await self.evaluator.evaluate(query, classification, current_chunks)
                 
                 # Step 2: Check Exit Conditions
                 # EXIT 1: Agent 2 Passes
@@ -178,7 +178,7 @@ class RepairCycle:
                 # Step 5: Re-retrieve using Agent 4A sub-queries
                 new_chunks = []
                 for sq in formulation.sub_queries:
-                    sq_results = self.retriever.retrieve(
+                    sq_results = await self.retriever.retrieve(
                         query=sq.query_text,
                         classification=classification,
                         filter_config=sq.filter_config,
@@ -214,7 +214,7 @@ class RepairCycle:
                 final_chunks=initial_results,
                 agent2_result=None,
                 iterations_run=0,
-                exit_reason="system_error",
+                exit_reason="not_run",
                 diagnosis_history=[],
                 all_chunks_seen=initial_results
             )

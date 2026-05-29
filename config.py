@@ -26,6 +26,7 @@ def get_config():
   semantic_scholar_key = os.environ.get(
       'SEMANTIC_SCHOLAR_API_KEY', ''
   )
+  ncbi_api_key = os.environ.get('NCBI_API_KEY', '')
   
   api_keys = []
   gemini_api_keys = []
@@ -69,6 +70,8 @@ def get_config():
               redis_password = value
             elif key == 'SEMANTIC_SCHOLAR_API_KEY':
               semantic_scholar_key = value
+            elif key == 'NCBI_API_KEY':
+              ncbi_api_key = value
             elif key.startswith('API_KEY_'):
               api_keys.append(value)
             elif key.startswith('GEMINI_API_KEY_'):
@@ -89,6 +92,7 @@ def get_config():
   config.redis_url = redis_url
   config.redis_password = redis_password
   config.semantic_scholar_api_key = semantic_scholar_key
+  config.ncbi_api_key = ncbi_api_key
   config.api_keys = api_keys
   config.gemini_api_keys = gemini_api_keys
   config.log_level = 'INFO'

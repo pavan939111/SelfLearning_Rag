@@ -157,6 +157,37 @@ async def run_freshness_sweep():
     except Exception as e:
         logger.error(f"Freshness sweep failed: {e}")
 
+import time
+from google.genai.errors import APIError
+import google.genai.models as models
+import re
+
+original_generate_content = models.Models.generate_content
+
+def generate_content_with_retry(self, *args, **kwargs):
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            return original_generate_content(self, *args, **kwargs)
+        except APIError as e:
+            if e.code == 429 and attempt < max_retries - 1:
+                # Try to extract the retry time from the error message
+                sleep_time = 35 # Default safe sleep
+                msg = str(e)
+                if "retry in" in msg:
+                    match = re.search(r"retry in ([\d\.]+)s", msg)
+                    if match:
+                        sleep_time = float(match.group(1)) + 2.0
+                logger.warning(f"[LLM Patch] Rate limited (429). Retrying in {sleep_time}s...")
+                time.sleep(sleep_time)
+                continue
+            raise e
+
+models.Models.generate_content = generate_content_with_retry
+
+# Apply monkeypatch early
+logger.info("Applied LLM 429 Rate Limit Monkeypatch with dynamic sleep")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup

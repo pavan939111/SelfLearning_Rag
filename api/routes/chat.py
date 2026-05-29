@@ -60,6 +60,49 @@ async def _observe_async(session_id, query, classification, agent2_result, cycle
     except Exception:
         pass
 
+def _filter_speculative_results(results: list, filter_config) -> list:
+    if not filter_config:
+        return results
+        
+    matched = []
+    for chunk in results:
+        mismatch = False
+        
+        # Check topic cluster if specified
+        if filter_config.topic_cluster:
+            cluster = getattr(chunk, 'topic_cluster', '') if not isinstance(chunk, dict) else chunk.get('topic_cluster', '')
+            if cluster != filter_config.topic_cluster:
+                mismatch = True
+                
+        # Check min_year
+        if filter_config.min_year is not None:
+            year = getattr(chunk, 'year', 0) if not isinstance(chunk, dict) else chunk.get('year', 0)
+            if year < filter_config.min_year:
+                mismatch = True
+                
+        # Check must_conditions manually if any are different
+        for cond in filter_config.must_conditions:
+            key = cond.get("key")
+            if key == "topic_cluster":
+                expected = cond.get("match")
+                actual = getattr(chunk, 'topic_cluster', '') if not isinstance(chunk, dict) else chunk.get('topic_cluster', '')
+                if actual != expected:
+                    mismatch = True
+            elif key == "year":
+                rng = cond.get("range", {})
+                gte = rng.get("gte")
+                lte = rng.get("lte")
+                actual = getattr(chunk, 'year', 0) if not isinstance(chunk, dict) else chunk.get('year', 0)
+                if gte is not None and actual < gte:
+                    mismatch = True
+                if lte is not None and actual > lte:
+                    mismatch = True
+                    
+        if not mismatch:
+            matched.append(chunk)
+            
+    return matched
+
 @router.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
     """
@@ -68,6 +111,7 @@ async def chat_endpoint(request: ChatRequest):
     """
     start_time = time.time()
     cache_hit = False
+    prefetched_neo4j_metadata = None
     
     try:
         # Step 3: Load conversation history
@@ -88,39 +132,202 @@ async def chat_endpoint(request: ChatRequest):
             follow_up_resolved=follow_up_resolved
         )
         
-        # Step 3.5: Classify the query (always needed for classification query_type & freshness validation)
-        state.classification = classifier.classify(state.query)
-        
-        if getattr(state.classification, 'domain_rejected', False):
-            processing_time = int((time.time() - start_time) * 1000)
-            return ChatResponse(
-                session_id=request.session_id,
-                query=request.query,
-                answer=state.classification.rejection_message,
-                citations=[],
-                confidence=0.0,
-                confidence_lower=0.0,
-                confidence_upper=0.0,
-                has_gaps=False,
-                gap_acknowledgment="",
-                has_contradiction=False,
-                contradiction_note="",
-                output_format='prose',
-                cache_hit=False,
-                cycle_ran=False,
-                cycle_exit_reason="",
-                processing_time_ms=processing_time,
-                query_type='rejected',
-                chunks_used=0,
-                claim_provenance=[],
-                query_suggestions=[
-                    'How does pembrolizumab work?',
-                    'What are drug interactions with warfarin?',
-                    'What is CRISPR-Cas9 used for?',
-                ],
-                domain_rejected=True,
-            )
-        
+        # STEP 1 - Proactive Semantic Cache Lookup (runs instantly before LLM classification)
+        query_embedding = None
+        cached_chunks = None
+        try:
+            query_embedding = embedder.embed_text(state.query)
+            cached_chunks = cache.get(query_embedding)
+        except Exception as cache_err:
+            logger.warning(f"Cache lookup failed: {cache_err}")
+            
+        # STEP 2 - If Cache Hit, evaluate cached chunks
+        if cached_chunks:
+            logger.info("Semantic cache HIT! Classifying query to validate cached chunks...")
+            state.classification = classifier.classify(state.query)
+            
+            if getattr(state.classification, 'domain_rejected', False):
+                processing_time = int((time.time() - start_time) * 1000)
+                return ChatResponse(
+                    session_id=request.session_id,
+                    query=request.query,
+                    answer=state.classification.rejection_message,
+                    citations=[],
+                    confidence=0.0,
+                    confidence_lower=0.0,
+                    confidence_upper=0.0,
+                    has_gaps=False,
+                    gap_acknowledgment="",
+                    has_contradiction=False,
+                    contradiction_note="",
+                    output_format='prose',
+                    cache_hit=False,
+                    cycle_ran=False,
+                    cycle_exit_reason="",
+                    processing_time_ms=processing_time,
+                    query_type='rejected',
+                    chunks_used=0,
+                    claim_provenance=[],
+                    query_suggestions=[
+                        'How does pembrolizumab work?',
+                        'What are drug interactions with warfarin?',
+                        'What is CRISPR-Cas9 used for?',
+                    ],
+                    domain_rejected=True,
+                )
+                
+            # Prefetch Neo4j metadata for cached chunks concurrently
+            paper_ids = list(set(getattr(c, 'paper_id', '') if not isinstance(c, dict) else c.get('paper_id', '') for c in cached_chunks))
+            paper_ids = [pid for pid in paper_ids if pid]
+            
+            async def fetch_neo4j_meta(pids):
+                if not pids:
+                    return {}
+                try:
+                    from database.neo4j_client import Neo4jManager
+                    neo4j = Neo4jManager()
+                    return neo4j.get_papers_metadata(pids)
+                except Exception as neo_err:
+                    logger.warning(f"Failed to prefetch paper titles from Neo4j: {neo_err}")
+                    return {}
+                    
+            neo4j_task = asyncio.create_task(fetch_neo4j_meta(paper_ids))
+            
+            try:
+                # Run Agent 2 with only freshness and completeness grounding checks
+                freshness_check = evaluator._check_freshness(state.classification, cached_chunks)
+                completeness_check, gaps = evaluator._check_completeness_grounding(state.query, cached_chunks)
+                
+                if freshness_check.passed and completeness_check.passed:
+                    logger.info("Cached chunks PASSED all quality validation gates. Serving from cache.")
+                    from agents.models import Agent2Result
+                    calibration_check, confidence = evaluator._check_calibration(cached_chunks)
+                    
+                    state.agent2_result = Agent2Result(
+                        all_passed=True,
+                        failed_check="",
+                        checks=[completeness_check, freshness_check, calibration_check],
+                        retrieval_results=cached_chunks,
+                        calibrated_confidence=confidence,
+                        live_fetch_needed=False
+                    )
+                    state.retrieval_results = cached_chunks
+                    state.cache_hit = True
+                    prefetched_neo4j_metadata = await neo4j_task
+                else:
+                    logger.info("Cached chunks failed quality checks (stale or incomplete). Proceeding to full retrieval.")
+                    neo4j_task.cancel()
+            except Exception as eval_cache_err:
+                logger.warning(f"Error evaluating cached chunks: {eval_cache_err}. Proceeding to full retrieval.")
+                neo4j_task.cancel()
+                
+        # STEP 3 - If cache miss or stale cache
+        if state.agent2_result is None or not state.cache_hit:
+            logger.info("Cache MISS or stale. Executing parallel speculative classification and retrieval...")
+            
+            # Start query classification (LLM call) and speculative unfiltered semantic retrieval concurrently
+            if state.classification is None:
+                classification_task = asyncio.create_task(asyncio.to_thread(classifier.classify, state.query))
+            else:
+                async def get_existing_classification():
+                    return state.classification
+                classification_task = asyncio.create_task(get_existing_classification())
+                
+            speculative_retrieval_task = asyncio.create_task(retriever.retrieve(
+                query=state.query,
+                classification=None,
+                filter_config=None,
+                top_k=request.top_k,
+                session_id=state.session_id
+            ))
+            
+            classification, speculative_results = await asyncio.gather(classification_task, speculative_retrieval_task)
+            state.classification = classification
+            
+            # Step 3.5: Handle domain rejection
+            if getattr(state.classification, 'domain_rejected', False):
+                processing_time = int((time.time() - start_time) * 1000)
+                return ChatResponse(
+                    session_id=request.session_id,
+                    query=request.query,
+                    answer=state.classification.rejection_message,
+                    citations=[],
+                    confidence=0.0,
+                    confidence_lower=0.0,
+                    confidence_upper=0.0,
+                    has_gaps=False,
+                    gap_acknowledgment="",
+                    has_contradiction=False,
+                    contradiction_note="",
+                    output_format='prose',
+                    cache_hit=False,
+                    cycle_ran=False,
+                    cycle_exit_reason="",
+                    processing_time_ms=processing_time,
+                    query_type='rejected',
+                    chunks_used=0,
+                    claim_provenance=[],
+                    query_suggestions=[
+                        'How does pembrolizumab work?',
+                        'What are drug interactions with warfarin?',
+                        'What is CRISPR-Cas9 used for?',
+                    ],
+                    domain_rejected=True,
+                )
+                
+            # Apply filter checks on speculative results
+            filter_config = pre_filter.build_filter(state.classification)
+            matched_results = _filter_speculative_results(speculative_results, filter_config)
+            
+            if len(matched_results) >= 3:
+                logger.info(f"Speculative search MATCHED filter criteria. Utilizing {len(matched_results)} matching chunks.")
+                state.retrieval_results = matched_results
+            else:
+                logger.info(f"Speculative search missed filters (only {len(matched_results)} matched). Performing filtered fallback retrieval...")
+                state.retrieval_results = await retriever.retrieve(
+                    query=state.query,
+                    classification=state.classification,
+                    filter_config=filter_config,
+                    top_k=request.top_k,
+                    session_id=state.session_id
+                )
+                
+            # STEP 4 - Parallel prefetch Neo4j metadata alongside Agent 2 Quality Gate evaluation
+            paper_ids = list(set(getattr(c, 'paper_id', '') if not isinstance(c, dict) else c.get('paper_id', '') for c in state.retrieval_results))
+            paper_ids = [pid for pid in paper_ids if pid]
+            
+            async def fetch_neo4j_meta(pids):
+                if not pids:
+                    return {}
+                try:
+                    from database.neo4j_client import Neo4jManager
+                    neo4j = Neo4jManager()
+                    return neo4j.get_papers_metadata(pids)
+                except Exception as neo_err:
+                    logger.warning(f"Failed to prefetch paper titles from Neo4j: {neo_err}")
+                    return {}
+                    
+            neo4j_task = asyncio.create_task(fetch_neo4j_meta(paper_ids))
+            
+            # Evaluate chunks concurrently with Neo4j lookup
+            agent2_eval_task = asyncio.create_task(evaluator.evaluate(
+                state.query,
+                state.classification,
+                state.retrieval_results,
+                user_id=request.user_id
+            ))
+            
+            state.agent2_result, prefetched_neo4j_metadata = await asyncio.gather(agent2_eval_task, neo4j_task)
+            
+            # Write to cache on pass asynchronously
+            if state.agent2_result.all_passed:
+                try:
+                    clusters = [r.topic_cluster if hasattr(r, 'topic_cluster') else r.get('topic_cluster', 'unknown') for r in state.retrieval_results]
+                    topic_cluster = max(set(clusters), key=clusters.count) if clusters else "default"
+                    asyncio.create_task(asyncio.to_thread(cache.set, query_embedding, state.retrieval_results, topic_cluster))
+                except Exception as cache_write_err:
+                    logger.warning(f"Failed to write to cache: {cache_write_err}")
+                    
         # Step 3.6: Proactive contradiction check via Neo4j
         contradicting_papers_count = 0
         try:
@@ -143,77 +350,7 @@ async def chat_endpoint(request: ChatRequest):
                 )
         except Exception as e:
             logger.warning(f"Proactive contradiction check failed: {e}")
-        
-        # STEP 1 - Before Agent 1: Cache lookup
-        query_embedding = None
-        try:
-            query_embedding = embedder.embed_text(state.query)
-            cached_chunks = cache.get(query_embedding)
-            if cached_chunks:
-                state.retrieval_results = cached_chunks
-        except Exception as cache_err:
-            logger.warning(f"Cache lookup failed: {cache_err}")
-        
-        # STEP 2 - If cache hit
-        if state.retrieval_results:
-            logger.info("Semantic cache HIT! Evaluating cached chunks...")
-            try:
-                # Run Agent 2 with only freshness and completeness grounding checks
-                freshness_check = evaluator._check_freshness(state.classification, state.retrieval_results)
-                completeness_check, gaps = evaluator._check_completeness_grounding(state.query, state.retrieval_results)
-                
-                if freshness_check.passed and completeness_check.passed:
-                    logger.info("Cached chunks PASSED all quality validation gates. Serving from cache.")
-                    # Build Agent2Result representing cache success
-                    from agents.models import Agent2Result
-                    calibration_check, confidence = evaluator._check_calibration(state.retrieval_results)
-                    
-                    state.agent2_result = Agent2Result(
-                        all_passed=True,
-                        failed_check="",
-                        checks=[completeness_check, freshness_check, calibration_check],
-                        retrieval_results=state.retrieval_results,
-                        calibrated_confidence=confidence,
-                        live_fetch_needed=False
-                    )
-                    
-                    state.cache_hit = True
-                else:
-                    logger.info("Cached chunks failed quality checks (stale or incomplete). Proceeding to full retrieval.")
-            except Exception as eval_cache_err:
-                logger.warning(f"Error evaluating cached chunks: {eval_cache_err}. Proceeding to full retrieval.")
-                
-        # STEP 3 - If cache miss (or stale cache)
-        if state.agent2_result is None or not state.cache_hit:
-            logger.info("Cache MISS or stale. Executing full retrieval and validation flow...")
             
-            # Step 4: Agent 1 - Classify and Retrieve
-            filter_config = pre_filter.build_filter(state.classification)
-            state.retrieval_results = retriever.retrieve(
-                query=state.query, 
-                classification=state.classification, 
-                filter_config=filter_config, 
-                top_k=request.top_k,
-                session_id=state.session_id
-            )
-            
-            # Step 5: Agent 2 - Evaluate chunks (Quality Gate)
-            state.agent2_result = evaluator.evaluate(
-                state.query, 
-                state.classification, 
-                state.retrieval_results,
-                user_id=request.user_id
-            )
-            
-            # Write to cache on pass
-            if state.agent2_result.all_passed:
-                try:
-                    clusters = [r.topic_cluster if hasattr(r, 'topic_cluster') else r.get('topic_cluster', 'unknown') for r in state.retrieval_results]
-                    topic_cluster = max(set(clusters), key=clusters.count) if clusters else "default"
-                    cache.set(query_embedding, state.retrieval_results, topic_cluster)
-                except Exception as cache_write_err:
-                    logger.warning(f"Failed to write to cache: {cache_write_err}")
-                    
         # Step 6: Repair Cycle (only runs if cache miss and Agent 2 failed)
         cycle_ran = False
         cycle_exit_reason = ""
@@ -222,7 +359,7 @@ async def chat_endpoint(request: ChatRequest):
         if not state.agent2_result.all_passed:
             initial_failed_check = state.agent2_result.failed_check
             logger.info("Agent 2 flagged issues. Initiating Repair Cycle...")
-            state.cycle_result = cycle.run(state.query, state.classification, state.retrieval_results, state.session_id)
+            state.cycle_result = await cycle.run(state.query, state.classification, state.retrieval_results, state.session_id)
             cycle_ran = True
             cycle_exit_reason = state.cycle_result.exit_reason
             
@@ -256,35 +393,35 @@ async def chat_endpoint(request: ChatRequest):
             preferred = personal.get("preferred_cluster")
             if preferred:
                 personal_context_msg = f"This researcher frequently works with {preferred} literature."
-
+                
         # Step 7: Agent 7 - Generate final response
-        # We append personal context to contradiction note or similar field, but let's just pass it in history
         history_with_context = list(history)
         if personal_context_msg:
             history_with_context.append({"role": "system", "content": personal_context_msg})
-
-        state.response = generator.generate(
+            
+        state.response = await generator.generate(
             query=state.query,
             classification=state.classification,
             agent2_result=state.agent2_result,
             cycle_result=state.cycle_result,
             conversation_history=history_with_context,
-            proactive_contradiction_note=state.proactive_contradiction_note
+            proactive_contradiction_note=state.proactive_contradiction_note,
+            prefetched_neo4j_metadata=prefetched_neo4j_metadata
         )
         
         # Step 8: Save conversation memory
         memory.add_turn(
-            session_id=state.session_id, 
-            role="user", 
-            content=state.query, 
-            query_type=state.classification.query_type, 
+            session_id=state.session_id,
+            role="user",
+            content=state.query,
+            query_type=state.classification.query_type,
             confidence=None
         )
         memory.add_turn(
-            session_id=state.session_id, 
-            role="assistant", 
-            content=state.response.answer, 
-            query_type=None, 
+            session_id=state.session_id,
+            role="assistant",
+            content=state.response.answer,
+            query_type=None,
             confidence=state.response.confidence
         )
         
@@ -302,14 +439,13 @@ async def chat_endpoint(request: ChatRequest):
         bias_state = topic_model.get_retrieval_bias(state.session_id, state.query)
         state.session_topic = bias_state.get("preferred_cluster", "default") if bias_state else "default"
         state.session_bias_applied = len(bias_state) > 0 if bias_state else False
-
+        
         # Calculate graph expansion metrics
         final_chunks = state.cycle_result.final_chunks if state.cycle_result else (state.agent2_result.retrieval_results if state.agent2_result else state.retrieval_results)
         graph_papers_added = sum(1 for r in final_chunks if getattr(r, 'from_graph', False)) if final_chunks else 0
         graph_expansion_used = graph_papers_added > 0
         
         # Non-blocking observation
-        import asyncio
         asyncio.create_task(
             _observe_async(
                 session_id=state.session_id,
@@ -443,97 +579,184 @@ async def chat_stream(session_id: str, query: str):
         try:
             start = time.time()
             
-            # Step 1 - Classification
-            classification = classifier.classify(query)
-            if hasattr(classification, 'thought_traces'):
-                for t in classification.thought_traces:
-                    yield f"data: {json.dumps({'type': 'thought', 'agent': t.agent, 'step': t.step, 'obs': t.obs, 'thk': t.thk, 'act': t.act, 'out': t.out, 'confidence': t.confidence, 'duration_ms': t.duration_ms})}\n\n"
-                    
-            yield f"data: {json.dumps({'type': 'event', 'agent': 'agent1', 'step': 'classify', 'status': 'complete', 'detail': f'Query type: {classification.query_type}', 'duration_ms': int((time.time()-start)*1000)})}\n\n"
-            await asyncio.sleep(0.1)
-            
-            # Step 2 - Cache check
+            # Step 1 - Proactive Semantic Cache Lookup
             query_embedding = embedder.embed_text(query)
             cached = cache.get(query_embedding)
+            prefetched_neo4j_metadata = None
+            classification = None
+            
             if cached:
                 yield f"data: {json.dumps({'type': 'event', 'agent': 'cache', 'step': 'hit', 'status': 'complete', 'detail': f'Cache hit - skipping retrieval', 'duration_ms': int((time.time()-start)*1000)})}\n\n"
-                retrieval_results = cached
-                cache_hit = True
-            else:
-                yield f"data: {json.dumps({'type': 'event', 'agent': 'cache', 'step': 'miss', 'status': 'info', 'detail': 'Cache miss - running full retrieval', 'duration_ms': int((time.time()-start)*1000)})}\n\n"
                 
-                # Step 3 - Retrieval
-                t = time.time()
-                filter_config = pre_filter.build_filter(classification)
-                retrieval_results = retriever.retrieve(query, classification, filter_config, top_k=5, session_id=session_id)
+                # Start classification concurrently since we need it to evaluate cached chunks
+                classification_task = asyncio.create_task(asyncio.to_thread(classifier.classify, query))
                 
-                # Check for additional thought traces added during pre_filter and retrieve
+                # Start Neo4j prefetch concurrently since we need it for generation
+                paper_ids = list(set(getattr(c, 'paper_id', '') if not isinstance(c, dict) else c.get('paper_id', '') for c in cached))
+                paper_ids = [pid for pid in paper_ids if pid]
+                
+                async def fetch_neo4j_meta(pids):
+                    if not pids:
+                        return {}
+                    try:
+                        from database.neo4j_client import Neo4jManager
+                        neo4j = Neo4jManager()
+                        return neo4j.get_papers_metadata(pids)
+                    except Exception as neo_err:
+                        logger.warning(f"Failed to prefetch paper titles from Neo4j: {neo_err}")
+                        return {}
+                
+                neo4j_task = asyncio.create_task(fetch_neo4j_meta(paper_ids))
+                
+                classification = await classification_task
+                prefetched_neo4j_metadata = await neo4j_task
+                
+                # Yield thought traces and events for classification
                 if hasattr(classification, 'thought_traces'):
-                    # The classifier traces were already yielded, so we only yield the new ones.
-                    # Since they are all appended to the same list, we can just yield the ones from index 1 onwards or track count.
-                    # Actually, pre_filter uses a fresh logger but doesn't attach to classification.
-                    # Let's just iterate classification.thought_traces and yield ones we haven't seen.
-                    # A better way is just to yield all that are for step 'pre_filter' or 'retrieve'.
-                    for tr in classification.thought_traces:
-                        if tr.step in ['pre_filter', 'retrieve']:
-                            yield f"data: {json.dumps({'type': 'thought', 'agent': tr.agent, 'step': tr.step, 'obs': tr.obs, 'thk': tr.thk, 'act': tr.act, 'out': tr.out, 'confidence': tr.confidence, 'duration_ms': tr.duration_ms})}\n\n"
-                            
-                yield f"data: {json.dumps({'type': 'event', 'agent': 'agent1', 'step': 'retrieve', 'status': 'complete', 'detail': f'Retrieved {len(retrieval_results)} chunks - avg score {sum(r.score for r in retrieval_results)/max(len(retrieval_results),1):.3f}', 'duration_ms': int((time.time()-t)*1000)})}\n\n"
-                cache_hit = False
-                await asyncio.sleep(0.1)
-            
-            # Step 4 - Agent 2
-            t = time.time()
-            agent2_result = evaluator.evaluate(query, classification, retrieval_results)
-            
-            if hasattr(agent2_result, 'thought_traces'):
-                for tr in agent2_result.thought_traces:
-                    yield f"data: {json.dumps({'type': 'thought', 'agent': tr.agent, 'step': tr.step, 'obs': tr.obs, 'thk': tr.thk, 'act': tr.act, 'out': tr.out, 'confidence': tr.confidence, 'duration_ms': tr.duration_ms})}\n\n"
+                    for t in classification.thought_traces:
+                        yield f"data: {json.dumps({'type': 'thought', 'agent': t.agent, 'step': t.step, 'obs': t.obs, 'thk': t.thk, 'act': t.act, 'out': t.out, 'confidence': t.confidence, 'duration_ms': t.duration_ms})}\n\n"
+                
+                yield f"data: {json.dumps({'type': 'event', 'agent': 'agent1', 'step': 'classify', 'status': 'complete', 'detail': f'Query type: {classification.query_type}', 'duration_ms': int((time.time()-start)*1000)})}\n\n"
+                
+                # Evaluate freshness and completeness grounding checks on cached chunks
+                freshness_check = evaluator._check_freshness(classification, cached)
+                completeness_check, gaps = evaluator._check_completeness_grounding(query, cached)
+                
+                if freshness_check.passed and completeness_check.passed:
+                    from agents.models import Agent2Result
+                    calibration_check, confidence = evaluator._check_calibration(cached)
+                    agent2_result = Agent2Result(
+                        all_passed=True,
+                        failed_check="",
+                        checks=[completeness_check, freshness_check, calibration_check],
+                        retrieval_results=cached,
+                        calibrated_confidence=confidence,
+                        live_fetch_needed=False
+                    )
                     
-            status = 'pass' if agent2_result.all_passed else 'fail'
-            failed = agent2_result.failed_check if not agent2_result.all_passed else 'none'
-            yield f"data: {json.dumps({'type': 'event', 'agent': 'agent2', 'step': 'evaluate', 'status': status, 'detail': f'Quality gate: {status.upper()} - {failed}', 'checks': [{'name': c.check_name, 'passed': c.passed, 'score': round(c.score,2)} for c in agent2_result.checks], 'duration_ms': int((time.time()-t)*1000)})}\n\n"
-            await asyncio.sleep(0.1)
-            
-            # Step 5 - Repair cycle if needed
-            cycle_result = None
-            if not agent2_result.all_passed:
-                t = time.time()
-                yield f"data: {json.dumps({'type': 'event', 'agent': 'agent3', 'step': 'diagnose', 'status': 'running', 'detail': 'Running root cause diagnosis...', 'duration_ms': 0})}\n\n"
+                    retrieval_results = cached
+                    agent2_result_final = agent2_result
+                    cycle_result = None
+                    cache_hit = True
+                else:
+                    cached = None
+                    
+            if not cached:
+                # If classification is not already run (e.g. from cache hit failure fallback), run it now in parallel with speculative retrieval
+                if classification is None:
+                    classification_task = asyncio.create_task(asyncio.to_thread(classifier.classify, query))
+                else:
+                    async def get_existing_classification():
+                        return classification
+                    classification_task = asyncio.create_task(get_existing_classification())
                 
-                cycle_result = cycle.run(query, classification, retrieval_results, session_id)
+                speculative_retrieval_task = asyncio.create_task(retriever.retrieve(
+                    query=query,
+                    classification=None,
+                    filter_config=None,
+                    top_k=5,
+                    session_id=session_id
+                ))
                 
-                # Assume cycle_result has diagnosis_history which contains traces
-                if cycle_result.diagnosis_history:
-                    d = cycle_result.diagnosis_history[0]
-                    if hasattr(d, 'thought_traces'):
-                        for tr in d.thought_traces:
-                            yield f"data: {json.dumps({'type': 'thought', 'agent': tr.agent, 'step': tr.step, 'obs': tr.obs, 'thk': tr.thk, 'act': tr.act, 'out': tr.out, 'confidence': tr.confidence, 'duration_ms': tr.duration_ms})}\n\n"
-                    yield f"data: {json.dumps({'type': 'event', 'agent': 'agent3', 'step': 'diagnose', 'status': 'complete', 'detail': f'Root cause: {d.root_cause} (Class {d.failure_class})', 'confidence': d.confidence, 'duration_ms': int((time.time()-t)*1000)})}\n\n"
+                classification, speculative_results = await asyncio.gather(classification_task, speculative_retrieval_task)
                 
-                # For Agent 4 formulation traces, cycle_result doesn't expose them directly if we didn't attach them to cycle_result.
-                # Assuming they might be attached later, we just yield the agent4a repair step for now.
-                yield f"data: {json.dumps({'type': 'event', 'agent': 'agent4a', 'step': 'repair', 'status': 'complete', 'detail': f'Repair cycle: {cycle_result.exit_reason} after {cycle_result.iterations_run} iterations', 'duration_ms': int((time.time()-t)*1000)})}\n\n"
+                # Yield classification thought traces and event
+                if hasattr(classification, 'thought_traces'):
+                    for t in classification.thought_traces:
+                        yield f"data: {json.dumps({'type': 'thought', 'agent': t.agent, 'step': t.step, 'obs': t.obs, 'thk': t.thk, 'act': t.act, 'out': t.out, 'confidence': t.confidence, 'duration_ms': t.duration_ms})}\n\n"
+                        
+                yield f"data: {json.dumps({'type': 'event', 'agent': 'agent1', 'step': 'classify', 'status': 'complete', 'detail': f'Query type: {classification.query_type}', 'duration_ms': int((time.time()-start)*1000)})}\n\n"
                 
-                retrieval_results = cycle_result.final_chunks
-                agent2_result_final = cycle_result.agent2_result
-            else:
-                agent2_result_final = agent2_result
-                if not cache_hit:
-                    topic = retrieval_results[0].topic_cluster if retrieval_results else 'immunotherapy'
-                    cache.set(query_embedding, retrieval_results, topic)
+                # Speculative filter matching
+                filter_config = pre_filter.build_filter(classification)
+                matched_results = _filter_speculative_results(speculative_results, filter_config)
+                
+                if len(matched_results) >= 3:
+                    yield f"data: {json.dumps({'type': 'event', 'agent': 'cache', 'step': 'miss', 'status': 'info', 'detail': f'Speculative retrieval matched filters ({len(matched_results)} chunks)', 'duration_ms': int((time.time()-start)*1000)})}\n\n"
+                    retrieval_results = matched_results
+                else:
+                    yield f"data: {json.dumps({'type': 'event', 'agent': 'cache', 'step': 'miss', 'status': 'info', 'detail': f'Speculative retrieval missed filters (only {len(matched_results)} matched). Running filtered retrieval...', 'duration_ms': int((time.time()-start)*1000)})}\n\n"
+                    
+                    # Filtered fallback
+                    retrieval_results = await retriever.retrieve(
+                        query=query,
+                        classification=classification,
+                        filter_config=filter_config,
+                        top_k=5,
+                        session_id=session_id
+                    )
+                
+                cache_hit = False
+                
+                # Parallel prefetch Neo4j metadata alongside Agent 2 Quality Gate
+                paper_ids = list(set(getattr(c, 'paper_id', '') if not isinstance(c, dict) else c.get('paper_id', '') for c in retrieval_results))
+                paper_ids = [pid for pid in paper_ids if pid]
+                
+                async def fetch_neo4j_meta(pids):
+                    if not pids:
+                        return {}
+                    try:
+                        from database.neo4j_client import Neo4jManager
+                        neo4j = Neo4jManager()
+                        return neo4j.get_papers_metadata(pids)
+                    except Exception as neo_err:
+                        logger.warning(f"Failed to prefetch paper titles from Neo4j: {neo_err}")
+                        return {}
+                
+                neo4j_task = asyncio.create_task(fetch_neo4j_meta(paper_ids))
+                
+                # Quality Gate evaluate concurrently with Neo4j prefetch
+                t_eval = time.time()
+                agent2_task = asyncio.create_task(evaluator.evaluate(query, classification, retrieval_results))
+                
+                agent2_result, prefetched_neo4j_metadata = await asyncio.gather(agent2_task, neo4j_task)
+                
+                if hasattr(agent2_result, 'thought_traces'):
+                    for tr in agent2_result.thought_traces:
+                        yield f"data: {json.dumps({'type': 'thought', 'agent': tr.agent, 'step': tr.step, 'obs': tr.obs, 'thk': tr.thk, 'act': tr.act, 'out': tr.out, 'confidence': tr.confidence, 'duration_ms': tr.duration_ms})}\n\n"
+                        
+                status = 'pass' if agent2_result.all_passed else 'fail'
+                failed = agent2_result.failed_check if not agent2_result.all_passed else 'none'
+                yield f"data: {json.dumps({'type': 'event', 'agent': 'agent2', 'step': 'evaluate', 'status': status, 'detail': f'Quality gate: {status.upper()} - {failed}', 'checks': [{'name': c.check_name, 'passed': c.passed, 'score': round(c.score,2)} for c in agent2_result.checks], 'duration_ms': int((time.time()-t_eval)*1000)})}\n\n"
+                
+                # Repair cycle if needed
+                cycle_result = None
+                if not agent2_result.all_passed:
+                    t_rep = time.time()
+                    yield f"data: {json.dumps({'type': 'event', 'agent': 'agent3', 'step': 'diagnose', 'status': 'running', 'detail': 'Running root cause diagnosis...', 'duration_ms': 0})}\n\n"
+                    
+                    cycle_result = await cycle.run(query, classification, retrieval_results, session_id)
+                    
+                    if cycle_result.diagnosis_history:
+                        d = cycle_result.diagnosis_history[0]
+                        if hasattr(d, 'thought_traces'):
+                            for tr in d.thought_traces:
+                                yield f"data: {json.dumps({'type': 'thought', 'agent': tr.agent, 'step': tr.step, 'obs': tr.obs, 'thk': tr.thk, 'act': tr.act, 'out': tr.out, 'confidence': tr.confidence, 'duration_ms': tr.duration_ms})}\n\n"
+                        yield f"data: {json.dumps({'type': 'event', 'agent': 'agent3', 'step': 'diagnose', 'status': 'complete', 'detail': f'Root cause: {d.root_cause} (Class {d.failure_class})', 'confidence': d.confidence, 'duration_ms': int((time.time()-t_rep)*1000)})}\n\n"
+                    
+                    yield f"data: {json.dumps({'type': 'event', 'agent': 'agent4a', 'step': 'repair', 'status': 'complete', 'detail': f'Repair cycle: {cycle_result.exit_reason} after {cycle_result.iterations_run} iterations', 'duration_ms': int((time.time()-t_rep)*1000)})}\n\n"
+                    
+                    retrieval_results = cycle_result.final_chunks
+                    agent2_result_final = cycle_result.agent2_result
+                else:
+                    agent2_result_final = agent2_result
+                    if not cache_hit:
+                        topic = retrieval_results[0].topic_cluster if retrieval_results else 'immunotherapy'
+                        asyncio.create_task(asyncio.to_thread(cache.set, query_embedding, retrieval_results, topic))
             
             # Step 6 - Generation
             t = time.time()
             yield f"data: {json.dumps({'type': 'event', 'agent': 'agent7', 'step': 'generate', 'status': 'running', 'detail': 'Generating conversational response...', 'duration_ms': 0})}\n\n"
             
             history = memory.get_history_for_agent7(session_id)
-            response = generator.generate(
+            response = await generator.generate(
                 query=query,
                 classification=classification,
                 agent2_result=agent2_result_final,
                 cycle_result=cycle_result,
-                conversation_history=history
+                conversation_history=history,
+                extract_provenance=False, # Stream-first claim provenance optimization
+                prefetched_neo4j_metadata=prefetched_neo4j_metadata
             )
             
             memory.add_turn(session_id, 'user', query, classification.query_type, 0.0)
@@ -544,15 +767,27 @@ async def chat_stream(session_id: str, query: str):
 
             yield f"data: {json.dumps({'type': 'event', 'agent': 'agent7', 'step': 'generate', 'status': 'complete', 'detail': f'Response ready - {len(response.citations)} citations', 'duration_ms': int((time.time()-t)*1000)})}\n\n"
             
-            # Final answer
-            yield f"data: {json.dumps({'type': 'event', 'agent': 'system', 'step': 'answer', 'status': 'done', 'answer': response.answer, 'citations': response.citations, 'confidence': response.confidence, 'has_gaps': response.has_gaps, 'gap_acknowledgment': response.gap_acknowledgment, 'has_contradiction': response.has_contradiction, 'contradiction_note': response.contradiction_note, 'cycle_ran': cycle_result is not None, 'cache_hit': cache_hit, 'processing_time_ms': int((time.time()-start)*1000), 'output_format': response.output_format, 'claim_provenance': [vars(p) for p in response.claim_provenance] if response.claim_provenance else [], 'proactive_contradiction_detected': False})}\n\n"
+            # Final answer (Done event, instant conversational text output)
+            yield f"data: {json.dumps({'type': 'event', 'agent': 'system', 'step': 'answer', 'status': 'done', 'answer': response.answer, 'citations': response.citations, 'confidence': response.confidence, 'has_gaps': response.has_gaps, 'gap_acknowledgment': response.gap_acknowledgment, 'has_contradiction': response.has_contradiction, 'contradiction_note': response.contradiction_note, 'cycle_ran': cycle_result is not None, 'cache_hit': cache_hit, 'processing_time_ms': int((time.time()-start)*1000), 'output_format': response.output_format, 'claim_provenance': [], 'proactive_contradiction_detected': False})}\n\n"
+            
+            # Now asynchronously extract claim provenance and stream the event
+            try:
+                provenance = await asyncio.to_thread(
+                    generator._extract_claim_provenance,
+                    response.answer,
+                    retrieval_results
+                )
+                yield f"data: {json.dumps({'type': 'provenance', 'provenance': [vars(p) if not isinstance(p, dict) else p for p in provenance] if provenance else []})}\n\n"
+            except Exception as prov_err:
+                logger.error(f"Error in async claim provenance stream: {prov_err}")
+                yield f"data: {json.dumps({'type': 'provenance', 'provenance': []})}\n\n"
             
             # Non-blocking trace persist here
             try:
                 # gather all traces
                 all_traces = []
                 if hasattr(classification, 'thought_traces'): all_traces.extend(classification.thought_traces)
-                if hasattr(agent2_result, 'thought_traces'): all_traces.extend(agent2_result.thought_traces)
+                if hasattr(agent2_result_final, 'thought_traces'): all_traces.extend(agent2_result_final.thought_traces)
                 if cycle_result and cycle_result.diagnosis_history and hasattr(cycle_result.diagnosis_history[-1], 'thought_traces'):
                     all_traces.extend(cycle_result.diagnosis_history[-1].thought_traces)
                 if hasattr(response, 'thought_traces'): all_traces.extend(response.thought_traces)

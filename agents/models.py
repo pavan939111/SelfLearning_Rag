@@ -41,6 +41,7 @@ class QueryClassification(BaseModel):
         "questions about immunotherapy, drug "
         "interactions, or genomics."
     )
+    thought_traces: list[ThoughtTrace] = []
 
 class FilterConfig(BaseModel):
     must_conditions: list[dict] = []
@@ -220,8 +221,8 @@ class StrategyRecommendation(BaseModel):
 
 class ClaimProvenance(BaseModel):
     claim: str
-    chunk_id: str
-    paper_id: str
+    chunk_id: Optional[str] = ""
+    paper_id: Optional[str] = ""
     paper_year: int = 2020
     journal: str = ""
     confidence: float = Field(ge=0.0, le=1.0)

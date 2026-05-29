@@ -3,15 +3,32 @@ from sentence_transformers import SentenceTransformer
 from utils.logger import get_logger
 
 class BiomedicalEmbedder:
-    def __init__(self):
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(BiomedicalEmbedder, cls).__new__(cls)
+            cls._instance._init_embedder()
+        return cls._instance
+        
+    def _init_embedder(self):
         self.dimension = 768
         self.model_name = 'pritamdeka/S-PubMedBert-MS-MARCO'
         self.logger = get_logger(__name__)
         
+        # Prevent HuggingFace from attempting network requests for a "local" model
+        os.environ["HF_HUB_OFFLINE"] = "1"
+        
         # Load the model directly into RAM
         # WARNING: This requires ~450MB RAM and may cause OOM on 512MB free tier containers
         self.logger.info(f"Loading local SentenceTransformer model: {self.model_name}...")
-        self.model = SentenceTransformer(self.model_name)
+        try:
+            self.model = SentenceTransformer(self.model_name, local_files_only=True)
+        except Exception as e:
+            self.logger.warning(f"Failed to load with local_files_only=True. Attempting network download... {e}")
+            os.environ["HF_HUB_OFFLINE"] = "0"
+            self.model = SentenceTransformer(self.model_name)
+            
         self.logger.info("Model loaded successfully.")
 
     def embed_text(self, text: str) -> list[float]:

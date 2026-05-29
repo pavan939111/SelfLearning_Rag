@@ -63,12 +63,21 @@ class Neo4jManager:
             else:
                 p_dict = dict(paper)
                 
+            authors_raw = p_dict.get("authors", [])
+            if isinstance(authors_raw, str):
+                authors = [a.strip() for a in authors_raw.split(",") if a.strip()]
+            elif isinstance(authors_raw, list):
+                authors = [str(a) for a in authors_raw]
+            else:
+                authors = []
+
             # Safely extract values with defaults to never crash
             params = {
                 "paper_id": str(p_dict.get("paper_id", "")),
                 "title": str(p_dict.get("title", "")),
                 "year": int(p_dict.get("year", 0)) if p_dict.get("year") is not None else 0,
                 "journal": str(p_dict.get("journal", "") or ""),
+                "authors": authors,
                 "topic_cluster": str(p_dict.get("topic_cluster", "") or ""),
                 "evidence_level": str(p_dict.get("evidence_level", "") or ""),
                 "ingestion_date": str(p_dict.get("ingestion_date", "") or ""),
@@ -81,6 +90,7 @@ class Neo4jManager:
             SET p.title = $title,
                 p.year = $year,
                 p.journal = $journal,
+                p.authors = $authors,
                 p.topic_cluster = $topic_cluster,
                 p.evidence_level = $evidence_level,
                 p.ingestion_date = $ingestion_date,
@@ -120,11 +130,20 @@ class Neo4jManager:
                     else:
                         p_dict = dict(paper)
                         
+                    authors_raw = p_dict.get("authors", [])
+                    if isinstance(authors_raw, str):
+                        authors = [a.strip() for a in authors_raw.split(",") if a.strip()]
+                    elif isinstance(authors_raw, list):
+                        authors = [str(a) for a in authors_raw]
+                    else:
+                        authors = []
+
                     batch_params.append({
                         "paper_id": str(p_dict.get("paper_id", "")),
                         "title": str(p_dict.get("title", "")),
                         "year": int(p_dict.get("year", 0)) if p_dict.get("year") is not None else 0,
                         "journal": str(p_dict.get("journal", "") or ""),
+                        "authors": authors,
                         "topic_cluster": str(p_dict.get("topic_cluster", "") or ""),
                         "evidence_level": str(p_dict.get("evidence_level", "") or ""),
                         "ingestion_date": str(p_dict.get("ingestion_date", "") or ""),
@@ -139,6 +158,7 @@ class Neo4jManager:
                 SET p.title = p_data.title,
                     p.year = p_data.year,
                     p.journal = p_data.journal,
+                    p.authors = p_data.authors,
                     p.topic_cluster = p_data.topic_cluster,
                     p.evidence_level = p_data.evidence_level,
                     p.ingestion_date = p_data.ingestion_date,
@@ -283,7 +303,7 @@ class Neo4jManager:
             cypher = f"""
             MATCH (p:Paper)
             WHERE p.paper_id IN $paper_ids
-            MATCH (p)-[:CITES|CITED_BY*1..{depth}]-(neighbor:Paper)
+            MATCH (p)-[*1..{depth}]-(neighbor:Paper)
             RETURN DISTINCT neighbor.paper_id as paper_id
             LIMIT 20
             """
@@ -338,3 +358,27 @@ class Neo4jManager:
         except Exception as e:
             logger.warning(f"Neo4j get_cluster_papers error: {e}")
             return []
+
+    def get_papers_metadata(self, paper_ids: list[str]) -> dict[str, dict]:
+        if not self.driver or not paper_ids: return {}
+        try:
+            cypher = """
+            MATCH (p:Paper)
+            WHERE p.paper_id IN $paper_ids
+            RETURN p.paper_id as paper_id, p.title as title, p.journal as journal, p.year as year, p.authors as authors
+            """
+            metadata = {}
+            with self.driver.session() as session:
+                res = session.run(cypher, paper_ids=paper_ids)
+                for record in res:
+                    pid = record["paper_id"]
+                    metadata[pid] = {
+                        "title": record.get("title") or "Unknown Title",
+                        "journal": record.get("journal") or "Unknown Journal",
+                        "year": record.get("year") or 2020,
+                        "authors": record.get("authors") or []
+                    }
+            return metadata
+        except Exception as e:
+            logger.warning(f"Neo4j get_papers_metadata error: {e}")
+            return {}

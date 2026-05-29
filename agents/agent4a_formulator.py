@@ -257,7 +257,7 @@ class Agent4AFormulator:
                             f"Reply with ONLY the search query string."
                         )
                         response = client.models.generate_content(
-                            model="gemini-flash-latest",
+                            model="gemini-2.5-flash",
                             contents=prompt
                         )
                         sub_text = response.text.strip().strip('"\'')

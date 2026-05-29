@@ -293,7 +293,7 @@ class Agent5AVerifier:
                         "}"
                     )
                     response = self.client.models.generate_content(
-                        model="gemini-flash-latest",
+                        model="gemini-2.5-flash",
                         contents=prompt
                     )
                     text = response.text.strip()

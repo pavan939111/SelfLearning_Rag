@@ -67,7 +67,7 @@ class Agent3Classifier:
                     f"Reply ONLY with 'IN_SCOPE' or 'NOVEL'."
                 )
                 response = client.models.generate_content(
-                    model="gemini-flash-latest",
+                    model="gemini-2.5-flash",
                     contents=prompt
                 )
                 answer = response.text.strip().upper()
@@ -143,7 +143,7 @@ class Agent3Classifier:
                 f"Return ONLY a JSON list of 5 strings."
             )
             response = client.models.generate_content(
-                model="gemini-flash-latest",
+                model="gemini-2.5-flash",
                 contents=prompt
             )
             text = response.text.strip()

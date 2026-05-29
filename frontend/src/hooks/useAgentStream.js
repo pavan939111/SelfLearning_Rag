@@ -24,10 +24,17 @@ export function useAgentStream() {
       try {
         const data = JSON.parse(e.data)
         
-        if (data.step === 'answer' && data.status === 'done') {
-          setAnswer(data)
+        if (data.type === 'provenance') {
+          setAnswer(prev => prev ? { ...prev, claim_provenance: data.provenance } : null)
           setStreaming(false)
           es.close()
+        } else if (data.step === 'answer' && data.status === 'done') {
+          setAnswer(data)
+          // If no provenance extraction is pending, close the connection
+          if (data.claim_provenance && data.claim_provenance.length > 0) {
+            setStreaming(false)
+            es.close()
+          }
         } else if (data.step === 'error') {
           setError(data.detail)
           setStreaming(false)

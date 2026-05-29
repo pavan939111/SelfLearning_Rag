@@ -767,7 +767,7 @@ class Agent6Learning:
                             current_value="5",
                             recommended_value="8",
                             reason=f"Multi-hop completeness failures {count} times - more chunks needed",
-                            evidence=json.dumps({"pattern": p.get("pattern_id"), "count": count}),
+                            evidence={"pattern": p.get("pattern_id"), "count": count},
                             priority="high",
                             created_at=datetime.now().isoformat(),
                             status="pending"
@@ -791,7 +791,7 @@ class Agent6Learning:
                             current_value="0.5",
                             recommended_value="0.65",
                             reason="Queries returning stale chunks despite freshness filter",
-                            evidence=json.dumps({"cluster": cluster, "actual_pass_rate": actual}),
+                            evidence={"cluster": cluster, "actual_pass_rate": actual},
                             priority="high",
                             created_at=datetime.now().isoformat(),
                             status="pending"
@@ -806,7 +806,7 @@ class Agent6Learning:
                             current_value=f"{expressed:.2f}",
                             recommended_value=f"{actual:.2f}",
                             reason="Systematic overconfidence detected",
-                            evidence=json.dumps({"expressed": expressed, "actual": actual}),
+                            evidence={"expressed": expressed, "actual": actual},
                             priority="medium",
                             created_at=datetime.now().isoformat(),
                             status="pending"
@@ -821,7 +821,7 @@ class Agent6Learning:
                             current_value="604800",
                             recommended_value="1209600",
                             reason="Genomics knowledge is very stable",
-                            evidence=json.dumps({"actual_pass_rate": actual, "sample_size": size}),
+                            evidence={"actual_pass_rate": actual, "sample_size": size},
                             priority="low",
                             created_at=datetime.now().isoformat(),
                             status="pending"

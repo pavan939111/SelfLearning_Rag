@@ -2,7 +2,7 @@ import re
 import json
 import time
 from google import genai
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from utils.logger import get_logger
 from utils.llm_utils import get_gemini_key
@@ -41,6 +41,7 @@ class Chunk:
     # Chunk-specific
     char_count: int
     chunk_index: int
+    authors: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         d = {
@@ -53,6 +54,7 @@ class Chunk:
             "topic_cluster": self.topic_cluster,
             "year": self.year,
             "journal": self.journal,
+            "authors": self.authors,
             "evidence_level": self.evidence_level,
             "ingestion_date": self.ingestion_date,
             "freshness_score": self.freshness_score,
@@ -113,6 +115,7 @@ class HierarchicalChunker:
             contradiction_flag=paper.contradiction_flag,
             char_count=len(text),
             chunk_index=0,
+            authors=paper.authors,
         )
 
     def create_section_chunks(self,
@@ -194,6 +197,7 @@ class HierarchicalChunker:
                 contradiction_flag=paper.contradiction_flag,
                 char_count=len(text),
                 chunk_index=idx,
+                authors=paper.authors,
             ))
 
         # Safety - always return at least one chunk
@@ -217,6 +221,7 @@ class HierarchicalChunker:
                 contradiction_flag=paper.contradiction_flag,
                 char_count=len(abstract),
                 chunk_index=0,
+                authors=paper.authors,
             ))
 
         return chunks
@@ -251,6 +256,7 @@ class HierarchicalChunker:
                 contradiction_flag=paper.contradiction_flag,
                 char_count=len(text),
                 chunk_index=0,
+                authors=paper.authors,
             )]
 
         # Split into sentences
@@ -304,6 +310,7 @@ class HierarchicalChunker:
                 contradiction_flag=paper.contradiction_flag,
                 char_count=len(chunk_text),
                 chunk_index=idx,
+                authors=paper.authors,
             ))
 
         return chunks if chunks else [Chunk(
@@ -325,6 +332,7 @@ class HierarchicalChunker:
             contradiction_flag=paper.contradiction_flag,
             char_count=len(text),
             chunk_index=0,
+            authors=paper.authors,
         )]
 
     def create_proposition_chunks(self,
@@ -419,6 +427,7 @@ class HierarchicalChunker:
                 contradiction_flag=paper.contradiction_flag,
                 char_count=len(prop_text),
                 chunk_index=idx,
+                authors=paper.authors,
             ))
 
         self.logger.debug(

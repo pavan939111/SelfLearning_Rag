@@ -1,5 +1,21 @@
 # Changelog
 
+## v2.3.0 — May 2026
+
+### Latency & Concurrency Optimizations
+- **Proactive Semantic Cache Lookup** — Lookup cache instantly before query classification, saving ~600ms on cache hits.
+- **Speculative Parallel Retrieval** — Concurrently classify queries and retrieve unfiltered speculative chunks, hiding vector retrieval latency completely.
+- **In-Memory Filter Matching** — Match speculative chunks against classification criteria in memory, bypassing secondary filtered retrievals for standard queries.
+- **Concurrent Neo4j Prefetching** — Asynchronously prefetch paper metadata in parallel with Agent 2 Quality Gate LLM checks, hiding sequential Neo4j database latency completely (~150ms saved).
+- **Stream-First Claim Provenance** — Decoupled conversational answer streaming from claim provenance computation. Conversational answer text streams instantly to `/chat/stream` SSE with 0s perceived latency, while citations and source references overlay dynamically a split-second later via background thread execution.
+
+### Citation & Quality Gate Improvements
+- **Unified Paper Authors Mapping** — Carried over paper authors list from original ingestion papers to chunk dataclasses, Qdrant payloads, Neo4j node properties, and final retrieval results.
+- **First-Word Journal Citation Fallback** — Replaced generic `(Unknown 2020)` citation keys with premium first-word journal fallbacks (e.g. `(Lancet 2020)`).
+- **Automated Suffix Disambiguation** — Automatically disambiguates duplicate citation keys (e.g. `Smith 2020a`, `Smith 2020b`) for papers in the same response.
+- **Normalized Claim Provenance Matching** — Enhanced LLM-to-chunk UUID matching to safely resolve varied LLM formatting (e.g., brackets, spaces, casing).
+- **Fast-Track Skip Quality Gate Bypassing** — Dynamically routes to Agent 7 generation when relevance is $\ge 70\%$ and completeness passes, avoiding diagnostic cycles when evidence is sufficient.
+
 ## v2.2.0 — May 2026
 
 ### New Features

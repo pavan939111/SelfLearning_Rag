@@ -207,6 +207,7 @@ class QdrantManager:
                     "topic_cluster":     chunk.topic_cluster,
                     "year":              chunk.year,
                     "journal":           chunk.journal,
+                    "authors":           getattr(chunk, "authors", []),
                     "evidence_level":    chunk.evidence_level,
                     "ingestion_date":    chunk.ingestion_date,
                     "freshness_score":   chunk.freshness_score,
@@ -310,6 +311,8 @@ class QdrantManager:
                     "contradiction_flag": r.payload.get(
                         "contradiction_flag", False
                     ),
+                    "journal":       r.payload.get("journal", ""),
+                    "authors":       r.payload.get("authors", []),
                 }
                 for r in results.points
             ]

@@ -44,6 +44,28 @@ class Agent7Generator:
             
         return f"{first_author} {year}"
 
+    def _extract_author_year_from_data(self, authors: list[str], year: int, journal: str = "Unknown") -> str:
+        """Heuristically extracts an Author Year string using provided authors or journal fallback."""
+        if isinstance(authors, list) and authors and authors[0] != "Unknown" and authors[0] != "Unknown Authors":
+            # Extract last name from "LastName, Initials" or "LastName FirstName" format
+            first_author = authors[0].split(',')[0].split()[-1]
+            if len(authors) > 2:
+                first_author += " et al."
+            elif len(authors) == 2:
+                second_author = authors[1].split(',')[0].split()[-1]
+                first_author += f" and {second_author}"
+        elif isinstance(authors, str) and authors and authors != "Unknown" and authors != "Unknown Authors":
+            first_author = authors.split(',')[0].split()[-1]
+            if " et al" in authors:
+                first_author += " et al."
+        else:
+            if journal and journal != "Unknown" and journal != "Unknown Journal":
+                first_author = journal.split()[0].strip(",.;:")
+            else:
+                first_author = "Biomedical"
+                
+        return f"{first_author} {year}"
+
     def _detect_output_format(self, query: str, classification) -> str:
         query_lower = query.lower()
         entities = getattr(classification, 'entities', [])
@@ -150,14 +172,16 @@ Embed citations inline as (Author Year).
             chunks_text = ""
             chunk_map = {}
             for i, c in enumerate(chunks):
-                cid = getattr(c, 'chunk_id', f"chunk_{i}") if not isinstance(c, dict) else c.get('chunk_id', f"chunk_{i}")
+                temp_id = f"chunk_{i}"
                 text = getattr(c, 'text', '') if not isinstance(c, dict) else c.get('text', '')
                 paper_id = getattr(c, 'paper_id', 'unknown') if not isinstance(c, dict) else c.get('paper_id', 'unknown')
                 year = getattr(c, 'year', 0) if not isinstance(c, dict) else c.get('year', 0)
                 journal = getattr(c, 'journal', 'Unknown') if not isinstance(c, dict) else c.get('journal', 'Unknown')
+                actual_cid = getattr(c, 'chunk_id', '') if not isinstance(c, dict) else c.get('chunk_id', '')
                 
-                chunks_text += f"[{cid}]: {text}\n\n"
-                chunk_map[cid] = {
+                chunks_text += f"[{temp_id}]: {text}\n\n"
+                chunk_map[temp_id] = {
+                    "actual_cid": actual_cid,
                     "paper_id": paper_id,
                     "year": year,
                     "journal": journal
@@ -182,7 +206,7 @@ Return JSON array only:
 ]"""
             client = genai.Client(api_key=get_gemini_key())
             res = client.models.generate_content(
-                model="gemini-flash-latest",
+                model="gemini-2.5-flash",
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     temperature=0.1
@@ -200,10 +224,22 @@ Return JSON array only:
             provenance = []
             for item in data:
                 cid = item.get("chunk_id")
-                meta = chunk_map.get(cid, {})
+                meta = {}
+                if cid is not None:
+                    cid_str = str(cid).strip().lower().strip("[]()")
+                    if cid_str in chunk_map:
+                        meta = chunk_map[cid_str]
+                    else:
+                        # Extract digits if any (e.g. "chunk 0" or "0" -> "chunk_0")
+                        digits = re.findall(r'\d+', cid_str)
+                        if digits:
+                            normalized_cid = f"chunk_{digits[0]}"
+                            meta = chunk_map.get(normalized_cid, {})
+                        else:
+                            meta = chunk_map.get(cid_str, {})
                 provenance.append(ClaimProvenance(
                     claim=item.get("claim", ""),
-                    chunk_id=cid,
+                    chunk_id=meta.get("actual_cid") or (str(cid) if cid else ""),
                     paper_id=meta.get("paper_id", "unknown"),
                     paper_year=meta.get("year", 0),
                     journal=meta.get("journal", "Unknown"),
@@ -240,7 +276,7 @@ No explanation."""
 
             client = genai.Client(api_key=get_gemini_key())
             res = client.models.generate_content(
-                model="gemini-flash-latest",
+                model="gemini-2.5-flash",
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     temperature=0.3
@@ -261,7 +297,15 @@ No explanation."""
             self.logger.warning(f"Failed to generate query suggestions: {e}")
             return []
 
-    def generate(self, query: str, classification, agent2_result, cycle_result, conversation_history: list[dict], proactive_contradiction_note: str = "") -> GeneratedResponse:
+    async def generate(self, 
+                       query: str, 
+                       classification, 
+                       agent2_result, 
+                       cycle_result, 
+                       conversation_history: list[dict], 
+                       proactive_contradiction_note: str = "",
+                       prefetched_neo4j_metadata: dict = None,
+                       extract_provenance: bool = True) -> GeneratedResponse:
         self.logger.info("Starting Agent 7 Generation...")
         
         # Step 1: Prepare context from verified chunks
@@ -284,6 +328,21 @@ No explanation."""
             )
             
         try:
+            # Fetch paper titles and details from Neo4j in parallel
+            paper_ids = list(set(getattr(c, 'paper_id', '') if not isinstance(c, dict) else c.get('paper_id', '') for c in chunks))
+            paper_ids = [pid for pid in paper_ids if pid]
+            
+            neo4j_metadata = prefetched_neo4j_metadata
+            if neo4j_metadata is None:
+                neo4j_metadata = {}
+                if paper_ids:
+                    try:
+                        from database.neo4j_client import Neo4jManager
+                        neo4j = Neo4jManager()
+                        neo4j_metadata = neo4j.get_papers_metadata(paper_ids)
+                    except Exception as neo_err:
+                        self.logger.warning(f"Failed to fetch paper titles from Neo4j: {neo_err}")
+
             evidence_text = ""
             paper_metadata_map = {}
             for i, c in enumerate(chunks, 1):
@@ -295,6 +354,25 @@ No explanation."""
                 
                 cite_key = self._extract_author_year(c)
                 
+                # Retrieve title and authors
+                neo_meta = neo4j_metadata.get(paper_id, {})
+                title = neo_meta.get("title") or getattr(c, 'title', '') or "Unknown Title"
+                if not title or title == "Unknown Title":
+                    title = f"Biomedical finding in {journal} ({year})"
+                
+                authors = neo_meta.get("authors") or getattr(c, 'authors', []) or []
+                if isinstance(authors, str):
+                    authors = [a.strip() for a in authors.split(",") if a.strip()]
+                author_str = ", ".join(authors) if authors else "Unknown Authors"
+                
+                cite_key = self._extract_author_year_from_data(authors, year, journal)
+                # Disambiguate duplicate cite_keys in the same response
+                base_cite_key = cite_key
+                suffix_char = ord('a')
+                while cite_key in paper_metadata_map and paper_metadata_map[cite_key]["paper_id"] != paper_id:
+                    cite_key = f"{base_cite_key}{chr(suffix_char)}"
+                    suffix_char += 1
+
                 evidence_text += f"[{i}] ({cite_key}, {journal}, {topic})\n{text}\n\n"
                 
                 # Map citation key to metadata dictionary
@@ -302,6 +380,8 @@ No explanation."""
                     paper_metadata_map[cite_key] = {
                         "citation": cite_key,
                         "paper_id": paper_id,
+                        "title": title,
+                        "author": author_str,
                         "journal": journal,
                         "year": year
                     }
@@ -398,7 +478,7 @@ Answer:"""
             # Step 4: Generate with Gemini Flash
             client = genai.Client(api_key=get_gemini_key())
             response = client.models.generate_content(
-                model="gemini-flash-latest",
+                model="gemini-2.5-flash",
                 contents=full_prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=system_instruction
@@ -419,7 +499,7 @@ Answer:"""
             
             # Step 6: Extract claims
             provenance = None
-            if chunks:
+            if chunks and extract_provenance:
                 provenance = self._extract_claim_provenance(answer_text, chunks)
 
             try:
