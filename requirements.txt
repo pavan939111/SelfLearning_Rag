@@ -1,5 +1,6 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.6.0+cpu
 sentence-transformers==3.4.1
-torch==2.6.0
 qdrant-client==1.18.0
 supabase==2.30.0
 neo4j==6.2.0

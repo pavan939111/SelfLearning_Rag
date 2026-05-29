@@ -16,7 +16,9 @@ export function useAgentStream() {
     setError(null)
     setStreaming(true)
 
-    const url = `/chat/stream?session_id=${encodeURIComponent(sessionId)}&query=${encodeURIComponent(query)}`
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+    const apiKey = import.meta.env.VITE_API_KEY || ''
+    const url = `${apiBase}/chat/stream?session_id=${encodeURIComponent(sessionId)}&query=${encodeURIComponent(query)}${apiKey ? `&api_key=${encodeURIComponent(apiKey)}` : ''}`
     const es = new EventSource(url)
     esRef.current = es
 
