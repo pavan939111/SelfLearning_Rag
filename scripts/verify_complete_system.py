@@ -33,6 +33,15 @@ except ImportError as e:
     print(f"Import Error: {e}")
     pass
 
+def run_sync(coro):
+    import asyncio
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return loop.run_until_complete(coro)
+
 def print_header(title: str):
     print(f"\n{'=' * 46}")
     print(f"{title}")
@@ -207,8 +216,8 @@ def check_4_agent1():
         print(f"     Factual filter: {f_expl}")
         
         print("  c) HybridRetriever:")
-        r1 = retriever.retrieve("What is pembrolizumab?", c1, f_expl, top_k=3)
-        r2 = retriever.retrieve("Current treatment 2024 NSCLC", c3, f_temp, top_k=3)
+        r1 = run_sync(retriever.retrieve("What is pembrolizumab?", c1, f_expl, top_k=3))
+        r2 = run_sync(retriever.retrieve("Current treatment 2024 NSCLC", c3, f_temp, top_k=3))
         print(f"     Retrieval 1 returned: {len(r1)} chunks, avg score: {sum(x.get('score', 0) for x in r1)/max(1, len(r1)):.2f}")
         print(f"     Retrieval 2 returned: {len(r2)} chunks, avg score: {sum(x.get('score', 0) for x in r2)/max(1, len(r2)):.2f}")
         
@@ -227,8 +236,8 @@ def check_5_agent2():
         print("  Query 1: 'pembrolizumab mechanism lung cancer'")
         time.sleep(5)
         cls = classifier.classify("pembrolizumab mechanism lung cancer")
-        res = retriever.retrieve("pembrolizumab mechanism lung cancer", cls, pre_filter.build_filter(cls), 5)
-        eval_res = evaluator.evaluate("pembrolizumab mechanism lung cancer", cls, res)
+        res = run_sync(retriever.retrieve("pembrolizumab mechanism lung cancer", cls, pre_filter.build_filter(cls), 5))
+        eval_res = run_sync(evaluator.evaluate("pembrolizumab mechanism lung cancer", cls, res))
         print(f"     Checks length: {len(eval_res.checks)}")
         print(f"     Confidence: {eval_res.calibrated_confidence}")
         for check in eval_res.checks:
@@ -237,8 +246,8 @@ def check_5_agent2():
         print("  Query 2: 'current 2024 FDA approved immunotherapy'")
         time.sleep(5)
         cls2 = classifier.classify("current 2024 FDA approved immunotherapy")
-        res2 = retriever.retrieve("current 2024 FDA approved immunotherapy", cls2, pre_filter.build_filter(cls2), 5)
-        eval_res2 = evaluator.evaluate("current 2024 FDA approved immunotherapy", cls2, res2)
+        res2 = run_sync(retriever.retrieve("current 2024 FDA approved immunotherapy", cls2, pre_filter.build_filter(cls2), 5))
+        eval_res2 = run_sync(evaluator.evaluate("current 2024 FDA approved immunotherapy", cls2, res2))
         print(f"     Live fetch triggered: {eval_res2.live_fetch_needed}")
         
     except Exception as exc:
@@ -256,10 +265,10 @@ def check_6_repair_cycle():
         q = "long term survival pembrolizumab chemotherapy"
         time.sleep(5)
         cls = classifier.classify(q)
-        res = retriever.retrieve(q, cls, pre_filter.build_filter(cls), 5)
+        res = run_sync(retriever.retrieve(q, cls, pre_filter.build_filter(cls), 5))
         
         print("  Running Repair Cycle...")
-        cycle_res = cycle.run(q, cls, res, "session_001")
+        cycle_res = run_sync(cycle.run(q, cls, res, "session_001"))
         print(f"     Exit reason: {cycle_res.exit_reason}")
         print(f"     Iterations: {len(cycle_res.diagnosis_history)}")
         if cycle_res.diagnosis_history:
@@ -279,7 +288,8 @@ def check_7_live_fetch():
     try:
         print("  a) LiveFetcher standalone:")
         a4 = Agent4AFormulator()
-        papers = a4.fetch_from_pubmed("pembrolizumab 2024 clinical trial")
+        live_res = a4._handle_knowledge_drift("pembrolizumab 2024 clinical trial", None, [])
+        papers = live_res.chunks_returned if live_res.success else []
         print(f"     Fetched {len(papers)} papers from PubMed")
             
         print("  b) Agent 4A knowledge_drift path:")
@@ -287,7 +297,7 @@ def check_7_live_fetch():
         diag = DiagnosisResult(failure_class="B", root_cause="knowledge_drift", confidence=0.9, evidence="Missing 2024 data", route_to="4A")
         try:
             time.sleep(5)
-            formulation = a4.formulate("pembrolizumab 2024", diag)
+            formulation = a4.formulate("pembrolizumab 2024", None, [], None, diag)
             print(f"     Used live fetch: {formulation.used_live_fetch}")
         except Exception as err:
             print(f"     Used live fetch: Failed ({err})")
@@ -317,10 +327,12 @@ def check_8_agent7():
         print("  a) Single turn generation:")
         time.sleep(5)
         cls = classifier.classify("How does pembrolizumab work?")
-        a2_res = Agent2Result(all_passed=True, failed_check="", checks=[], retrieval_results=[{"text": "pembrolizumab binds to pd-1", "paper_id": "123"}], calibrated_confidence=0.9, live_fetch_needed=False)
+        from agents.models import RetrievalResult
+        ret_res = [RetrievalResult(chunk_id="test-chunk-1", paper_id="123", text="pembrolizumab binds to pd-1", score=0.9, level="proposition")]
+        a2_res = Agent2Result(all_passed=True, failed_check="", checks=[], retrieval_results=ret_res, calibrated_confidence=0.9, live_fetch_needed=False)
         
         time.sleep(3)
-        resp = agent7.generate("How does pembrolizumab work?", cls, a2_res, None, [])
+        resp = run_sync(agent7.generate("How does pembrolizumab work?", cls, a2_res, None, []))
         print(f"     Answer starts with: {resp.answer[:150]}")
         print(f"     Citations found: {resp.citations}")
         
@@ -347,7 +359,9 @@ def check_9_cache():
         print(f"     Returned: {res}")
         
         print("  b) Cache set:")
-        set_res = cache.set(emb, [{"text": "mock"}], "immunotherapy")
+        from agents.models import RetrievalResult
+        mock_res = [RetrievalResult(chunk_id="mock-chunk", paper_id="mock-paper", text="mock", score=1.0, level="semantic")]
+        set_res = cache.set(emb, mock_res, "immunotherapy")
         print(f"     Set success: {set_res}")
         
         print("  c) Cache hit:")
