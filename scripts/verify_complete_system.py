@@ -218,8 +218,8 @@ def check_4_agent1():
         print("  c) HybridRetriever:")
         r1 = run_sync(retriever.retrieve("What is pembrolizumab?", c1, f_expl, top_k=3))
         r2 = run_sync(retriever.retrieve("Current treatment 2024 NSCLC", c3, f_temp, top_k=3))
-        print(f"     Retrieval 1 returned: {len(r1)} chunks, avg score: {sum(x.get('score', 0) for x in r1)/max(1, len(r1)):.2f}")
-        print(f"     Retrieval 2 returned: {len(r2)} chunks, avg score: {sum(x.get('score', 0) for x in r2)/max(1, len(r2)):.2f}")
+        print(f"     Retrieval 1 returned: {len(r1)} chunks, avg score: {sum(x.score for x in r1)/max(1, len(r1)):.2f}")
+        print(f"     Retrieval 2 returned: {len(r2)} chunks, avg score: {sum(x.score for x in r2)/max(1, len(r2)):.2f}")
         
     except Exception as e:
         if "429" in str(e) or "Quota" in str(e):
