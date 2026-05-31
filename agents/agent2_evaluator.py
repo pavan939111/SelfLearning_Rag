@@ -44,7 +44,7 @@ class Agent2Evaluator:
 
     def _check_retrieval_relevance(self, query: str, results: list) -> EvaluationResult:
         """
-        Check 1: Verified if the chunks are actually about the query using Gemini.
+        Check 1: Verified if the chunks are actually about the query using local Cross-Encoder.
         """
         self.logger.info("Running Check 1: Retrieval Relevance...")
         if not results:
@@ -56,47 +56,56 @@ class Agent2Evaluator:
                 suggestion="broaden_query"
             )
             
-        yes_count = 0
-        for r in results:
-            try:
-                # Round-robin key rotation
-                client = genai.Client(api_key=get_gemini_key())
-                
-                # Use the 'text' attribute of RetrievalResult or dict
-                text = r.text if hasattr(r, 'text') else r.get('text', '')
-                
-                prompt = (
-                    f"Query: {query}\n"
-                    f"Text: {text}\n\n"
-                    f"Is this text directly relevant to answering the query? Reply only YES or NO."
-                )
-                response = client.models.generate_content(
-                    model="gemini-2.5-flash",
-                    contents=prompt
-                )
-                answer = response.text.strip().upper()
-                
-                if "YES" in answer:
+        try:
+            from agents.reranker import LocalReranker
+            reranker = LocalReranker()
+            pairs = [(query, r.text if hasattr(r, 'text') else r.get('text', '')) for r in results]
+            scores = reranker.predict(pairs)
+            threshold = getattr(self.config, 'relevance_rerank_threshold', 0.30)
+            relevance_list = [score >= threshold for score in scores]
+            yes_count = sum(1 for is_rel in relevance_list if is_rel)
+            ratio = yes_count / len(results)
+            passed = ratio >= 0.6
+            return EvaluationResult(
+                check_name="retrieval_relevance",
+                passed=passed,
+                score=ratio,
+                reason=f"{yes_count} of {len(results)} chunks relevant (evaluated via local Cross-Encoder)",
+                suggestion="rewrite_query" if not passed else ""
+            )
+        except Exception as e:
+            self.logger.warning(f"Local Cross-Encoder relevance check failed, falling back to legacy Gemini: {e}")
+            yes_count = 0
+            for r in results:
+                try:
+                    client = genai.Client(api_key=get_gemini_key())
+                    text = r.text if hasattr(r, 'text') else r.get('text', '')
+                    prompt = (
+                        f"Query: {query}\n"
+                        f"Text: {text}\n\n"
+                        f"Is this text directly relevant to answering the query? Reply only YES or NO."
+                    )
+                    response = client.models.generate_content(
+                        model="gemini-2.5-flash",
+                        contents=prompt
+                    )
+                    answer = response.text.strip().upper()
+                    if "YES" in answer:
+                        yes_count += 1
+                    time.sleep(0.3)
+                except Exception as ex:
+                    self.logger.warning(f"Gemini relevance check fallback failed for chunk: {ex}")
                     yes_count += 1
-                
-                # Throttling
-                time.sleep(0.3)
-                
-            except Exception as e:
-                self.logger.warning(f"Gemini relevance check failed for chunk: {e}")
-                # Requirement: assume YES on failure
-                yes_count += 1
-        
-        ratio = yes_count / len(results)
-        passed = ratio >= 0.6
-        
-        return EvaluationResult(
-            check_name="retrieval_relevance",
-            passed=passed,
-            score=ratio,
-            reason=f"{yes_count} of {len(results)} chunks relevant",
-            suggestion="rewrite_query" if not passed else ""
-        )
+            
+            ratio = yes_count / len(results)
+            passed = ratio >= 0.6
+            return EvaluationResult(
+                check_name="retrieval_relevance",
+                passed=passed,
+                score=ratio,
+                reason=f"{yes_count} of {len(results)} chunks relevant (fallback)",
+                suggestion="rewrite_query" if not passed else ""
+            )
 
     def _check_completeness_grounding(self, query: str, results: list) -> tuple[EvaluationResult, list[str]]:
         """
@@ -420,7 +429,7 @@ class Agent2Evaluator:
 
     def _check_batch_relevance(self, query: str, results: list) -> EvaluationResult:
         """
-        Check 1 (Batch): Verified if the chunks are actually about the query using Gemini in a single batch call.
+        Check 1 (Batch): Verified if the chunks are actually about the query using local Cross-Encoder.
         """
         self.logger.info("Running Check 1: Batch Retrieval Relevance...")
         if not results:
@@ -432,60 +441,69 @@ class Agent2Evaluator:
                 suggestion="broaden_query"
             )
             
-        evidence_text = ""
-        for i, r in enumerate(results):
-            text = r.text if hasattr(r, 'text') else r.get('text', '')
-            evidence_text += f"Chunk {i}: {text}\n\n"
-            
-        prompt = (
-            f"Query: {query}\n\n"
-            f"Evidence Chunks:\n{evidence_text}\n"
-            f"For each chunk, determine if it is directly relevant to answering the query. "
-            f"Respond in JSON format as a list of boolean values indicating relevance (true/false) for each chunk in order.\n"
-            f"Example format:\n"
-            f"[true, false, true]\n"
-            f"Do not include any explanation. Respond ONLY with the JSON array."
-        )
-        
         try:
-            client = genai.Client(api_key=get_gemini_key())
-            response = client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=prompt
-            )
-            text = response.text.strip()
-            
-            # Clean JSON
-            if "```json" in text:
-                text = text.split("```json")[1].split("```")[0].strip()
-            elif "```" in text:
-                text = text.split("```")[1].split("```")[0].strip()
-                
-            relevance_list = json.loads(text)
-            if not isinstance(relevance_list, list):
-                raise ValueError("Relevance output is not a JSON list")
-                
-            # If the list length doesn't match results length, try to pad or truncate
-            if len(relevance_list) < len(results):
-                relevance_list += [True] * (len(results) - len(relevance_list))
-            elif len(relevance_list) > len(results):
-                relevance_list = relevance_list[:len(results)]
-                
+            from agents.reranker import LocalReranker
+            reranker = LocalReranker()
+            pairs = [(query, r.text if hasattr(r, 'text') else r.get('text', '')) for r in results]
+            scores = reranker.predict(pairs)
+            threshold = getattr(self.config, 'relevance_rerank_threshold', 0.30)
+            relevance_list = [score >= threshold for score in scores]
             yes_count = sum(1 for is_rel in relevance_list if is_rel)
+            ratio = yes_count / len(results)
+            passed = ratio >= 0.6
+            return EvaluationResult(
+                check_name="retrieval_relevance",
+                passed=passed,
+                score=ratio,
+                reason=f"{yes_count} of {len(results)} chunks relevant (evaluated via local Cross-Encoder)",
+                suggestion="rewrite_query" if not passed else ""
+            )
         except Exception as e:
-            self.logger.warning(f"Batch relevance check failed, falling back to all-relevant: {e}")
-            yes_count = len(results)
+            self.logger.warning(f"Local Cross-Encoder batch relevance check failed, falling back to batch Gemini: {e}")
+            evidence_text = ""
+            for i, r in enumerate(results):
+                text = r.text if hasattr(r, 'text') else r.get('text', '')
+                evidence_text += f"Chunk {i}: {text}\n\n"
             
-        ratio = yes_count / len(results) if results else 0.0
-        passed = ratio >= 0.6
-        
-        return EvaluationResult(
-            check_name="retrieval_relevance",
-            passed=passed,
-            score=ratio,
-            reason=f"{yes_count} of {len(results)} chunks relevant",
-            suggestion="rewrite_query" if not passed else ""
-        )
+            prompt = (
+                f"Query: {query}\n\n"
+                f"Evidence Chunks:\n{evidence_text}\n"
+                f"For each chunk, determine if it is directly relevant to answering the query. "
+                f"Respond in JSON format as a list of boolean values indicating relevance (true/false) for each chunk in order.\n"
+                f"Example format:\n"
+                f"[true, false, true]\n"
+                f"Do not include any explanation. Respond ONLY with the JSON array."
+            )
+            try:
+                client = genai.Client(api_key=get_gemini_key())
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=prompt
+                )
+                text = response.text.strip()
+                if "```json" in text:
+                    text = text.split("```json")[1].split("```")[0].strip()
+                elif "```" in text:
+                    text = text.split("```")[1].split("```")[0].strip()
+                relevance_list = json.loads(text)
+                if len(relevance_list) < len(results):
+                    relevance_list += [True] * (len(results) - len(relevance_list))
+                else:
+                    relevance_list = relevance_list[:len(results)]
+                yes_count = sum(1 for is_rel in relevance_list if is_rel)
+            except Exception as ex:
+                self.logger.warning(f"Batch relevance fallback failed: {ex}")
+                yes_count = len(results)
+            
+            ratio = yes_count / len(results) if results else 0.0
+            passed = ratio >= 0.6
+            return EvaluationResult(
+                check_name="retrieval_relevance",
+                passed=passed,
+                score=ratio,
+                reason=f"{yes_count} of {len(results)} chunks relevant (fallback)",
+                suggestion="rewrite_query" if not passed else ""
+            )
 
     def _check_contradiction(self, query: str, results: list) -> tuple[EvaluationResult, bool, list[str]]:
         return self._check_cross_chunk_contradiction(results)
@@ -493,7 +511,9 @@ class Agent2Evaluator:
     def _check_consolidated_quality(self, query: str, results: list) -> tuple[EvaluationResult, EvaluationResult, tuple[EvaluationResult, bool, list[str]], list[str]]:
         """
         Runs batch relevance, completeness grounding, and cross-chunk contradiction checks
-        consolidated into a single, highly optimized LLM call to save API costs and latency.
+        consolidated into highly optimized checks to save API costs and latency.
+        Uses a local Cross-Encoder for relevance check 1 (Prompt Fusion Phase 2) and falls
+        back to consolidated 3-in-1 LLM check if local model is offline/unavailable.
         """
         self.logger.info("Running Consolidated Quality Check (Relevance + Completeness + Contradiction)...")
         if not results:
@@ -516,7 +536,65 @@ class Agent2Evaluator:
             paper_map[i] = p_id
             topic_map[i] = t_c
 
-        prompt = f"""You are an advanced biomedical Quality Gate system. Analyze the following retrieved evidence chunks against the user query.
+        # Step 1: Attempt local Cross-Encoder relevance matching
+        use_local_rerank = False
+        rel_res = None
+        
+        try:
+            from agents.reranker import LocalReranker
+            reranker = LocalReranker()
+            pairs = [(query, r.text if hasattr(r, 'text') else r.get('text', '')) for r in results]
+            scores = reranker.predict(pairs)
+            threshold = getattr(self.config, 'relevance_rerank_threshold', 0.30)
+            relevance_list = [score >= threshold for score in scores]
+            yes_count = sum(1 for is_rel in relevance_list if is_rel)
+            ratio = yes_count / len(results)
+            rel_passed = ratio >= 0.6
+            rel_res = EvaluationResult(
+                check_name="retrieval_relevance",
+                passed=rel_passed,
+                score=ratio,
+                reason=f"{yes_count} of {len(results)} chunks relevant (evaluated via local Cross-Encoder)",
+                suggestion="rewrite_query" if not rel_passed else ""
+            )
+            self.logger.info(f"Local Cross-Encoder relevance check succeeded: {yes_count}/{len(results)} chunks relevant.")
+            use_local_rerank = True
+        except Exception as e:
+            self.logger.warning(f"Local Cross-Encoder relevance check failed, falling back to LLM relevance: {e}")
+            use_local_rerank = False
+
+        # Step 2: Formulate prompt based on reranking availability
+        if use_local_rerank:
+            # 2-in-1 consolidated LLM check: Completeness + Contradiction
+            prompt = f"""You are an advanced biomedical Quality Gate system. Analyze the following retrieved evidence chunks against the user query.
+
+Query: {query}
+
+Evidence Chunks:
+{evidence_text}
+
+You must evaluate two criteria:
+1. Completeness: Does this evidence collectively cover everything needed to fully answer the query? If not, identify the specific coverage gaps.
+2. Cross-Chunk Contradiction: Do any of these chunks make mutually exclusive or contradictory factual claims with one another? If yes, identify the conflicting chunk index pairs.
+
+Respond in JSON format ONLY matching the following schema exactly:
+{{
+  "completeness": {{
+    "covered": true,
+    "coverage_gaps": []
+  }},
+  "contradiction": {{
+    "contradiction_found": false,
+    "conflicting_pairs": []
+  }}
+}}
+
+Rules:
+- "conflicting_pairs" must be a list of lists of index integers, e.g., [[0, 2]] if Chunk 0 and Chunk 2 contradict.
+- Respond with standard JSON ONLY. Do not include markdown code block formatting (like ```json). No explanation."""
+        else:
+            # Legacy 3-in-1 consolidated LLM check: Relevance + Completeness + Contradiction
+            prompt = f"""You are an advanced biomedical Quality Gate system. Analyze the following retrieved evidence chunks against the user query.
 
 Query: {query}
 
@@ -563,21 +641,22 @@ Rules:
             data = json.loads(text)
             
             # 1. Parse Relevance
-            relevance_list = data.get("relevance", [])
-            if len(relevance_list) < len(results):
-                relevance_list += [True] * (len(results) - len(relevance_list))
-            else:
-                relevance_list = relevance_list[:len(results)]
-            yes_count = sum(1 for is_rel in relevance_list if is_rel)
-            ratio = yes_count / len(results) if results else 0.0
-            rel_passed = ratio >= 0.6
-            rel_res = EvaluationResult(
-                check_name="retrieval_relevance",
-                passed=rel_passed,
-                score=ratio,
-                reason=f"{yes_count} of {len(results)} chunks relevant",
-                suggestion="rewrite_query" if not rel_passed else ""
-            )
+            if not use_local_rerank:
+                relevance_list = data.get("relevance", [])
+                if len(relevance_list) < len(results):
+                    relevance_list += [True] * (len(results) - len(relevance_list))
+                else:
+                    relevance_list = relevance_list[:len(results)]
+                yes_count = sum(1 for is_rel in relevance_list if is_rel)
+                ratio = yes_count / len(results) if results else 0.0
+                rel_passed = ratio >= 0.6
+                rel_res = EvaluationResult(
+                    check_name="retrieval_relevance",
+                    passed=rel_passed,
+                    score=ratio,
+                    reason=f"{yes_count} of {len(results)} chunks relevant",
+                    suggestion="rewrite_query" if not rel_passed else ""
+                )
             
             # 2. Parse Completeness
             comp_data = data.get("completeness", {})
@@ -635,10 +714,11 @@ Rules:
         except Exception as e:
             self.logger.warning(f"Consolidated quality check failed, falling back: {e}")
             # Fallbacks
-            fallback_rel = EvaluationResult(check_name="retrieval_relevance", passed=True, score=1.0, reason="Assumed relevant on fallback", suggestion="")
+            if rel_res is None:
+                rel_res = EvaluationResult(check_name="retrieval_relevance", passed=True, score=1.0, reason="Assumed relevant on fallback", suggestion="")
             fallback_comp = EvaluationResult(check_name="completeness_grounding", passed=True, score=1.0, reason="Assumed covered on fallback", suggestion="")
             fallback_contra = EvaluationResult(check_name="cross_chunk_contradiction", passed=True, score=1.0, reason="Assumed no contradiction on fallback", suggestion="")
-            return fallback_rel, fallback_comp, (fallback_contra, False, []), []
+            return rel_res, fallback_comp, (fallback_contra, False, []), []
 
     async def evaluate(self,
                  query: str, 

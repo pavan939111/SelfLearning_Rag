@@ -95,6 +95,7 @@ def get_config():
   config.ncbi_api_key = ncbi_api_key
   config.api_keys = api_keys
   config.gemini_api_keys = gemini_api_keys
+  config.relevance_rerank_threshold = float(os.environ.get('RELEVANCE_RERANK_THRESHOLD', '0.30'))
   config.log_level = 'INFO'
   
   SEMANTIC_SCHOLAR_HEADERS["x-api-key"] = semantic_scholar_key
