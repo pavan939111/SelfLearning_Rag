@@ -741,6 +741,39 @@ Rules:
                     
             clean_results = [r for r in retrieval_results if not (hasattr(r, "chunk_id") and getattr(r, "chunk_id") == "LIVE_FETCH_SIGNAL")]
             
+            # Short-circuit check: query_type simple_factual and highest cosine similarity score >= 0.85
+            query_type = classification.query_type if hasattr(classification, "query_type") else classification.get("query_type", "simple_factual")
+            max_score = max([r.score if hasattr(r, "score") else r.get("score", 0.0) for r in clean_results]) if clean_results else 0.0
+            threshold = getattr(self.config, 'short_circuit_score_threshold', 0.85)
+            
+            if query_type == "simple_factual" and max_score >= threshold:
+                self.logger.info(f"SHORT-CIRCUIT ACTIVE: query_type='{query_type}', max_score={max_score:.3f} >= {threshold:.2f}. Bypassing consolidated LLM checks!")
+                
+                # Concurrently fetch lightweight metadata checks
+                fresh_res = self._check_freshness(classification, clean_results)
+                cal_res_tuple = self._check_calibration(clean_results, user_id)
+                cal_res, cal_conf = cal_res_tuple
+                
+                short_rel = EvaluationResult(check_name="retrieval_relevance", passed=True, score=1.0, reason="Bypassed (High-confidence simple factual matching)", suggestion="")
+                short_comp = EvaluationResult(check_name="completeness_grounding", passed=True, score=1.0, reason="Bypassed (High-confidence simple factual matching)", suggestion="")
+                short_contra = EvaluationResult(check_name="cross_chunk_contradiction", passed=True, score=1.0, reason="Bypassed (High-confidence simple factual matching)", suggestion="")
+                
+                checks = [short_rel, short_comp, fresh_res, cal_res, short_contra]
+                
+                return Agent2Result(
+                    all_passed=True,
+                    failed_check="none",
+                    checks=checks,
+                    calibrated_confidence=cal_conf,
+                    confidence_lower=max(0.0, cal_conf - 0.2),
+                    confidence_upper=min(1.0, cal_conf + 0.2),
+                    contradiction_found=False,
+                    contradicting_chunks=[],
+                    live_fetch_needed=False,
+                    coverage_gaps=[],
+                    retrieval_results=clean_results
+                )
+            
             # Check 3 (Freshness) and Check 4 (Calibration) are metadata/db operations, run concurrently with consolidated prompt check
             fresh_task = asyncio.to_thread(self._check_freshness, classification, clean_results)
             cal_task = asyncio.to_thread(self._check_calibration, clean_results, user_id)
