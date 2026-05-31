@@ -490,6 +490,156 @@ class Agent2Evaluator:
     def _check_contradiction(self, query: str, results: list) -> tuple[EvaluationResult, bool, list[str]]:
         return self._check_cross_chunk_contradiction(results)
 
+    def _check_consolidated_quality(self, query: str, results: list) -> tuple[EvaluationResult, EvaluationResult, tuple[EvaluationResult, bool, list[str]], list[str]]:
+        """
+        Runs batch relevance, completeness grounding, and cross-chunk contradiction checks
+        consolidated into a single, highly optimized LLM call to save API costs and latency.
+        """
+        self.logger.info("Running Consolidated Quality Check (Relevance + Completeness + Contradiction)...")
+        if not results:
+            fallback_rel = EvaluationResult(check_name="retrieval_relevance", passed=False, score=0.0, reason="No chunks to evaluate", suggestion="broaden_query")
+            fallback_comp = EvaluationResult(check_name="completeness_grounding", passed=False, score=0.0, reason="No chunks to evaluate", suggestion="broaden_query")
+            fallback_contra = EvaluationResult(check_name="cross_chunk_contradiction", passed=True, score=1.0, reason="No chunks to evaluate", suggestion="")
+            return fallback_rel, fallback_comp, (fallback_contra, False, []), []
+
+        evidence_text = ""
+        chunk_map = {}
+        paper_map = {}
+        topic_map = {}
+        for i, r in enumerate(results):
+            text = r.text if hasattr(r, 'text') else r.get('text', '')
+            c_id = r.chunk_id if hasattr(r, 'chunk_id') else r.get('chunk_id', f"chunk_{i}")
+            p_id = r.paper_id if hasattr(r, 'paper_id') else r.get('paper_id', '')
+            t_c = r.topic_cluster if hasattr(r, 'topic_cluster') else r.get('topic_cluster', 'immunotherapy')
+            evidence_text += f"Chunk {i}: {text}\n\n"
+            chunk_map[i] = c_id
+            paper_map[i] = p_id
+            topic_map[i] = t_c
+
+        prompt = f"""You are an advanced biomedical Quality Gate system. Analyze the following retrieved evidence chunks against the user query.
+
+Query: {query}
+
+Evidence Chunks:
+{evidence_text}
+
+You must evaluate three criteria:
+1. Relevance: For each chunk in order, determine if it is directly relevant to answering the query.
+2. Completeness: Does this evidence collectively cover everything needed to fully answer the query? If not, identify the specific coverage gaps.
+3. Cross-Chunk Contradiction: Do any of these chunks make mutually exclusive or contradictory factual claims with one another? If yes, identify the conflicting chunk index pairs.
+
+Respond in JSON format ONLY matching the following schema exactly:
+{{
+  "relevance": [true, false, true],
+  "completeness": {{
+    "covered": true,
+    "coverage_gaps": []
+  }},
+  "contradiction": {{
+    "contradiction_found": false,
+    "conflicting_pairs": []
+  }}
+}}
+
+Rules:
+- The "relevance" list length must match the number of chunks ({len(results)}) exactly.
+- "conflicting_pairs" must be a list of lists of index integers, e.g., [[0, 2]] if Chunk 0 and Chunk 2 contradict.
+- Respond with standard JSON ONLY. Do not include markdown code block formatting (like ```json). No explanation."""
+
+        try:
+            client = genai.Client(api_key=get_gemini_key())
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt
+            )
+            text = response.text.strip()
+            
+            # Clean JSON
+            if "```json" in text:
+                text = text.split("```json")[1].split("```")[0].strip()
+            elif "```" in text:
+                text = text.split("```")[1].split("```")[0].strip()
+                
+            data = json.loads(text)
+            
+            # 1. Parse Relevance
+            relevance_list = data.get("relevance", [])
+            if len(relevance_list) < len(results):
+                relevance_list += [True] * (len(results) - len(relevance_list))
+            else:
+                relevance_list = relevance_list[:len(results)]
+            yes_count = sum(1 for is_rel in relevance_list if is_rel)
+            ratio = yes_count / len(results) if results else 0.0
+            rel_passed = ratio >= 0.6
+            rel_res = EvaluationResult(
+                check_name="retrieval_relevance",
+                passed=rel_passed,
+                score=ratio,
+                reason=f"{yes_count} of {len(results)} chunks relevant",
+                suggestion="rewrite_query" if not rel_passed else ""
+            )
+            
+            # 2. Parse Completeness
+            comp_data = data.get("completeness", {})
+            covered = comp_data.get("covered", True)
+            gaps = comp_data.get("coverage_gaps", [])
+            comp_res = EvaluationResult(
+                check_name="completeness_grounding",
+                passed=covered,
+                score=1.0 if covered else 0.0,
+                reason="Evidence complete" if covered else f"Missing: {', '.join(gaps)}",
+                suggestion="gap_analysis" if not covered else ""
+            )
+            
+            # 3. Parse Contradiction
+            contra_data = data.get("contradiction", {})
+            found = contra_data.get("contradiction_found", False)
+            pairs = contra_data.get("conflicting_pairs", [])
+            
+            contra_ids = []
+            reason = "No contradictions"
+            if found and pairs:
+                for pair in pairs:
+                    if len(pair) >= 2:
+                        a, b = pair[0], pair[1]
+                        if a in chunk_map: contra_ids.append(chunk_map[a])
+                        if b in chunk_map: contra_ids.append(chunk_map[b])
+                        
+                        # Log to Neo4j
+                        p_a = paper_map.get(a)
+                        p_b = paper_map.get(b)
+                        if p_a and p_b and p_a != p_b:
+                            try:
+                                from database.neo4j_client import Neo4jManager
+                                neo4j = Neo4jManager()
+                                neo4j.create_contradiction_relationship(
+                                    paper_id_a=p_a,
+                                    paper_id_b=p_b,
+                                    confidence=0.75,
+                                    topic=topic_map.get(a, "immunotherapy")
+                                )
+                            except Exception as neo_err:
+                                self.logger.warning(f"Neo4j contradiction logging failed: {neo_err}")
+                reason = f"Contradiction between chunks {', '.join(set(contra_ids))}"
+                
+            contra_res = EvaluationResult(
+                check_name="cross_chunk_contradiction",
+                passed=True,  # Informational
+                score=0.0 if found else 1.0,
+                reason=reason,
+                suggestion=""
+            )
+            
+            return rel_res, comp_res, (contra_res, found, list(set(contra_ids))), gaps
+            
+        except Exception as e:
+            self.logger.warning(f"Consolidated quality check failed, falling back: {e}")
+            # Fallbacks
+            fallback_rel = EvaluationResult(check_name="retrieval_relevance", passed=True, score=1.0, reason="Assumed relevant on fallback", suggestion="")
+            fallback_comp = EvaluationResult(check_name="completeness_grounding", passed=True, score=1.0, reason="Assumed covered on fallback", suggestion="")
+            fallback_contra = EvaluationResult(check_name="cross_chunk_contradiction", passed=True, score=1.0, reason="Assumed no contradiction on fallback", suggestion="")
+            return fallback_rel, fallback_comp, (fallback_contra, False, []), []
+
     async def evaluate(self,
                  query: str, 
                  classification, 
@@ -511,17 +661,16 @@ class Agent2Evaluator:
                     
             clean_results = [r for r in retrieval_results if not (hasattr(r, "chunk_id") and getattr(r, "chunk_id") == "LIVE_FETCH_SIGNAL")]
             
-            rel_task = asyncio.to_thread(self._check_batch_relevance, query, clean_results)
-            comp_task = asyncio.to_thread(self._check_completeness_grounding, query, clean_results)
+            # Check 3 (Freshness) and Check 4 (Calibration) are metadata/db operations, run concurrently with consolidated prompt check
             fresh_task = asyncio.to_thread(self._check_freshness, classification, clean_results)
             cal_task = asyncio.to_thread(self._check_calibration, clean_results, user_id)
-            contra_task = asyncio.to_thread(self._check_contradiction, query, clean_results)
+            consolidated_task = asyncio.to_thread(self._check_consolidated_quality, query, clean_results)
             
-            res = await asyncio.gather(rel_task, comp_task, fresh_task, cal_task, contra_task)
-            rel_res, comp_res_tuple, fresh_res, cal_res_tuple, contra_res_tuple = res
+            res = await asyncio.gather(fresh_task, cal_task, consolidated_task)
+            fresh_res, cal_res_tuple, consolidated_res = res
             
-            comp_res, coverage_gaps = comp_res_tuple
             cal_res, cal_conf = cal_res_tuple
+            rel_res, comp_res, contra_res_tuple, coverage_gaps = consolidated_res
             contra_res, contra_found, contra_chunks = contra_res_tuple
             
             checks = [rel_res, comp_res, fresh_res, cal_res, contra_res]
