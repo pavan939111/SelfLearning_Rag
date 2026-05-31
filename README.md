@@ -2,7 +2,7 @@
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Try%20it%20now!-success?style=for-the-badge)](https://self-learning-rag.vercel.app/chat)
 
-A biomedical research assistant that diagnoses and fixes its own mistakes before giving you an answer.
+A biomedical research assistant that diagnoses and fixes its own mistakes before giving you an answer. Orchestrated using a compiled **LangGraph StateGraph-based engine** with a type-safe schema and memory checkpointers.
 
 ---
 
@@ -13,6 +13,8 @@ Standard AI assistants and Retrieval-Augmented Generation (RAG) systems suffer f
 ---
 
 ## How It Works — System Overview
+
+The hot-path synchronous pipeline is choreographed as a compiled **LangGraph StateGraph**, enabling multi-agent coordination, deterministic cyclic retry loops, and dynamic state tracking.
 
 ```mermaid
 flowchart TD
@@ -121,6 +123,7 @@ uvicorn api.main:app --port 8000
 | Layer | Technology |
 |---|---|
 | AI Reasoning | Gemini 2.0 Flash |
+| State Orchestration | LangGraph StateGraph Engine |
 | Vector Search | Qdrant Cloud |
 | Knowledge Graph | Neo4j AuraDB |
 | Telemetry Database | Supabase PostgreSQL |

@@ -45,6 +45,45 @@ flowchart TD
 
 ---
 
+## LangGraph StateGraph Orchestration
+
+The entire real-time RAG pipeline is choreographed using a compiled **LangGraph StateGraph**. Instead of a procedural router, the execution flow is represented as nodes (modular agent functions) and edges (conditional state routing) built on a type-safe `AgentState` schema.
+
+### State Schema (`AgentState`)
+A centralized memory context flows through the active graph session. It preserves:
+- **Inputs/Config**: User query, session credentials, top-k parameters, and session history.
+- **Intermediate Results**: Query classification, hybrid search results, Agent 2 Quality Gate scores, prefetched graph metadata, and contradiction flags.
+- **Repair Metrics**: Number of repair attempts and failure diagnostics.
+- **Output**: The final grounded `GeneratedResponse`.
+
+### StateGraph Nodes & Flow
+
+```mermaid
+flowchart TD
+    classDef start fill:#eceff1,stroke:#607d8b,stroke-width:2px,color:#000
+    classDef node fill:#e3f2fd,stroke:#42a5f5,stroke-width:2px,color:#000,rx:5px
+    classDef router fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000
+    
+    START(["🚀 Query Received"]):::start --> S1["speculative_retrieve_node<br>(Parallel Classify + Search)"]:::node
+    S1 --> S2["quality_gate_node<br>(Parallel LLM Eval + Neo4j Prefetch)"]:::node
+    S2 --> R1{"⚖️ Quality Gate Passed?"}:::router
+    
+    R1 -->|"Yes"| S5["generator_node<br>(Grounded Generation)"]:::node
+    S5 --> END(["✅ Response Returned"]):::start
+    
+    R1 -->|"No"| S3["diagnose_failure_node<br>(Agent 3 Diagnosis)"]:::node
+    S3 --> R2{"🛠️ Route To?"}:::router
+    
+    R2 -->|"4A (Real-time Class C)"| S4["repair_retry_node<br>(Agent 4A Formulation & Retry)"]:::node
+    S4 --> S2
+    
+    R2 -->|"Background (Class A/B)"| S5
+```
+
+* **Asynchronous SSE Streaming**: Integrating LangGraph allows us to stream intermediate thought traces directly via graph execution chunk iterations (`app_graph.astream()`). This decouples final answers streaming from secondary claim-level provenance mapping runs, lowering latency.
+
+---
+
 ## The Hot Path
 
 ### Query Classification and Domain Check

@@ -350,14 +350,22 @@ OUT  Markdown generated. 4 citations embedded. Ready for UI.
 
 ---
 
-## PipelineState
+## AgentState (StateGraph Memory Context)
 
-The `PipelineState` is the master memory object that flows through the Hot Path. It ensures no agent has to re-calculate what a previous agent already did.
+The `AgentState` is the centralized, type-safe schema flowing through the Hot Path's compiled **LangGraph StateGraph**. It serves as the master memory object, ensuring nodes (agents) coordinate seamlessly and reuse previous computations without redundant latency.
 
 **Key fields:**
-- `query`: The original user query
-- `query_classification`: Output of the Gemini domain check
-- `retrieved_chunks`: List of chunks from Agent 1
-- `agent2_eval`: The strict pass/fail output from Agent 2
-- `repair_attempts`: Counter (max 1) to prevent infinite loops
-- `final_answer`: Agent 7's output
+- `query`: The original user search query.
+- `session_id` & `user_id`: Isolation parameters for security, tracking, and personalization.
+- `history`: Conversation history turns for multi-turn conversational support.
+- `classification`: QueryClassifier domain analysis and keyword classification.
+- `retrieval_results`: Dense + sparse hybrid vector search results from Qdrant.
+- `agent2_result`: Evaluation metrics returned by the Agent 2 Quality Gate.
+- `quality_gate_passed`: Boolean flag driving conditional StateGraph transitions.
+- `diagnosis`: Root Cause Diagnostic findings from Agent 3 on blocking failures.
+- `repair_attempts`: Counter (max 1 loop) managing cyclic StateGraph iteration safety.
+- `final_response`: High-quality, cited conversational outputs from Agent 7.
+- `prefetched_neo4j_metadata`: Concurrently queried Neo4j paper authors and details.
+- `cache_hit`: Proactive semantic cache flag to bypass classification/retrieval stages.
+- `proactive_contradiction_note`: Formatted warning details surfaced from Neo4j.
+- `thought_traces`: Aggregated ReAct reasoning steps logged dynamically to Supabase.

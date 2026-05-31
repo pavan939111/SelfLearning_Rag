@@ -94,26 +94,26 @@ Observe how we construct queries to pull records from Qdrant, and how Neo4j quer
 
 ---
 
-## 📁 Module 3: The Synchronous Hot Path (FastAPI Routing)
+## 📁 Module 3: The Synchronous Hot Path (LangGraph Orchestration)
 
 This is the central backbone where queries flow through when a user sends a message.
 
 ### 📂 Key Files to Read
-* [api/routes/chat.py](file:///c:/Users/mahip/OneDrive/Desktop/SelfLearning_Rag/api/routes/chat.py) — Serves both `/chat` (standard HTTP) and `/chat/stream` (Server-Sent Events for real-time thought trace streaming).
-* [agents/models.py](file:///c:/Users/mahip/OneDrive/Desktop/SelfLearning_Rag/agents/models.py) — The strict Pydantic structures (`PipelineState`, `RetrievalResult`, `Agent2Result`, `GeneratedResponse`, `ThoughtTrace`) that lock down interfaces between agents.
+* [api/routes/chat.py](file:///c:/Users/mahip/OneDrive/Desktop/SelfLearning_Rag/api/routes/chat.py) — Serves `/chat` and `/chat/stream` SSE endpoints using the compiled LangGraph StateGraph.
+* [agents/orchestrator.py](file:///c:/Users/mahip/OneDrive/Desktop/SelfLearning_Rag/agents/orchestrator.py) — Defines the StateGraph compilation, modular agent nodes, and cyclic routing edges.
+* [agents/models.py](file:///c:/Users/mahip/OneDrive/Desktop/SelfLearning_Rag/agents/models.py) — The strict Pydantic structures (`RetrievalResult`, `Agent2Result`, `GeneratedResponse`, `ThoughtTrace`) that lock down interfaces between nodes.
 
 ### 🎯 Main Objective
-Trace the sequential path of `chat_endpoint()`:
-1. Load history & resolve follow-up queries.
-2. Check the **Proactive Semantic Cache** in Redis.
-3. Classify the query using Gemini.
-4. Run Retrieval (Agent 1).
-5. Quality-inspect via the Quality Gate (Agent 2).
-6. If failed, trigger the **Repair Cycle** (Agent 3 + Agent 4A).
-7. Generate response strictly bounded by evidence (Agent 7).
+Trace how the compiled graph application (`app_graph`) runs on incoming queries:
+1. Load history & check the **Proactive Semantic Cache** in Redis.
+2. Invoke `speculative_retrieve_node` (concurrently runs classifier + retriever).
+3. Invoke `quality_gate_node` (evaluates evidence concurrently with Neo4j metadata prefetching).
+4. Conditionally route to `generator_node` (Agent 7) on passes, or `diagnosis_node` on failures.
+5. Cyclic routing through `repair_retry_node` (Agent 4A query formulation) back to quality gates for validation.
 
 ### 💡 The "Why"
-* **The `PipelineState` Pattern**: Passing a single, structured, type-safe memory object (`PipelineState`) through the hot path prevents agents from re-calculating values. For example, if Agent 1 determines the query is a `comparative` type, that value is saved in the state, so Agent 7 knows to output a Markdown Table without re-evaluating.
+* **The LangGraph State Machine**: Traditional procedural routers are fragile and hard to extend with cyclic retries. Migrating to a StateGraph makes the self-healing loops declarative and easy to audit.
+* **The `AgentState` Pattern**: Passing a centralized, type-safe schema (`AgentState`) between nodes prevents agents from recalculating values. For example, if speculative retrievals are matched in-memory, the classifier topics and entities are cached in the state for Agent 7.
 * **Caching Chunks, Not Text**: Caching raw AI answers is dangerous in medical RAG because answers go stale, and they bypass safety checks. Instead, we cache the *retrieved database chunks*. This means we get the speed of cache hits, but **Agent 2 still performs freshness and validation checks** on cached chunks, guaranteeing safety.
 
 ---
