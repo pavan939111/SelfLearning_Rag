@@ -678,6 +678,13 @@ Rules:
             contra_ids = []
             reason = "No contradictions"
             if found and pairs:
+                neo4j = None
+                try:
+                    from database.neo4j_client import Neo4jManager
+                    neo4j = Neo4jManager()
+                except Exception as init_err:
+                    self.logger.warning(f"Failed to initialize Neo4j for contradiction logging: {init_err}")
+
                 for pair in pairs:
                     if len(pair) >= 2:
                         a, b = pair[0], pair[1]
@@ -687,10 +694,8 @@ Rules:
                         # Log to Neo4j
                         p_a = paper_map.get(a)
                         p_b = paper_map.get(b)
-                        if p_a and p_b and p_a != p_b:
+                        if p_a and p_b and p_a != p_b and neo4j:
                             try:
-                                from database.neo4j_client import Neo4jManager
-                                neo4j = Neo4jManager()
                                 neo4j.create_contradiction_relationship(
                                     paper_id_a=p_a,
                                     paper_id_b=p_b,

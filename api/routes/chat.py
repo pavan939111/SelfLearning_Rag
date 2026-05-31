@@ -22,6 +22,7 @@ from agents.conversation_memory import ConversationMemory, SessionTopicModel, Fo
 from agents.cache_manager import CacheManager
 from ingestion.embedder import BiomedicalEmbedder
 from agents.agent6_learning import Agent6Learning
+from database.neo4j_client import Neo4jManager
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -39,6 +40,7 @@ resolver = FollowUpResolver()
 cache = CacheManager()
 embedder = BiomedicalEmbedder()
 agent6 = Agent6Learning()
+neo4j_manager = Neo4jManager()
 
 class FeedbackRequest(BaseModel):
     session_id: str
@@ -194,9 +196,7 @@ async def chat_endpoint(request: ChatRequest):
                     paper_ids = list(set(getattr(c, 'paper_id', '') if not isinstance(c, dict) else c.get('paper_id', '') for c in cached_chunks))
                     paper_ids = [pid for pid in paper_ids if pid]
                     try:
-                        from database.neo4j_client import Neo4jManager
-                        neo4j = Neo4jManager()
-                        prefetched_neo4j_metadata = neo4j.get_papers_metadata(paper_ids)
+                        prefetched_neo4j_metadata = neo4j_manager.get_papers_metadata(paper_ids)
                     except Exception as neo_err:
                         logger.warning(f"Failed to prefetch paper titles: {neo_err}")
                 else:
@@ -209,14 +209,12 @@ async def chat_endpoint(request: ChatRequest):
         proactive_contradiction_note = ""
         contradicting_papers_count = 0
         try:
-            from database.neo4j_client import Neo4jManager
-            neo4j = Neo4jManager()
             topic_cluster = getattr(classification, 'topic_cluster', 'default') if classification else 'default'
-            topic_papers = neo4j.get_cluster_papers(topic_cluster, limit=20)
+            topic_papers = neo4j_manager.get_cluster_papers(topic_cluster, limit=20)
             
             if topic_papers:
                 for paper_id in topic_papers[:10]:
-                    neighbors = neo4j.get_contradiction_neighbors([paper_id])
+                    neighbors = neo4j_manager.get_contradiction_neighbors([paper_id])
                     if neighbors:
                         topic_has_contradictions = True
                         contradicting_papers_count += len(neighbors)
@@ -459,9 +457,7 @@ async def chat_stream(session_id: str, query: str):
                     if not pids:
                         return {}
                     try:
-                        from database.neo4j_client import Neo4jManager
-                        neo4j = Neo4jManager()
-                        return neo4j.get_papers_metadata(pids)
+                        return neo4j_manager.get_papers_metadata(pids)
                     except Exception as neo_err:
                         logger.warning(f"Failed to prefetch paper titles from Neo4j: {neo_err}")
                         return {}
@@ -509,14 +505,12 @@ async def chat_stream(session_id: str, query: str):
             proactive_contradiction_note = ""
             contradicting_papers_count = 0
             try:
-                from database.neo4j_client import Neo4jManager
-                neo4j = Neo4jManager()
                 topic_cluster = getattr(classification, 'topic_cluster', 'default') if classification else 'default'
-                topic_papers = neo4j.get_cluster_papers(topic_cluster, limit=20)
+                topic_papers = neo4j_manager.get_cluster_papers(topic_cluster, limit=20)
                 
                 if topic_papers:
                     for paper_id in topic_papers[:10]:
-                        neighbors = neo4j.get_contradiction_neighbors([paper_id])
+                        neighbors = neo4j_manager.get_contradiction_neighbors([paper_id])
                         if neighbors:
                             topic_has_contradictions = True
                             contradicting_papers_count += len(neighbors)

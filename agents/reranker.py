@@ -14,10 +14,15 @@ class LocalReranker:
     def _init_reranker(self):
         self.model_name = 'cross-encoder/ms-marco-MiniLM-L-6-v2'
         self.logger = get_logger(__name__)
+        self.model = None
         
+    def _ensure_model_loaded(self):
+        if self.model is not None:
+            return
+            
         # Enforce offline-first logic
         os.environ["HF_HUB_OFFLINE"] = "1"
-        self.logger.info(f"Loading local CrossEncoder model: {self.model_name}...")
+        self.logger.info(f"Loading local CrossEncoder model (lazy): {self.model_name}...")
         try:
             self.model = CrossEncoder(self.model_name, local_files_only=True)
         except Exception as e:
@@ -37,6 +42,7 @@ class LocalReranker:
         """
         Predict relevance scores for list of (query, document) text pairs.
         """
+        self._ensure_model_loaded()
         if not self.model:
             raise RuntimeError("CrossEncoder model not initialized")
         

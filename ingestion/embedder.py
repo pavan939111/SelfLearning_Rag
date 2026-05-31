@@ -15,13 +15,18 @@ class BiomedicalEmbedder:
         self.dimension = 768
         self.model_name = 'pritamdeka/S-PubMedBert-MS-MARCO'
         self.logger = get_logger(__name__)
+        self.model = None
         
+    def _ensure_model_loaded(self):
+        if self.model is not None:
+            return
+            
         # Prevent HuggingFace from attempting network requests for a "local" model
         os.environ["HF_HUB_OFFLINE"] = "1"
         
         # Load the model directly into RAM
         # WARNING: This requires ~450MB RAM and may cause OOM on 512MB free tier containers
-        self.logger.info(f"Loading local SentenceTransformer model: {self.model_name}...")
+        self.logger.info(f"Loading local SentenceTransformer model (lazy): {self.model_name}...")
         try:
             self.model = SentenceTransformer(self.model_name, local_files_only=True)
         except Exception as e:
@@ -33,10 +38,12 @@ class BiomedicalEmbedder:
 
     def embed_text(self, text: str) -> list[float]:
         """Embeds a single string into a 768-dimensional vector."""
+        self._ensure_model_loaded()
         return self.model.encode(text).tolist()
 
     def embed_batch(self, texts: list[str]) -> list:
         """Embeds a batch of strings into a list of vectors."""
+        self._ensure_model_loaded()
         return self.model.encode(texts).tolist()
 
     def embed_chunks(self, chunks: list) -> list:

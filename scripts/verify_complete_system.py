@@ -179,12 +179,17 @@ def check_3_ingestion():
             passed = False
             
         print("  d) Agent 5A Verifier:")
-        test_papers = load_papers('test_output/phase2_papers.jsonl')[:3]
-        for p in test_papers:
-            time.sleep(2.5) # Prevent Gemini 429 limit
-            res = verifier.verify(p)
-            rule = res.ingestion_instructions.get('rule_matched', 'None')
-            print(f"     Paper {p.paper_id}: rule_matched = {rule}")
+        import os
+        path = 'test_output/phase2_papers.jsonl'
+        if os.path.exists(path):
+            test_papers = load_papers(path)[:3]
+            for p in test_papers:
+                time.sleep(2.5) # Prevent Gemini 429 limit
+                res = verifier.verify(p)
+                rule = res.ingestion_instructions.get('rule_matched', 'None')
+                print(f"     Paper {p.paper_id}: rule_matched = {rule}")
+        else:
+            print("     Skipped (test_output/phase2_papers.jsonl not found)")
             
     except Exception as e:
         if "429" in str(e) or "Quota" in str(e):
@@ -402,10 +407,10 @@ def check_11_agent4b():
     try:
         print("  a) Celery app:")
         try:
-            from workers.celery_worker import celery_app
+            from workers.celery_app import celery_app
             print(f"     Broker URL configured")
-        except ImportError:
-            print("     Failed to import celery_worker")
+        except ImportError as e:
+            print(f"     Failed to import celery_app: {e}")
             
         print("  c) Agent 4B routing:")
         a4b = Agent4BRepair()
