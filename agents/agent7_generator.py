@@ -300,9 +300,9 @@ No explanation."""
     async def generate(self, 
                        query: str, 
                        classification, 
-                       agent2_result, 
-                       cycle_result, 
-                       conversation_history: list[dict], 
+                       agent2_result=None, 
+                       cycle_result=None, 
+                       conversation_history: list[dict] = None, 
                        proactive_contradiction_note: str = "",
                        prefetched_neo4j_metadata: dict = None,
                        extract_provenance: bool = True) -> GeneratedResponse:
