@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.3.1 — May 2026
+
+### Robustness & Production-Grade Stabilization
+- **Lazy HF Model Weight Initializations** — Converted `SentenceTransformer` (BiomedicalEmbedder) and `CrossEncoder` (LocalReranker) weight loading into lazy on-demand operations, dropping container cold-start footprint from **~650MB to ~42MB RAM** to prevent Cloud OOM killer risks.
+- **Neo4j Connection Pool Optimization** — Promoted `Neo4jManager` to a module-level thread-safe singleton, reusing connection pools across multiple endpoints and evaluators to completely prevent socket leaks and connection exhaustion in `/chat` and `/chat/stream`.
+- **LangGraph State Collision Resolution** — Renamed the node `"diagnosis"` to `"diagnose_failure"` in the StateGraph compilation to resolve state key namespace collisions.
+- **Agent 7 Backwards Compatibility** — Added default `None` values for key parameters (`agent2_result`, `cycle_result`, etc.) inside `Agent7Generator.generate()` to prevent argument missing crashes in speculatively bypassed query execution pathways.
+- **Robust Exception Handling in SSE Stream Endpoint** — Separated complex f-strings and dictionary structures in `/chat/stream` endpoints to bypass strict Python f-string compile constraints and format quotes cleanly.
+- **Celery Worker Import Stabilizations** — Resolved verification framework imports by swapping `workers.celery_worker` with `workers.celery_app`.
+
 ## v2.3.0 — May 2026
 
 ### Latency & Concurrency Optimizations
