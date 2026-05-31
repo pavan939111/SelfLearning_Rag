@@ -582,7 +582,17 @@ async def chat_stream(session_id: str, query: str):
                             yield f"data: {json.dumps({'type': 'event', 'agent': 'agent3', 'step': 'diagnose', 'status': 'complete', 'detail': f'Root cause: {diag.root_cause} (Class {diag.failure_class})', 'confidence': diag.confidence, 'duration_ms': int((time.time()-start)*1000)})}\n\n"
                             
                     elif key == "repair_retry":
-                        yield f"data: {json.dumps({'type': 'event', 'agent': 'agent4a', 'step': 'repair', 'status': 'complete', 'detail': f'Repair cycle retry completed (Attempt {val.get(\"repair_attempts\", 1)})', 'duration_ms': int((time.time()-start)*1000)})}\n\n"
+                        attempts = val.get("repair_attempts", 1)
+                        detail_str = f"Repair cycle retry completed (Attempt {attempts})"
+                        event_data = {
+                            "type": "event",
+                            "agent": "agent4a",
+                            "step": "repair",
+                            "status": "complete",
+                            "detail": detail_str,
+                            "duration_ms": int((time.time() - start) * 1000)
+                        }
+                        yield f"data: {json.dumps(event_data)}\n\n"
                         
                     elif key == "generator":
                         resp = val.get("final_response")

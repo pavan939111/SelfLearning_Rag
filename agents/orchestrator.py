@@ -366,7 +366,7 @@ workflow = StateGraph(AgentState)
 # Add Nodes
 workflow.add_node("speculative_retrieve", speculative_retrieve_node)
 workflow.add_node("quality_gate", quality_gate_node)
-workflow.add_node("diagnosis", diagnosis_node)
+workflow.add_node("diagnose_failure", diagnosis_node)
 workflow.add_node("repair_retry", repair_retry_node)
 workflow.add_node("generator", generator_node)
 
@@ -379,12 +379,12 @@ def route_quality_gate(state: AgentState):
     # Fast track passes or repair limit reached exits to generator
     if state["quality_gate_passed"] or state.get("repair_attempts", 0) >= 1:
         return "generator"
-    return "diagnosis"
+    return "diagnose_failure"
 
 workflow.add_conditional_edges(
     "quality_gate",
     route_quality_gate,
-    {"generator": "generator", "diagnosis": "diagnosis"}
+    {"generator": "generator", "diagnose_failure": "diagnose_failure"}
 )
 
 # Conditional Router: Diagnosis
@@ -395,7 +395,7 @@ def route_diagnosis(state: AgentState):
     return "generator"
 
 workflow.add_conditional_edges(
-    "diagnosis",
+    "diagnose_failure",
     route_diagnosis,
     {"repair_retry": "repair_retry", "generator": "generator"}
 )
